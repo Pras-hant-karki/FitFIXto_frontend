@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Product } from '@/types';
-import { Card } from '@/components/common';
+import { Card } from "@/components/ui";
+import { Product } from "@/types";
 
 interface ProductCardProps {
   product: Product;
@@ -12,8 +12,8 @@ export const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
   return (
     <Card className="flex flex-col">
       <div className="relative h-48 bg-gray-200 dark:bg-zinc-800 rounded-md mb-4 overflow-hidden">
-        <img 
-          src={product.image} 
+        <img
+          src={product.image}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
         />
@@ -25,11 +25,13 @@ export const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
       </div>
 
       <h3 className="font-bold text-lg mb-2 line-clamp-2">{product.name}</h3>
-      
+
       <div className="flex items-center gap-2 mb-3">
         <div className="flex gap-1">
           {[...Array(Math.round(product.rating))].map((_, i) => (
-            <span key={i} className="text-yellow-500">★</span>
+            <span key={i} className="text-yellow-500">
+              &#9733;
+            </span>
           ))}
         </div>
         <span className="text-sm text-gray-500 dark:text-zinc-400">({product.reviewCount})</span>
