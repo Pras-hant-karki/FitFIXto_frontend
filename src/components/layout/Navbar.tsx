@@ -3,9 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const navItems = ["Shop", "Services", "Trainers", "Gyms"];
+const navItems = [
+  { label: "Shop", href: "/products" },
+  { label: "Services", href: "/#services" },
+  { label: "Trainers", href: "/trainers" },
+  { label: "Gyms", href: "/#categories" },
+];
 
 const IconButton = ({
   label,
@@ -22,12 +27,26 @@ const IconButton = ({
 );
 
 export function Navbar() {
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const shouldUseDark = savedTheme === "dark" || (!savedTheme && prefersDark);
 
     document.documentElement.classList.toggle("dark", shouldUseDark);
+  }, []);
+
+  useEffect(() => {
+    const closeAccountMenu = (event: MouseEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeAccountMenu);
+    return () => document.removeEventListener("mousedown", closeAccountMenu);
   }, []);
 
   const toggleTheme = () => {
@@ -51,9 +70,9 @@ export function Navbar() {
 
       <nav className="primary-nav" aria-label="Primary navigation">
         {navItems.map((item) => (
-          <a href={`#${item.toLowerCase()}`} key={item}>
-            {item}
-          </a>
+          <Link href={item.href} key={item.label}>
+            {item.label}
+          </Link>
         ))}
       </nav>
 
@@ -81,19 +100,46 @@ export function Navbar() {
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
           </svg>
         </IconButton>
-        <IconButton label="Account">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20 21a8 8 0 0 0-16 0" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </IconButton>
-        <IconButton label="Cart">
+        <div className="account-menu-wrap" ref={accountMenuRef}>
+          <button
+            className={`nav-icon-button ${isAccountMenuOpen ? "active" : ""}`}
+            type="button"
+            aria-label="Account"
+            aria-expanded={isAccountMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => setIsAccountMenuOpen((isOpen) => !isOpen)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 21a8 8 0 0 0-16 0" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
+          {isAccountMenuOpen ? (
+            <div className="account-dropdown" role="menu">
+              <Link href="/login" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 21a8 8 0 0 0-16 0" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Login
+              </Link>
+              <Link href="/signup" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 21a8 8 0 0 0-16 0" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Sign Up
+              </Link>
+            </div>
+          ) : null}
+        </div>
+        <Link className="nav-icon-button" href="/cart" aria-label="Cart">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 6h15l-1.5 8.5H8L6 3H3" />
             <circle cx="9" cy="20" r="1.5" />
             <circle cx="18" cy="20" r="1.5" />
           </svg>
-        </IconButton>
+        </Link>
       </div>
     </header>
   );
