@@ -6,10 +6,10 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 const navItems = [
-  { label: "Shop", href: "/products" },
-  { label: "Services", href: "/#services" },
+  { label: "Shop", href: "/shop" },
+  { label: "Services", href: "/services" },
   { label: "Trainers", href: "/trainers" },
-  { label: "Gyms", href: "/#categories" },
+  { label: "Gyms", href: "/find-gyms" },
 ];
 
 const IconButton = ({
@@ -90,11 +90,11 @@ export function Navbar() {
             <path d="m8 10-3-3-3 3" />
           </svg>
         </IconButton>
-        <IconButton label="Wishlist">
+        <Link className="nav-icon-button" href="/wishlist" aria-label="Wishlist">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
           </svg>
-        </IconButton>
+        </Link>
         <IconButton label="Toggle color theme" onClick={toggleTheme}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />

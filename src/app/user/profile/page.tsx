@@ -1,12 +1,12 @@
 import { RouteShell } from "@/components/shared";
 
-export default function ProfilePage() {
+export default function UserProfilePage() {
   return (
     <RouteShell
       eyebrow="Account"
       title="Profile"
       description="Manage your personal details, saved addresses and account preferences."
-      actionHref="/orders"
+      actionHref="/user/orders"
       actionLabel="View Orders"
     >
       <div className="empty-state">

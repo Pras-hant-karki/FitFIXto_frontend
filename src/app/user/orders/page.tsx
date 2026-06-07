@@ -1,12 +1,12 @@
 import { RouteShell } from "@/components/shared";
 
-export default function OrdersPage() {
+export default function UserOrdersPage() {
   return (
     <RouteShell
       eyebrow="Account"
       title="Orders"
       description="Track equipment orders, service bookings and delivery updates."
-      actionHref="/products"
+      actionHref="/shop"
       actionLabel="Continue Shopping"
     >
       <div className="empty-state">

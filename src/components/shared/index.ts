@@ -1,3 +1,3 @@
 export * from "./auth";
-export * from "./home";
+export * from "./homepage";
 export * from "./RouteShell";

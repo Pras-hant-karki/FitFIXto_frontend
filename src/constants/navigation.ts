@@ -29,14 +29,14 @@ export const FOOTER_LINKS = {
     { label: 'Wishlist', href: '/wishlist' },
   ],
   services: [
-    { label: 'Gym Setup', href: '/services/gym-setup' },
-    { label: 'Sauna & Steam', href: '/services/sauna' },
-    { label: 'Maintenance', href: '/services/maintenance' },
+    { label: 'Gym Setup', href: '/services' },
+    { label: 'Sauna & Steam', href: '/services' },
+    { label: 'Maintenance', href: '/services' },
     { label: 'Hire Trainers', href: '/trainers' },
   ],
   support: [
     { label: 'Help Center', href: '/help' },
-    { label: 'Order Tracking', href: '/orders' },
+    { label: 'Order Tracking', href: '/user/orders' },
     { label: 'Returns', href: '/returns' },
     { label: 'Contact Us', href: '/contact' },
   ],

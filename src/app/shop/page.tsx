@@ -1,10 +1,10 @@
 import { RouteShell } from "@/components/shared";
 
-export default function ProductsPage() {
+export default function ShopPage() {
   return (
     <RouteShell
       eyebrow="Shop"
-      title="Products"
+      title="Shop Equipment"
       description="Browse gym equipment, supplements, cardio machines and strength essentials."
       actionHref="/cart"
       actionLabel="View Cart"
