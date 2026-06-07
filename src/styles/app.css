@@ -300,6 +300,25 @@ a {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.dark .hero-actions .button-primary {
+  background: #ffffff;
+  color: #171717;
+}
+
+.dark .hero-actions .button-primary:hover {
+  background: #f1f1f1;
+}
+
+.dark .hero-actions .button-glass {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  backdrop-filter: blur(12px);
+}
+
+.dark .hero-actions .button-glass:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
 .trust-benefits {
   background: var(--background);
   border-top: 1px solid var(--line);
@@ -663,7 +682,7 @@ a {
   padding: 60px 24px;
   background:
     linear-gradient(90deg, rgba(3, 2, 19, 0.96) 0%, rgba(3, 2, 19, 0.76) 55%, rgba(3, 2, 19, 0.5) 100%),
-    url("/trainer-banner.png") center / cover no-repeat;
+    url("/assets/ctabanner.png") center / cover no-repeat;
   color: #ffffff;
 }
 
@@ -881,11 +900,11 @@ a {
 }
 
 .auth-login-visual {
-  background-image: url("/auth-login.png");
+  background-image: url("/assets/login.png");
 }
 
 .auth-signup-visual {
-  background-image: url("/auth-signup.png");
+  background-image: url("/assets/signup.png");
 }
 
 .auth-visual-copy {
@@ -948,11 +967,16 @@ a {
   width: min(100%, 390px);
 }
 
+.auth-logo-link {
+  display: block;
+  width: fit-content;
+  margin: 0 0 48px;
+}
+
 .auth-logo {
   display: block;
-  width: 150px;
+  width: 190px;
   height: auto;
-  margin: 0 auto 54px;
 }
 
 .auth-title {
@@ -995,6 +1019,63 @@ a {
 
 .auth-clean-form input::placeholder {
   color: #85858b;
+}
+
+.auth-field {
+  position: relative;
+  display: block;
+}
+
+.auth-field input {
+  padding-left: 48px;
+}
+
+.auth-field:has(.auth-password-toggle) input {
+  padding-right: 48px;
+}
+
+.auth-field-icon,
+.auth-password-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.auth-field-icon {
+  left: 18px;
+  width: 18px;
+  height: 18px;
+  color: #111116;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.auth-password-toggle {
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #111116;
+  cursor: pointer;
+}
+
+.auth-password-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 .auth-two-col {
@@ -1055,7 +1136,7 @@ a {
   font-weight: 900;
 }
 
-.auth-clean-form button {
+.auth-clean-form > button {
   min-height: 48px;
   border: 0;
   border-radius: 4px;

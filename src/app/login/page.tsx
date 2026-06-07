@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AuthField } from "@/components/shared";
 
 export default function LoginPage() {
   return (
@@ -21,15 +22,17 @@ export default function LoginPage() {
 
         <div className="auth-panel">
           <div className="auth-form-wrap">
-            <Image src="/fitfixto_logo.png" alt="FitFIXto" width={150} height={49} className="auth-logo" priority />
+            <Link className="auth-logo-link" href="/" aria-label="FitFIXto home">
+              <Image src="/fitfixto_logo.png" alt="FitFIXto" width={190} height={77} className="auth-logo" priority />
+            </Link>
             <div className="auth-title">
               <h1>Sign in</h1>
               <p>Welcome back. Let&apos;s go.</p>
             </div>
 
             <form className="auth-clean-form">
-              <input type="email" placeholder="Email" aria-label="Email" />
-              <input type="password" placeholder="Password" aria-label="Password" />
+              <AuthField icon="email" type="email" placeholder="Email" ariaLabel="Email" />
+              <AuthField icon="lock" type="password" placeholder="Password" ariaLabel="Password" />
               <div className="auth-row">
                 <label className="auth-check">
                   <input type="checkbox" />

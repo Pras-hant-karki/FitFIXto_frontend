@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthField } from "@/components/shared";
 
 export default function SignupPage() {
   return (
@@ -27,13 +28,13 @@ export default function SignupPage() {
 
             <form className="auth-clean-form">
               <div className="auth-two-col">
-                <input type="text" placeholder="First name" aria-label="First name" />
-                <input type="text" placeholder="Last name" aria-label="Last name" />
+                <AuthField icon="person" placeholder="First name" ariaLabel="First name" />
+                <AuthField icon="person" placeholder="Last name" ariaLabel="Last name" />
               </div>
-              <input type="email" placeholder="Email" aria-label="Email" />
-              <input type="tel" placeholder="Phone" aria-label="Phone" />
-              <input type="password" placeholder="Password (8+ chars)" aria-label="Password" />
-              <input type="password" placeholder="Confirm password" aria-label="Confirm password" />
+              <AuthField icon="email" type="email" placeholder="Email" ariaLabel="Email" />
+              <AuthField icon="phone" type="tel" placeholder="Phone" ariaLabel="Phone" />
+              <AuthField icon="lock" type="password" placeholder="Password (8+ chars)" ariaLabel="Password" />
+              <AuthField icon="lock" type="password" placeholder="Confirm password" ariaLabel="Confirm password" />
               <label className="auth-check muted">
                 <input type="checkbox" />
                 I agree to the <Link href="#">Terms &amp; Privacy Policy</Link>
