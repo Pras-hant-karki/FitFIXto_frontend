@@ -1177,6 +1177,10 @@ a {
   color: #c40000;
 }
 
+.auth-message.success {
+  color: #127a3a;
+}
+
 .auth-switch {
   margin: 26px 0 0;
   color: #747584;
