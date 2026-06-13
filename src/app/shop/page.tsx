@@ -1,125 +1,23 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { ShoppingCart, Heart, Star, CheckCircle2 } from 'lucide-react';
-
-// ─── Types ─────────────────────────────────────────────
-interface Product {
-  id: number;
-  image: string;
-  category: string;
-  brand: string;
-  condition: 'New' | 'Refurbished';
-  name: string;
-  rating: number;
-  reviews: number;
-  price: number;
-  originalPrice: number;
-  discount: number;
-  verified: boolean;
-}
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Heart, ShoppingCart, Star } from "lucide-react";
+import {
+  BackendProduct,
+  fetchProducts,
+  formatCategory,
+  getOriginalPrice,
+  getProductImage,
+} from "@/features/products";
 
 interface Filters {
   categories: string[];
   priceRange: [number, number];
-  conditions: string[];
   brands: string[];
 }
 
-// ─── Mock Data ───────────────────────────────────────
-const PRODUCTS: Product[] = [
-  {
-    id: 1,
-    image: 'dumbbell.png',
-    category: 'Dumbbells',
-    brand: 'IronCore',
-    condition: 'New',
-    name: 'Pro Hex Dumbbell Set 5-50lbs',
-    rating: 4.8,
-    reviews: 312,
-    price: 599,
-    originalPrice: 799,
-    discount: 25,
-    verified: true,
-  },
-  {
-    id: 2,
-    image: 'dumbbell.png',
-    category: 'Dumbbells',
-    brand: 'IronCore',
-    condition: 'New',
-    name: 'Pro Hex Dumbbell Set 5-50lbs',
-    rating: 4.8,
-    reviews: 312,
-    price: 599,
-    originalPrice: 799,
-    discount: 25,
-    verified: true,
-  },
-  {
-    id: 3,
-    image: 'protein.png',
-    category: 'Supplements',
-    brand: 'PureFuel',
-    condition: 'New',
-    name: 'Premium Whey Isolate 5lb',
-    rating: 4.7,
-    reviews: 1204,
-    price: 79,
-    originalPrice: 99,
-    discount: 20,
-    verified: true,
-  },
-  {
-    id: 4,
-    image: 'dumbbell.png',
-    category: 'Dumbbells',
-    brand: 'IronCore',
-    condition: 'New',
-    name: 'Pro Hex Dumbbell Set 5-50lbs',
-    rating: 4.8,
-    reviews: 312,
-    price: 599,
-    originalPrice: 799,
-    discount: 25,
-    verified: true,
-  },
-  {
-    id: 5,
-    image: 'dumbbell.png',
-    category: 'Dumbbells',
-    brand: 'IronCore',
-    condition: 'New',
-    name: 'Pro Hex Dumbbell Set 5-50lbs',
-    rating: 4.8,
-    reviews: 312,
-    price: 599,
-    originalPrice: 799,
-    discount: 25,
-    verified: true,
-  },
-  {
-    id: 6,
-    image: 'dumbbell.png',
-    category: 'Dumbbells',
-    brand: 'IronCore',
-    condition: 'New',
-    name: 'Pro Hex Dumbbell Set 5-50lbs',
-    rating: 4.8,
-    reviews: 312,
-    price: 599,
-    originalPrice: 799,
-    discount: 25,
-    verified: true,
-  },
-];
+const DEFAULT_MAX_PRICE = 3000;
 
-const CATEGORIES = ['Dumbbells', 'Racks', 'Supplements', 'Cardio', 'Benches', 'Barbells'];
-const CONDITIONS = ['New', 'Refurbished'];
-const BRANDS = ['IronCore', 'TitanForge', 'PureFuel', 'RunForge'];
-const MAX_PRICE = 3000;
-
-// ─── Custom Dual Range Slider ────────────────────────
 interface DualRangeSliderProps {
   min: number;
   max: number;
@@ -129,10 +27,10 @@ interface DualRangeSliderProps {
 
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onChange }) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<'min' | 'max' | null>(null);
+  const [dragging, setDragging] = useState<"min" | "max" | null>(null);
 
   const getPercentage = useCallback(
-    (val: number) => ((val - min) / (max - min)) * 100,
+    (val: number) => ((val - min) / (max - min || 1)) * 100,
     [min, max]
   );
 
@@ -150,7 +48,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragging) return;
       const newValue = getValueFromPosition(e.clientX);
-      if (dragging === 'min') {
+      if (dragging === "min") {
         onChange([Math.min(newValue, value[1] - 50), value[1]]);
       } else {
         onChange([value[0], Math.max(newValue, value[0] + 50)]);
@@ -160,12 +58,12 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
     const handleMouseUp = () => setDragging(null);
 
     if (dragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
     }
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [dragging, value, onChange, getValueFromPosition]);
 
@@ -174,37 +72,25 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
 
   return (
     <div className="relative w-full h-12 select-none">
-      {/* Track Background */}
-      <div
-        ref={trackRef}
-        className="absolute top-1/2 left-0 right-0 h-2 -mt-1 rounded-full bg-gray-200"
-      />
-      
-      {/* Active Track (Black to Red Gradient) */}
+      <div ref={trackRef} className="absolute top-1/2 left-0 right-0 h-2 -mt-1 rounded-full bg-gray-200" />
       <div
         className="absolute top-1/2 h-2 -mt-1 rounded-full"
         style={{
           left: `${minPercent}%`,
           right: `${100 - maxPercent}%`,
-          background: 'linear-gradient(to right, #000000, #dc2626)',
+          background: "linear-gradient(to right, #000000, #dc2626)",
         }}
       />
-
-      {/* Min Handle */}
       <div
         className="absolute top-1/2 w-5 h-5 -mt-2.5 -ml-2.5 rounded-full bg-white border-2 border-black shadow-md cursor-grab active:cursor-grabbing hover:scale-110 transition-transform z-10"
         style={{ left: `${minPercent}%` }}
-        onMouseDown={() => setDragging('min')}
+        onMouseDown={() => setDragging("min")}
       />
-      
-      {/* Max Handle */}
       <div
         className="absolute top-1/2 w-5 h-5 -mt-2.5 -ml-2.5 rounded-full bg-white border-2 border-red-600 shadow-md cursor-grab active:cursor-grabbing hover:scale-110 transition-transform z-10"
         style={{ left: `${maxPercent}%` }}
-        onMouseDown={() => setDragging('max')}
+        onMouseDown={() => setDragging("max")}
       />
-
-      {/* Price Labels */}
       <div className="flex justify-between mt-4 text-sm text-gray-600">
         <span>${value[0]}</span>
         <span>${value[1]}</span>
@@ -213,7 +99,6 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
   );
 };
 
-// ─── Filter Checkbox ─────────────────────────────────
 interface FilterCheckboxProps {
   label: string;
   checked: boolean;
@@ -224,9 +109,7 @@ const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChang
   <label className="flex items-center space-x-3 cursor-pointer group">
     <div
       className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-        checked
-          ? 'bg-black border-black'
-          : 'border-gray-300 group-hover:border-gray-400'
+        checked ? "bg-black border-black" : "border-gray-300 group-hover:border-gray-400"
       }`}
       onClick={onChange}
     >
@@ -236,196 +119,210 @@ const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChang
   </label>
 );
 
-// ─── Product Card ────────────────────────────────────
-const ProductCard: React.FC<{ product: Product }> = ({ product }) => (
-  <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
-    {/* Image Area */}
-    <div className="relative h-56 bg-gray-50">
-      <img
-        src={product.image}
-        alt={product.name}
-        className="w-full h-full object-cover"
-      />
-      
-      {/* Verified Badge */}
-      {product.verified && (
-        <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
-          <CheckCircle2 className="w-3 h-3" />
-          <span>VERIFIED</span>
+const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
+  const discount = product.discountPercentage || 0;
+  const originalPrice = getOriginalPrice(product);
+
+  return (
+    <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
+      <div className="relative h-56 bg-gray-50">
+        <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
+        {product.verifiedBadge && (
+          <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>VERIFIED</span>
+          </div>
+        )}
+        {discount > 0 ? (
+          <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
+            -{discount}%
+          </div>
+        ) : null}
+        <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors">
+          <Heart className="w-4 h-4 text-gray-600" />
+        </button>
+      </div>
+
+      <div className="p-4">
+        <div className="text-xs text-gray-500 mb-1">
+          {formatCategory(product.category)} - {product.brand || "FitFIXto"}
         </div>
-      )}
-      
-      {/* Discount Badge */}
-      <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
-        -{product.discount}%
+        <h3 className="font-semibold text-gray-900 mb-2 leading-tight">{product.name}</h3>
+        <div className="flex items-center space-x-1 mb-3">
+          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+          <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
+          <span className="text-sm text-gray-500">({product.ratingCount})</span>
+        </div>
+        <div className="flex items-baseline space-x-2 mb-4">
+          <span className="text-xl font-bold text-gray-900">${product.price}</span>
+          {originalPrice ? <span className="text-sm text-gray-400 line-through">${originalPrice}</span> : null}
+        </div>
+        <button className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium">
+          <ShoppingCart className="w-4 h-4" />
+          <span>Add to Cart</span>
+        </button>
       </div>
-      
-      {/* Wishlist */}
-      <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors">
-        <Heart className="w-4 h-4 text-gray-600" />
-      </button>
     </div>
+  );
+};
 
-    {/* Content */}
-    <div className="p-4">
-      <div className="text-xs text-gray-500 mb-1">
-        {product.category} · {product.brand}
-      </div>
-      
-      <h3 className="font-semibold text-gray-900 mb-2 leading-tight">
-        {product.name}
-      </h3>
-      
-      {/* Rating */}
-      <div className="flex items-center space-x-1 mb-3">
-        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-        <span className="text-sm font-semibold text-gray-900">{product.rating}</span>
-        <span className="text-sm text-gray-500">({product.reviews})</span>
-      </div>
-      
-      {/* Price */}
-      <div className="flex items-baseline space-x-2 mb-4">
-        <span className="text-xl font-bold text-gray-900">${product.price}</span>
-        <span className="text-sm text-gray-400 line-through">${product.originalPrice}</span>
-      </div>
-      
-      {/* Add to Cart */}
-      <button className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium">
-        <ShoppingCart className="w-4 h-4" />
-        <span>Add to Cart</span>
-      </button>
-    </div>
-  </div>
-);
-
-// ─── Main Shop Component ─────────────────────────────
 const Shop: React.FC = () => {
+  const [products, setProducts] = useState<BackendProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filters, setFilters] = useState<Filters>({
     categories: [],
-    priceRange: [0, MAX_PRICE],
-    conditions: [],
+    priceRange: [0, DEFAULT_MAX_PRICE],
     brands: [],
   });
 
-  const toggleFilter = (key: keyof Filters, value: string) => {
+  useEffect(() => {
+    const loadProducts = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const data = await fetchProducts({ isActive: true, limit: 100 });
+        setProducts(data?.products || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load products.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  const maxPrice = useMemo(() => {
+    const highestPrice = Math.max(...products.map((product) => product.price), DEFAULT_MAX_PRICE);
+    return Math.ceil(highestPrice / 100) * 100;
+  }, [products]);
+
+  useEffect(() => {
+    setFilters((current) => ({
+      ...current,
+      priceRange: [current.priceRange[0], Math.max(current.priceRange[1], maxPrice)],
+    }));
+  }, [maxPrice]);
+
+  const categories = useMemo(
+    () => Array.from(new Set(products.map((product) => product.category))).filter(Boolean),
+    [products]
+  );
+
+  const brands = useMemo(
+    () => Array.from(new Set(products.map((product) => product.brand).filter(Boolean))) as string[],
+    [products]
+  );
+
+  const toggleFilter = (key: "categories" | "brands", value: string) => {
     setFilters((prev) => {
-      const current = prev[key] as string[];
-      const updated = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
+      const current = prev[key];
+      const updated = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
       return { ...prev, [key]: updated };
     });
   };
 
-  // Filter products
-  const filteredProducts = PRODUCTS.filter((product) => {
-    if (filters.categories.length > 0 && !filters.categories.includes(product.category))
-      return false;
-    if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1])
-      return false;
-    if (filters.conditions.length > 0 && !filters.conditions.includes(product.condition))
-      return false;
-    if (filters.brands.length > 0 && !filters.brands.includes(product.brand))
-      return false;
+  const filteredProducts = products.filter((product) => {
+    if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false;
+    if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) return false;
+    if (filters.brands.length > 0 && (!product.brand || !filters.brands.includes(product.brand))) return false;
     return true;
   });
+
+  const resetFilters = () =>
+    setFilters({
+      categories: [],
+      priceRange: [0, maxPrice],
+      brands: [],
+    });
 
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop Your Needs</h1>
           <p className="text-sm text-gray-500">
-            Showing {filteredProducts.length} of {PRODUCTS.length} products
+            {isLoading ? "Loading products..." : `Showing ${filteredProducts.length} of ${products.length} products`}
           </p>
         </div>
 
+        {error ? (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {error}
+          </div>
+        ) : null}
+
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Filters */}
           <aside className="w-full lg:w-64 flex-shrink-0">
             <div className="space-y-8">
-              {/* Category Filter */}
               <div>
                 <h3 className="font-bold text-gray-900 mb-4">Category</h3>
                 <div className="space-y-3">
-                  {CATEGORIES.map((cat) => (
-                    <FilterCheckbox
-                      key={cat}
-                      label={cat}
-                      checked={filters.categories.includes(cat)}
-                      onChange={() => toggleFilter('categories', cat)}
-                    />
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <FilterCheckbox
+                        key={cat}
+                        label={formatCategory(cat)}
+                        checked={filters.categories.includes(cat)}
+                        onChange={() => toggleFilter("categories", cat)}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No categories yet.</p>
+                  )}
                 </div>
               </div>
 
-              {/* Price Range Filter */}
               <div>
                 <h3 className="font-bold text-gray-900 mb-4">Price Range</h3>
                 <DualRangeSlider
                   min={0}
-                  max={MAX_PRICE}
+                  max={maxPrice}
                   value={filters.priceRange}
                   onChange={(range) => setFilters((prev) => ({ ...prev, priceRange: range }))}
                 />
-                <p className="text-xs text-gray-500 mt-2">Up to ${MAX_PRICE}</p>
+                <p className="text-xs text-gray-500 mt-2">Up to ${maxPrice}</p>
               </div>
 
-              {/* Condition Filter */}
-              <div>
-                <h3 className="font-bold text-gray-900 mb-4">Condition</h3>
-                <div className="space-y-3">
-                  {CONDITIONS.map((cond) => (
-                    <FilterCheckbox
-                      key={cond}
-                      label={cond}
-                      checked={filters.conditions.includes(cond)}
-                      onChange={() => toggleFilter('conditions', cond)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Brand Filter */}
               <div>
                 <h3 className="font-bold text-gray-900 mb-4">Brand</h3>
                 <div className="space-y-3">
-                  {BRANDS.map((brand) => (
-                    <FilterCheckbox
-                      key={brand}
-                      label={brand}
-                      checked={filters.brands.includes(brand)}
-                      onChange={() => toggleFilter('brands', brand)}
-                    />
-                  ))}
+                  {brands.length > 0 ? (
+                    brands.map((brand) => (
+                      <FilterCheckbox
+                        key={brand}
+                        label={brand}
+                        checked={filters.brands.includes(brand)}
+                        onChange={() => toggleFilter("brands", brand)}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No brands yet.</p>
+                  )}
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Product Grid */}
           <main className="flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-            
-            {filteredProducts.length === 0 && (
+            {isLoading ? (
+              <div className="text-center py-16">
+                <p className="text-gray-500 text-lg">Loading products...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            )}
+
+            {!isLoading && filteredProducts.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-gray-500 text-lg">No products match your filters.</p>
-                <button
-                  onClick={() =>
-                    setFilters({
-                      categories: [],
-                      priceRange: [0, MAX_PRICE],
-                      conditions: [],
-                      brands: [],
-                    })
-                  }
-                  className="mt-4 text-black font-semibold hover:underline"
-                >
+                <button onClick={resetFilters} className="mt-4 text-black font-semibold hover:underline">
                   Clear all filters
                 </button>
               </div>
