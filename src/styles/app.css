@@ -842,6 +842,18 @@ a {
   font: inherit;
 }
 
+.auth-form textarea {
+  min-height: 120px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 12px 14px;
+  font: inherit;
+}
+
 .auth-links {
   display: flex;
   justify-content: space-between;
@@ -1179,6 +1191,19 @@ a {
 
 .auth-message.success {
   color: #127a3a;
+}
+
+.auth-full-button,
+.profile-submit {
+  width: 100%;
+}
+
+.profile-form {
+  gap: 20px;
+}
+
+.profile-summary {
+  margin-bottom: 2px;
 }
 
 .auth-switch {
