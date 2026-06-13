@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { ChangeEventHandler, ReactNode } from "react";
 
 type AuthIcon = "email" | "lock" | "person" | "phone";
 
@@ -10,6 +10,12 @@ interface AuthFieldProps {
   type?: "email" | "password" | "tel" | "text";
   placeholder: string;
   ariaLabel: string;
+  name?: string;
+  value?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
+  autoComplete?: string;
+  required?: boolean;
+  disabled?: boolean;
 }
 
 const iconPaths: Record<AuthIcon, ReactNode> = {
@@ -37,7 +43,18 @@ const iconPaths: Record<AuthIcon, ReactNode> = {
   ),
 };
 
-export function AuthField({ icon, type = "text", placeholder, ariaLabel }: AuthFieldProps) {
+export function AuthField({
+  icon,
+  type = "text",
+  placeholder,
+  ariaLabel,
+  name,
+  value,
+  onChange,
+  autoComplete,
+  required,
+  disabled,
+}: AuthFieldProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const isPassword = type === "password";
   const inputType = isPassword && isPasswordVisible ? "text" : type;
@@ -47,7 +64,17 @@ export function AuthField({ icon, type = "text", placeholder, ariaLabel }: AuthF
       <svg className="auth-field-icon" viewBox="0 0 24 24" aria-hidden="true">
         {iconPaths[icon]}
       </svg>
-      <input type={inputType} placeholder={placeholder} aria-label={ariaLabel} />
+      <input
+        type={inputType}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        autoComplete={autoComplete}
+        required={required}
+        disabled={disabled}
+      />
       {isPassword ? (
         <button
           className="auth-password-toggle"

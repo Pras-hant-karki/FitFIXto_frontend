@@ -1147,6 +1147,22 @@ a {
   cursor: pointer;
 }
 
+.auth-clean-form > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.auth-message {
+  margin: -2px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.auth-message.error {
+  color: #c40000;
+}
+
 .auth-switch {
   margin: 26px 0 0;
   color: #747584;

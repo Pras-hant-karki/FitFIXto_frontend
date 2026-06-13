@@ -26,7 +26,7 @@ class ApiClient {
 
   private getAuthToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('authToken');
+    return sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
   }
 
   private getHeaders(): HeadersInit {
@@ -106,15 +106,32 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' });
   }
 
-  setAuthToken(token: string): void {
+  setAuthToken(token: string, remember = false): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token);
+      const primaryStorage = remember ? localStorage : sessionStorage;
+      const secondaryStorage = remember ? sessionStorage : localStorage;
+
+      secondaryStorage.removeItem('authToken');
+      primaryStorage.setItem('authToken', token);
+    }
+  }
+
+  setRefreshToken(token: string, remember = false): void {
+    if (typeof window !== 'undefined') {
+      const primaryStorage = remember ? localStorage : sessionStorage;
+      const secondaryStorage = remember ? sessionStorage : localStorage;
+
+      secondaryStorage.removeItem('refreshToken');
+      primaryStorage.setItem('refreshToken', token);
     }
   }
 
   clearAuthToken(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('refreshToken');
     }
   }
 }

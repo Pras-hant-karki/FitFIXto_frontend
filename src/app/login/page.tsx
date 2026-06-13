@@ -1,8 +1,64 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
+import { API_ENDPOINTS } from "@/constants/api";
+import { apiClient } from "@/lib";
+
+type LoginResponse = {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    role: string;
+  };
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+};
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.login, formData);
+      const tokens = response.data?.tokens;
+
+      if (!tokens?.accessToken) {
+        throw new Error("Login succeeded, but no access token was returned.");
+      }
+
+      apiClient.setAuthToken(tokens.accessToken, rememberMe);
+      if (tokens.refreshToken) {
+        apiClient.setRefreshToken(tokens.refreshToken, rememberMe);
+      }
+
+      router.push("/user/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
@@ -30,19 +86,49 @@ export default function LoginPage() {
               <p>Welcome back. Let&apos;s go.</p>
             </div>
 
-            <form className="auth-clean-form">
-              <AuthField icon="email" type="email" placeholder="Email" ariaLabel="Email" />
-              <AuthField icon="lock" type="password" placeholder="Password" ariaLabel="Password" />
+            <form className="auth-clean-form" onSubmit={handleSubmit}>
+              <AuthField
+                icon="email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
+                placeholder="Email"
+                ariaLabel="Email"
+                autoComplete="email"
+                required
+                disabled={isSubmitting}
+              />
+              <AuthField
+                icon="lock"
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
+                placeholder="Password"
+                ariaLabel="Password"
+                autoComplete="current-password"
+                required
+                disabled={isSubmitting}
+              />
               <div className="auth-row">
                 <label className="auth-check">
-                  <input type="checkbox" />
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                    disabled={isSubmitting}
+                  />
                   Remember me
                 </label>
                 <Link className="auth-red-link" href="/forgot-password">
                   Forgot password ?
                 </Link>
               </div>
-              <button type="button">Sign In</button>
+              {error ? <p className="auth-message error">{error}</p> : null}
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Signing In..." : "Sign In"}
+              </button>
             </form>
 
             <p className="auth-switch">
