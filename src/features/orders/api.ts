@@ -1,0 +1,56 @@
+import { API_ENDPOINTS } from "@/constants/api";
+import { apiClient } from "@/lib";
+
+export interface DeliveryAddress {
+  _id: string;
+  recipientName: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface BackendOrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface BackendOrder {
+  _id: string;
+  items: BackendOrderItem[];
+  deliveryAddressId: DeliveryAddress;
+  paymentMethod: "cash_on_delivery" | "esewa" | "khalti";
+  paymentStatus: string;
+  status: string;
+  subtotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const fetchDeliveryAddresses = async () => {
+  const response = await apiClient.get<{ addresses: DeliveryAddress[] }>(API_ENDPOINTS.user.addresses);
+  return response.data?.addresses || [];
+};
+
+export const fetchMyOrders = async () => {
+  const response = await apiClient.get<{ orders: BackendOrder[] }>(API_ENDPOINTS.orders.myOrders);
+  return response.data?.orders || [];
+};
+
+export const placeOrder = async (payload: {
+  deliveryAddressId: string;
+  paymentMethod: "cash_on_delivery" | "esewa" | "khalti";
+  notes?: string;
+}) => {
+  const response = await apiClient.post<{ order: BackendOrder }>(API_ENDPOINTS.orders.create, payload);
+  return response.data?.order;
+};
