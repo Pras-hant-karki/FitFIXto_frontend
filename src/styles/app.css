@@ -181,7 +181,8 @@ a {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
 }
 
-.account-dropdown a {
+.account-dropdown a,
+.account-dropdown-button {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -193,11 +194,22 @@ a {
   font-weight: 400;
 }
 
-.account-dropdown a:hover {
+.account-dropdown-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.account-dropdown a:hover,
+.account-dropdown-button:hover {
   background: #f5f5f7;
 }
 
-.account-dropdown svg {
+.account-dropdown svg,
+.account-dropdown-button svg {
   flex: 0 0 18px;
   width: 18px;
   height: 18px;
@@ -214,11 +226,13 @@ a {
   color: #ffffff;
 }
 
-.dark .account-dropdown a {
+.dark .account-dropdown a,
+.dark .account-dropdown-button {
   color: #ffffff;
 }
 
-.dark .account-dropdown a:hover {
+.dark .account-dropdown a:hover,
+.dark .account-dropdown-button:hover {
   background: #1b1d23;
 }
 

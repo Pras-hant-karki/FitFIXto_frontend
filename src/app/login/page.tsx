@@ -5,26 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
-import { API_ENDPOINTS } from "@/constants/api";
-import { apiClient } from "@/lib";
-
-type LoginResponse = {
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    role: string;
-  };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-  };
-};
+import { useAuth } from "@/contexts";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -39,19 +24,12 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.login, formData);
-      const tokens = response.data?.tokens;
-
-      if (!tokens?.accessToken) {
-        throw new Error("Login succeeded, but no access token was returned.");
-      }
-
-      apiClient.setAuthToken(tokens.accessToken, rememberMe);
-      if (tokens.refreshToken) {
-        apiClient.setRefreshToken(tokens.refreshToken, rememberMe);
-      }
-
-      router.push("/user/dashboard");
+      await login(formData, rememberMe);
+      const redirectTo =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("redirect")
+          : null;
+      router.push(redirectTo || "/user/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in. Please try again.");
     } finally {

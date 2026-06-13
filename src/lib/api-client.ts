@@ -5,6 +5,12 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string | number | boolean>;
 }
 
+export type StoredTokens = {
+  accessToken: string;
+  refreshToken?: string;
+  remember: boolean;
+};
+
 class ApiClient {
   private baseUrl: string;
   private headers: HeadersInit;
@@ -24,9 +30,31 @@ class ApiClient {
     return url.toString();
   }
 
-  private getAuthToken(): string | null {
+  getAuthToken(): string | null {
     if (typeof window === 'undefined') return null;
     return sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+  }
+
+  getStoredTokens(): StoredTokens | null {
+    if (typeof window === 'undefined') return null;
+
+    const sessionAccessToken = sessionStorage.getItem('authToken');
+    if (sessionAccessToken) {
+      return {
+        accessToken: sessionAccessToken,
+        refreshToken: sessionStorage.getItem('refreshToken') || undefined,
+        remember: false,
+      };
+    }
+
+    const localAccessToken = localStorage.getItem('authToken');
+    if (!localAccessToken) return null;
+
+    return {
+      accessToken: localAccessToken,
+      refreshToken: localStorage.getItem('refreshToken') || undefined,
+      remember: true,
+    };
   }
 
   private getHeaders(): HeadersInit {
@@ -123,6 +151,14 @@ class ApiClient {
 
       secondaryStorage.removeItem('refreshToken');
       primaryStorage.setItem('refreshToken', token);
+    }
+  }
+
+  setTokens(tokens: { accessToken: string; refreshToken?: string }, remember = false): void {
+    this.setAuthToken(tokens.accessToken, remember);
+
+    if (tokens.refreshToken) {
+      this.setRefreshToken(tokens.refreshToken, remember);
     }
   }
 

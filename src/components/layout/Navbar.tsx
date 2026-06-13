@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/contexts";
 
 const navItems = [
   { label: "Shop", href: "/shop" },
@@ -29,6 +30,7 @@ const IconButton = ({
 export function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const { isAuthenticated, logout, user } = useAuth();
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
@@ -53,6 +55,11 @@ export function Navbar() {
     const nextTheme = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", nextTheme);
     window.localStorage.setItem("theme", nextTheme ? "dark" : "light");
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsAccountMenuOpen(false);
   };
 
   return (
@@ -116,20 +123,57 @@ export function Navbar() {
           </button>
           {isAccountMenuOpen ? (
             <div className="account-dropdown" role="menu">
-              <Link href="/login" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M20 21a8 8 0 0 0-16 0" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                Login
-              </Link>
-              <Link href="/signup" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M20 21a8 8 0 0 0-16 0" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                Sign Up
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link href="/user/dashboard" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 13h8V3H3zM13 21h8V11h-8zM13 9h8V3h-8zM3 21h8v-6H3z" />
+                    </svg>
+                    Dashboard
+                  </Link>
+                  <Link href="/user/profile" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M20 21a8 8 0 0 0-16 0" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    Profile
+                  </Link>
+                  {user?.role === "admin" ? (
+                    <Link href="/admin/dashboard" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                        <path d="m9 12 2 2 4-5" />
+                      </svg>
+                      Admin
+                    </Link>
+                  ) : null}
+                  <button className="account-dropdown-button" type="button" role="menuitem" onClick={handleLogout}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <path d="m16 17 5-5-5-5" />
+                      <path d="M21 12H9" />
+                    </svg>
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M20 21a8 8 0 0 0-16 0" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    Login
+                  </Link>
+                  <Link href="/signup" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M20 21a8 8 0 0 0-16 0" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           ) : null}
         </div>

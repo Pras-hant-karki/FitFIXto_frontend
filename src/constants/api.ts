@@ -1,4 +1,12 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const normalizeApiBaseUrl = (url: string) => {
+  const trimmedUrl = url.replace(/\/$/, '');
+
+  return trimmedUrl.endsWith('/api') ? `${trimmedUrl}/v1` : trimmedUrl;
+};
+
+export const API_BASE_URL = normalizeApiBaseUrl(
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+);
 
 export const API_ENDPOINTS = {
   // Auth
@@ -6,6 +14,8 @@ export const API_ENDPOINTS = {
     login: '/auth/login',
     signup: '/auth/register',
     logout: '/auth/logout',
+    me: '/auth/me',
+    profile: '/auth/profile',
     verify: '/auth/verify-email',
     refresh: '/auth/refresh',
   },
@@ -39,9 +49,9 @@ export const API_ENDPOINTS = {
 
   // User
   user: {
-    profile: '/user/profile',
-    update: '/user/profile',
-    addresses: '/user/addresses',
+    profile: '/auth/me',
+    update: '/auth/profile',
+    addresses: '/delivery-addresses',
     preferences: '/user/preferences',
   },
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Footer, Navbar } from "@/components/layout";
+import { AuthProvider } from "@/contexts";
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -29,9 +30,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} scroll-smooth`}>
       <body>
-        <Navbar />
-        <main className="site-main">{children}</main>
-        <Footer />
+        <AuthProvider>
+          <Navbar />
+          <main className="site-main">{children}</main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

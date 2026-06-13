@@ -4,26 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
-import { API_ENDPOINTS } from "@/constants/api";
-import { apiClient } from "@/lib";
-
-type SignupResponse = {
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    role: string;
-  };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-  };
-};
+import { useAuth } from "@/contexts";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -48,18 +33,7 @@ export default function SignupPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await apiClient.post<SignupResponse>(API_ENDPOINTS.auth.signup, formData);
-      const tokens = response.data?.tokens;
-
-      if (!tokens?.accessToken) {
-        throw new Error("Account created, but no access token was returned.");
-      }
-
-      apiClient.setAuthToken(tokens.accessToken);
-      if (tokens.refreshToken) {
-        apiClient.setRefreshToken(tokens.refreshToken);
-      }
-
+      await register(formData);
       router.push("/user/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create account. Please try again.");
