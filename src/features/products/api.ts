@@ -42,7 +42,7 @@ export const categoryLabels: Record<string, string> = {
 
 export const formatCategory = (category: string) => categoryLabels[category] || category;
 
-export const getProductImage = (product: BackendProduct) => product.images[0] || "/home-hero-gym.png";
+export const getProductImage = (product: BackendProduct) => product.images[0] || "";
 
 export const getOriginalPrice = (product: BackendProduct) => {
   const discount = product.discountPercentage || 0;

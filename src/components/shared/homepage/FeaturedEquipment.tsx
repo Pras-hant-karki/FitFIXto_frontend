@@ -57,7 +57,11 @@ export function FeaturedEquipment() {
               return (
                 <article className="product-card" key={product._id}>
                   <div className="product-media">
-                    <img src={getProductImage(product)} alt={product.name} />
+                    {getProductImage(product) ? (
+                      <img src={getProductImage(product)} alt={product.name} />
+                    ) : (
+                      <div className="product-no-image">No image</div>
+                    )}
                     <div className="product-badges">
                       {product.verifiedBadge ? <span className="badge-dark">Verified</span> : null}
                       {discount > 0 ? <span className="badge-sale">-{discount}%</span> : null}

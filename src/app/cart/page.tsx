@@ -57,7 +57,11 @@ export default function CartPage() {
         <div className="connected-list">
           {cart.items.map((item) => (
             <article className="connected-list-item" key={item.productId._id}>
-              <img src={getProductImage(item.productId)} alt={item.productId.name} />
+              {getProductImage(item.productId) ? (
+                <img src={getProductImage(item.productId)} alt={item.productId.name} />
+              ) : (
+                <div className="connected-no-image">No image</div>
+              )}
               <div>
                 <strong>{item.productId.name}</strong>
                 <span>

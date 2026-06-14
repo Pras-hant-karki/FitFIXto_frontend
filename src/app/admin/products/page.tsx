@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Edit2, Plus, Search, Star, Trash2, X } from "lucide-react";
 import {
   BackendProduct,
@@ -66,7 +66,7 @@ const toPayload = (form: ProductFormState): ProductPayload => ({
   stock: Number(form.stock),
   category: form.category,
   brand: form.brand.trim() || undefined,
-  images: [form.imageUrl.trim()],
+  images: form.imageUrl.trim() ? [form.imageUrl.trim()] : [],
   sku: form.sku.trim() || undefined,
   tags: form.tags
     .split(",")
@@ -80,6 +80,7 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [form, setForm] = useState<ProductFormState>(emptyForm);
+  const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<BackendProduct | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,8 +88,12 @@ export default function AdminProductsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const featuredCount = useMemo(() => products.filter((product) => product.isFeatured).length, [products]);
+  const selectedFileLabel = selectedImageFiles.length
+    ? selectedImageFiles.map((file) => file.name).join(", ")
+    : "No file chosen";
 
   const loadProducts = async (query = searchQuery) => {
     setIsLoading(true);
@@ -117,6 +122,7 @@ export default function AdminProductsPage() {
   const openCreateForm = () => {
     setEditingProduct(null);
     setForm(emptyForm);
+    setSelectedImageFiles([]);
     setIsFormOpen(true);
     setMessage("");
     setError("");
@@ -125,6 +131,7 @@ export default function AdminProductsPage() {
   const openEditForm = (product: BackendProduct) => {
     setEditingProduct(product);
     setForm(toFormState(product));
+    setSelectedImageFiles([]);
     setIsFormOpen(true);
     setMessage("");
     setError("");
@@ -134,6 +141,10 @@ export default function AdminProductsPage() {
     setIsFormOpen(false);
     setEditingProduct(null);
     setForm(emptyForm);
+    setSelectedImageFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
@@ -167,26 +178,53 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handleImageUpload = async (files: FileList | null) => {
-    if (!files?.length) return;
+  const handleImageSelection = (files: FileList | null) => {
+    setSelectedImageFiles(files ? Array.from(files) : []);
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImageFiles.length) {
+      setError("Please choose an image before uploading.");
+      return;
+    }
 
     setIsUploading(true);
     setError("");
     setMessage("");
 
     try {
-      const uploadedUrls = await uploadProductImages(Array.from(files));
+      const uploadedUrls = await uploadProductImages(selectedImageFiles);
       const [primaryImage] = uploadedUrls;
 
       if (primaryImage) {
         setForm((current) => ({ ...current, imageUrl: primaryImage }));
       }
 
+      setSelectedImageFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       setMessage(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to upload product images.");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handlePasteUrl = async () => {
+    setError("");
+
+    try {
+      const clipboardValue = await navigator.clipboard.readText();
+      if (!clipboardValue.trim()) {
+        setError("Clipboard is empty.");
+        return;
+      }
+
+      setForm((current) => ({ ...current, imageUrl: clipboardValue.trim() }));
+    } catch {
+      setError("Clipboard permission was blocked. Paste the URL manually.");
     }
   };
 
@@ -317,28 +355,53 @@ export default function AdminProductsPage() {
                 onChange={(event) => setForm((current) => ({ ...current, sku: event.target.value }))}
               />
             </label>
-            <label className="admin-product-form-wide">
-              Upload product image
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                multiple
-                disabled={isUploading}
-                onChange={(event) => handleImageUpload(event.target.files)}
-              />
-              <span className="admin-upload-note">
-                {isUploading ? "Uploading image..." : "Images are stored by Multer and the first uploaded image is used as the product image."}
-              </span>
-            </label>
-            <label className="admin-product-form-wide">
-              Image URL
-              <input
-                required
-                type="url"
-                value={form.imageUrl}
-                onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-              />
-            </label>
+            <div className="admin-product-media-row">
+              <div className="admin-upload-field">
+                <span>Upload product image</span>
+                <button
+                  type="button"
+                  className="admin-upload-drop"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Choose product image files"
+                >
+                  <Plus aria-hidden="true" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  className="admin-hidden-file-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                  disabled={isUploading}
+                  onChange={(event) => handleImageSelection(event.target.files)}
+                />
+                <small>
+                  Choose files <span>{selectedFileLabel}</span>
+                </small>
+                <button
+                  type="button"
+                  className="admin-upload-picture-button"
+                  disabled={isUploading}
+                  onClick={handleImageUpload}
+                >
+                  {isUploading ? "Uploading..." : "Upload Picture"}
+                </button>
+              </div>
+
+              <label className="admin-url-field">
+                Image URL
+                <div>
+                  <input
+                    type="url"
+                    value={form.imageUrl}
+                    onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+                  />
+                  <button type="button" onClick={handlePasteUrl}>
+                    Paste URL
+                  </button>
+                </div>
+              </label>
+            </div>
             {form.imageUrl ? (
               <div className="admin-product-image-preview">
                 <img src={form.imageUrl} alt="" />
@@ -405,7 +468,11 @@ export default function AdminProductsPage() {
                   <Star aria-hidden="true" />
                 </button>
                 <div className="admin-product-cell">
-                  <img src={getProductImage(product)} alt="" />
+                  {getProductImage(product) ? (
+                    <img src={getProductImage(product)} alt="" />
+                  ) : (
+                    <span className="admin-product-no-image">No image</span>
+                  )}
                   <div>
                     <strong>{product.name}</strong>
                     <span>{product.verifiedBadge ? "Verified" : product.isActive ? "New" : "Inactive"}</span>
@@ -415,8 +482,7 @@ export default function AdminProductsPage() {
                 <span>{product.brand || "FitFIXto"}</span>
                 <strong>Npr {product.price}</strong>
                 <span className={product.stock <= 10 ? "admin-low-stock" : undefined}>
-                  {product.stock}
-                  {product.stock <= 10 ? " warning" : ""}
+                  {product.stock} pc in stock
                 </span>
                 <div className="admin-product-actions">
                   <button type="button" onClick={() => openEditForm(product)}>
