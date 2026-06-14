@@ -11,6 +11,7 @@ import {
   formatCategory,
   getProductImage,
   updateProduct,
+  uploadProductImages,
 } from "@/features/products";
 
 type ProductFormState = {
@@ -83,6 +84,7 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<BackendProduct | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -162,6 +164,29 @@ export default function AdminProductsPage() {
       setError(err instanceof Error ? err.message : "Unable to save product.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files?.length) return;
+
+    setIsUploading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const uploadedUrls = await uploadProductImages(Array.from(files));
+      const [primaryImage] = uploadedUrls;
+
+      if (primaryImage) {
+        setForm((current) => ({ ...current, imageUrl: primaryImage }));
+      }
+
+      setMessage(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to upload product images.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -293,6 +318,19 @@ export default function AdminProductsPage() {
               />
             </label>
             <label className="admin-product-form-wide">
+              Upload product image
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                disabled={isUploading}
+                onChange={(event) => handleImageUpload(event.target.files)}
+              />
+              <span className="admin-upload-note">
+                {isUploading ? "Uploading image..." : "Images are stored by Multer and the first uploaded image is used as the product image."}
+              </span>
+            </label>
+            <label className="admin-product-form-wide">
               Image URL
               <input
                 required
@@ -301,6 +339,12 @@ export default function AdminProductsPage() {
                 onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
               />
             </label>
+            {form.imageUrl ? (
+              <div className="admin-product-image-preview">
+                <img src={form.imageUrl} alt="" />
+                <span>Current product image</span>
+              </div>
+            ) : null}
             <label className="admin-product-form-wide">
               Tags
               <input

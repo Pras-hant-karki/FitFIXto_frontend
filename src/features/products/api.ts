@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
 
 export interface BackendProduct {
@@ -88,4 +88,44 @@ export const updateProduct = async (productId: string, payload: Partial<ProductP
 export const deleteProduct = async (productId: string) => {
   const response = await apiClient.delete<{ productId: string }>(API_ENDPOINTS.products.detail(productId));
   return response.data;
+};
+
+type UploadedProductImage = {
+  filename: string;
+  path: string;
+  mimetype: string;
+  url?: string;
+};
+
+const toAbsoluteUploadUrl = (path: string) => {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  return `${new URL(API_BASE_URL).origin}${path}`;
+};
+
+export const uploadProductImages = async (files: File[]) => {
+  const formData = new FormData();
+
+  files.forEach((file) => {
+    formData.append("images", file);
+  });
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.products.uploadImages}`, {
+    method: "POST",
+    headers: {
+      ...(apiClient.getAuthToken() ? { Authorization: `Bearer ${apiClient.getAuthToken()}` } : {}),
+    },
+    body: formData,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message || "Unable to upload product images.");
+  }
+
+  const images = (result.data?.images || []) as UploadedProductImage[];
+  return images.map((image) => image.url || toAbsoluteUploadUrl(image.path));
 };

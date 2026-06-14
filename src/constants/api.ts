@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
     search: '/products/search',
     trending: '/products/trending',
     featured: '/products/featured',
+    uploadImages: '/products/upload-images',
   },
 
   // Cart
