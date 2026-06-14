@@ -83,37 +83,39 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <aside className="admin-sidebar" aria-label="Admin navigation">
-          <div className="admin-console-card">
-            <div className="admin-console-eyebrow">
-              <Shield aria-hidden="true" />
-              <span>ADMIN CONSOLE</span>
+        <div className="admin-body">
+          <aside className="admin-sidebar" aria-label="Admin navigation">
+            <div className="admin-console-card">
+              <div className="admin-console-eyebrow">
+                <Shield aria-hidden="true" />
+                <span>ADMIN CONSOLE</span>
+              </div>
+              <strong>{displayName}</strong>
+              <span>{displayEmail}</span>
             </div>
-            <strong>{displayName}</strong>
-            <span>{displayEmail}</span>
+
+            <nav className="admin-sidebar-nav">
+              {navItems.map(({ label, href, icon: Icon }) => {
+                const isActive = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
+
+                return (
+                  <Link href={href} className={isActive ? "active" : undefined} key={href}>
+                    <Icon aria-hidden="true" />
+                    <span>{label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <button type="button" className="admin-logout" onClick={handleLogout}>
+              <LogOut aria-hidden="true" />
+              <span>Logout</span>
+            </button>
+          </aside>
+
+          <div className="admin-main">
+            <main className="admin-content">{children}</main>
           </div>
-
-          <nav className="admin-sidebar-nav">
-            {navItems.map(({ label, href, icon: Icon }) => {
-              const isActive = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
-
-              return (
-                <Link href={href} className={isActive ? "active" : undefined} key={href}>
-                  <Icon aria-hidden="true" />
-                  <span>{label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <button type="button" className="admin-logout" onClick={handleLogout}>
-            <LogOut aria-hidden="true" />
-            <span>Logout</span>
-          </button>
-        </aside>
-
-        <div className="admin-main">
-          <main className="admin-content">{children}</main>
         </div>
 
         <footer className="admin-footer">
