@@ -114,7 +114,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
         <div className="admin-main">
           <main className="admin-content">{children}</main>
-          <footer className="admin-footer">
+        </div>
+
+        <footer className="admin-footer">
             <div className="admin-footer-inner">
               <div className="admin-footer-brand">
                 <Image src="/fitfixto_logo.png" alt="FitFIXto" width={206} height={72} />
@@ -147,11 +149,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               ))}
             </div>
             <div className="admin-footer-bottom">
-              <span>© 2026 FitFIXto. All rights reserved.</span>
+              <span>&copy; 2026 FitFIXto. All rights reserved.</span>
               <span>Built for athletes, by athletes.</span>
             </div>
-          </footer>
-        </div>
+        </footer>
       </div>
     </>
   );
