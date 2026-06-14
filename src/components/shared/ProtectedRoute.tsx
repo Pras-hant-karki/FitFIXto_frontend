@@ -7,25 +7,32 @@ import { useAuth } from "@/contexts";
 type ProtectedRouteProps = {
   children: React.ReactNode;
   allowedRoles?: string[];
+  loginPath?: string;
 };
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, loginPath = "/login" }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const isLoginPage = pathname === loginPath;
 
   useEffect(() => {
+    if (isLoginPage) return;
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      router.replace(`${loginPath}?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
 
     if (allowedRoles?.length && user && !allowedRoles.includes(user.role)) {
       router.replace("/user/dashboard");
     }
-  }, [allowedRoles, isAuthenticated, isLoading, pathname, router, user]);
+  }, [allowedRoles, isAuthenticated, isLoading, isLoginPage, loginPath, pathname, router, user]);
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (isLoading || !isAuthenticated) {
     return null;

@@ -10,7 +10,7 @@ export type AuthUser = {
   lastName: string;
   email: string;
   phone: string;
-  role: "customer" | "trainer" | "seller" | "admin" | string;
+  role: "customer" | "trainer" | "admin" | string;
   profilePicture?: string | null;
   bio?: string;
   isEmailVerified?: boolean;
@@ -48,6 +48,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload, remember?: boolean) => Promise<AuthUser>;
+  adminLogin: (payload: LoginPayload, remember?: boolean) => Promise<AuthUser>;
   register: (payload: RegisterPayload, remember?: boolean) => Promise<AuthUser>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
@@ -118,6 +119,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [storeAuthResult]
   );
 
+  const adminLogin = useCallback(
+    async (payload: LoginPayload, remember = false) => {
+      const response = await apiClient.post<AuthResponseData>(API_ENDPOINTS.admin.login, payload);
+
+      if (!response.data?.tokens?.accessToken || !response.data.user) {
+        throw new Error("Admin login succeeded, but the server response was incomplete.");
+      }
+
+      return storeAuthResult(response.data, remember);
+    },
+    [storeAuthResult]
+  );
+
   const register = useCallback(
     async (payload: RegisterPayload, remember = false) => {
       const response = await apiClient.post<AuthResponseData>(API_ENDPOINTS.auth.signup, payload);
@@ -142,11 +156,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(user),
       isLoading,
       login,
+      adminLogin,
       register,
       logout,
       refreshUser,
     }),
-    [isLoading, login, logout, refreshUser, register, user]
+    [adminLogin, isLoading, login, logout, refreshUser, register, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

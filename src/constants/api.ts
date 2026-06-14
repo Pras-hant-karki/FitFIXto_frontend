@@ -9,6 +9,11 @@ export const API_BASE_URL = normalizeApiBaseUrl(
 );
 
 export const API_ENDPOINTS = {
+  // Admin
+  admin: {
+    login: '/admin/login',
+  },
+
   // Auth
   auth: {
     login: '/auth/login',
