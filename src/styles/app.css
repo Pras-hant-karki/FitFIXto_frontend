@@ -1690,6 +1690,16 @@ a {
   height: 17px;
 }
 
+.admin-stat-note {
+  border-radius: 999px;
+  background: #dff7ef;
+  color: #008f5a;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .admin-stat-card strong {
   color: #030303;
   font-size: clamp(28px, 3vw, 36px);
@@ -1701,6 +1711,13 @@ a {
   margin: -10px 0 0;
   color: #747584;
   font-size: 16px;
+}
+
+.admin-stat-card small {
+  color: #747584;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .admin-chart-grid,
@@ -1812,9 +1829,25 @@ a {
   bottom: 0;
   left: 44px;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
   color: #747584;
   font-size: 16px;
+  text-align: center;
+}
+
+.admin-dashboard-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  margin-top: 22px;
+  border: 1px dashed #d7d7dc;
+  border-radius: 8px;
+  background: #f8f8fa;
+  color: #747584;
+  padding: 24px;
+  font-size: 16px;
+  font-weight: 900;
   text-align: center;
 }
 
@@ -4571,7 +4604,8 @@ a {
 }
 
 .dark .admin-stat-icon,
-.dark .admin-top-product em {
+.dark .admin-top-product em,
+.dark .admin-dashboard-empty {
   background: #20232b;
   color: #ffffff;
 }
@@ -4591,7 +4625,8 @@ a {
 .dark .admin-user-actions button,
 .dark .admin-product-actions button,
 .dark .admin-order-view-button,
-.dark .admin-bar-plot {
+.dark .admin-bar-plot,
+.dark .admin-dashboard-empty {
   border-color: #2b2e38;
 }
 

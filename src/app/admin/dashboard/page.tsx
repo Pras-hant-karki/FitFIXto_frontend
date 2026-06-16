@@ -1,140 +1,182 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Package, TrendingUp, UserCog, Users, type LucideIcon } from "lucide-react";
+import { ArrowRight, DollarSign, Package, ShoppingBag, UserCog, Users, type LucideIcon } from "lucide-react";
+import { AdminAnalytics, fetchAdminAnalytics } from "@/features/admin-analytics/api";
+import { fetchAdminUsers } from "@/features/admin-users/api";
+import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
 
-const statCards: Array<{
-  label: string;
-  value: string;
-  change: string;
-  Icon?: LucideIcon;
-  iconText?: string;
-}> = [
-  { label: "Revenue", value: "Npr 84,210", change: "12.4%", iconText: "Npr" },
-  { label: "Orders", value: "1,284", change: "8.1%", Icon: Package },
-  { label: "Customers", value: "5", change: "14.7%", Icon: Users },
-  { label: "Trainers", value: "4", change: "5.2%", Icon: UserCog },
-];
+const emptyAnalytics: AdminAnalytics = {
+  range: "yearly",
+  summary: {
+    revenue: 0,
+    orders: 0,
+    averageOrderValue: 0,
+    productsSold: 0,
+  },
+  series: [],
+  topProducts: [],
+  topTrainers: [],
+};
 
-const monthlyRevenue = [
-  { month: "Jan", value: 31 },
-  { month: "Feb", value: 40 },
-  { month: "Mar", value: 37 },
-  { month: "Apr", value: 52 },
-  { month: "May", value: 64 },
-  { month: "Jun", value: 72 },
-];
+const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
 
-const weeklyOrders = [
-  { day: "Mon", value: 18 },
-  { day: "Tue", value: 24 },
-  { day: "Wed", value: 31 },
-  { day: "Thu", value: 28 },
-  { day: "Fri", value: 42 },
-  { day: "Sat", value: 51 },
-  { day: "Sun", value: 38 },
-];
+const getOrderCustomer = (order: BackendOrder) => {
+  if (!order.userId || typeof order.userId === "string") {
+    return "Unknown customer";
+  }
 
-const recentOrders = [
-  { id: "ORD-3201", customer: "Bishal R.", status: "processing", total: "Npr 599" },
-  { id: "ORD-3200", customer: "Priya M.", status: "delivered", total: "Npr 1299" },
-  { id: "ORD-3199", customer: "Kiran T.", status: "pending", total: "Npr 79" },
-  { id: "ORD-3198", customer: "Sneha K.", status: "delivered", total: "Npr 2499" },
-  { id: "ORD-3197", customer: "Aarav S.", status: "cancelled", total: "Npr 349" },
-];
+  return `${order.userId.firstName || ""} ${order.userId.lastName || ""}`.trim() || order.userId.email;
+};
 
-const topProducts = [
-  { name: "Pro Hex Dumbbell Set 5-50lbs", meta: "312 sold · Npr 599" },
-  { name: "Olympic Power Rack PRO-X", meta: "187 sold · Npr 1299" },
-  { name: "Premium Whey Isolate 5lb", meta: "1204 sold · Npr 79" },
-  { name: "Commercial Treadmill T-9000", meta: "89 sold · Npr 2499" },
-  { name: "Adjustable Bench AB-Pro", meta: "423 sold · Npr 349" },
-];
-
-const yAxisLabels = [80, 60, 40, 20, 0];
-const weeklyPoints = weeklyOrders
-  .map((item, index) => {
-    const x = 24 + index * 80;
-    const y = 260 - (item.value / 60) * 220;
-    return `${x},${y}`;
-  })
-  .join(" ");
+const buildLinePoints = (values: number[], maxValue: number) =>
+  values
+    .map((value, index) => {
+      const x = values.length <= 1 ? 260 : 24 + index * (496 / (values.length - 1));
+      const y = 260 - (value / Math.max(maxValue, 1)) * 220;
+      return `${x},${y}`;
+    })
+    .join(" ");
 
 export default function AdminDashboardPage() {
+  const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
+  const [recentOrders, setRecentOrders] = useState<BackendOrder[]>([]);
+  const [customerCount, setCustomerCount] = useState(0);
+  const [trainerCount, setTrainerCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const [analyticsData, users, orders] = await Promise.all([
+          fetchAdminAnalytics("yearly"),
+          fetchAdminUsers(),
+          fetchAdminOrders(),
+        ]);
+
+        setAnalytics(analyticsData || emptyAnalytics);
+        setCustomerCount(users.filter((user) => user.role === "customer").length);
+        setTrainerCount(users.filter((user) => user.role === "trainer").length);
+        setRecentOrders(orders.slice(0, 5));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const statCards: Array<{
+    label: string;
+    value: string;
+    note: string;
+    Icon: LucideIcon;
+  }> = [
+    { label: "Revenue", value: formatMoney(analytics.summary.revenue), note: "From completed order records", Icon: DollarSign },
+    { label: "Orders", value: String(analytics.summary.orders), note: "Total orders in selected period", Icon: Package },
+    { label: "Sales", value: String(analytics.summary.productsSold), note: "Products sold from order items", Icon: ShoppingBag },
+    { label: "Customers", value: String(customerCount), note: "Registered customer accounts", Icon: Users },
+    { label: "Trainers", value: String(trainerCount), note: "Registered trainer accounts", Icon: UserCog },
+  ];
+
+  const revenueSeries = analytics.series.map((point) => point.revenue);
+  const orderSeries = analytics.series.map((point) => point.orders);
+  const hasRevenueData = revenueSeries.some((value) => value > 0);
+  const hasOrderData = orderSeries.some((value) => value > 0);
+  const maxRevenue = useMemo(() => Math.max(...revenueSeries, 1), [revenueSeries]);
+  const maxOrders = useMemo(() => Math.max(...orderSeries, 1), [orderSeries]);
+  const revenuePoints = buildLinePoints(revenueSeries, maxRevenue);
+  const orderPoints = buildLinePoints(orderSeries, maxOrders);
+
   return (
     <section className="admin-overview">
       <header className="admin-overview-heading">
         <h1>Overview</h1>
-        <p>Snapshot of marketplace performance.</p>
+        <p>Snapshot of marketplace performance from real backend data.</p>
       </header>
 
-      <div className="admin-stat-grid">
-        {statCards.map((card) => {
-          const Icon = card.Icon;
+      {error ? <p className="admin-products-message error">{error}</p> : null}
 
-          return (
-            <article className="admin-stat-card" key={card.label}>
-              <div className="admin-stat-top">
-                <span className="admin-stat-icon">
-                  {Icon ? <Icon aria-hidden="true" /> : <span>{card.iconText}</span>}
-                </span>
-                <span className="admin-stat-change">
-                  <TrendingUp aria-hidden="true" />
-                  {card.change}
-                </span>
-              </div>
-              <strong>{card.value}</strong>
-              <p>{card.label}</p>
-            </article>
-          );
-        })}
+      <div className="admin-stat-grid">
+        {statCards.map(({ Icon, ...card }) => (
+          <article className="admin-stat-card" key={card.label}>
+            <div className="admin-stat-top">
+              <span className="admin-stat-icon">
+                <Icon aria-hidden="true" />
+              </span>
+              <span className="admin-stat-note">{isLoading ? "Loading" : "Live"}</span>
+            </div>
+            <strong>{isLoading ? "..." : card.value}</strong>
+            <p>{card.label}</p>
+            <small>{card.note}</small>
+          </article>
+        ))}
       </div>
 
       <div className="admin-chart-grid">
         <article className="admin-dashboard-card">
-          <h2>Monthly Revenue</h2>
-          <div className="admin-bar-chart" aria-label="Monthly revenue chart">
-            <div className="admin-chart-y-axis">
-              {yAxisLabels.map((label) => (
-                <span key={label}>{label}</span>
-              ))}
+          <h2>Revenue Trend</h2>
+          {hasRevenueData ? (
+            <div className="admin-line-chart" aria-label="Revenue trend chart">
+              <div className="admin-line-y-axis">
+                {[maxRevenue, maxRevenue * 0.75, maxRevenue * 0.5, maxRevenue * 0.25, 0].map((label) => (
+                  <span key={label}>{Math.round(label)}</span>
+                ))}
+              </div>
+              <svg viewBox="0 0 540 300" role="img" aria-hidden="true">
+                {[40, 95, 150, 205, 260].map((y) => (
+                  <line x1="24" x2="520" y1={y} y2={y} key={`rh-${y}`} />
+                ))}
+                <polyline points={revenuePoints} />
+              </svg>
+              <div className="admin-line-x-axis">
+                {analytics.series.map((item) => (
+                  <span key={item.label}>{item.label}</span>
+                ))}
+              </div>
             </div>
-            <div className="admin-bar-plot">
-              {monthlyRevenue.map((item) => (
-                <div className="admin-bar-item" key={item.month}>
-                  <span style={{ height: `${(item.value / 80) * 100}%` }} />
-                  <small>{item.month}</small>
-                </div>
-              ))}
-            </div>
-          </div>
+          ) : (
+            <div className="admin-dashboard-empty">Waiting for revenue data from orders.</div>
+          )}
         </article>
 
         <article className="admin-dashboard-card">
-          <h2>Weekly Orders</h2>
-          <div className="admin-line-chart" aria-label="Weekly orders chart">
-            <div className="admin-line-y-axis">
-              {[60, 45, 30, 15, 0].map((label) => (
-                <span key={label}>{label}</span>
-              ))}
+          <h2>Order Volume</h2>
+          {hasOrderData ? (
+            <div className="admin-line-chart" aria-label="Order volume chart">
+              <div className="admin-line-y-axis">
+                {[maxOrders, maxOrders * 0.75, maxOrders * 0.5, maxOrders * 0.25, 0].map((label) => (
+                  <span key={label}>{Math.round(label)}</span>
+                ))}
+              </div>
+              <svg viewBox="0 0 540 300" role="img" aria-hidden="true">
+                {[40, 95, 150, 205, 260].map((y) => (
+                  <line x1="24" x2="520" y1={y} y2={y} key={`oh-${y}`} />
+                ))}
+                <polyline points={orderPoints} />
+                {orderPoints
+                  ? orderPoints.split(" ").map((point) => {
+                      const [cx, cy] = point.split(",");
+                      return <circle cx={cx} cy={cy} r="7" key={point} />;
+                    })
+                  : null}
+              </svg>
+              <div className="admin-line-x-axis">
+                {analytics.series.map((item) => (
+                  <span key={item.label}>{item.label}</span>
+                ))}
+              </div>
             </div>
-            <svg viewBox="0 0 540 300" role="img" aria-hidden="true">
-              {[40, 95, 150, 205, 260].map((y) => (
-                <line x1="24" x2="520" y1={y} y2={y} key={`h-${y}`} />
-              ))}
-              {[24, 104, 184, 264, 344, 424, 504].map((x) => (
-                <line x1={x} x2={x} y1="40" y2="260" key={`v-${x}`} />
-              ))}
-              <polyline points={weeklyPoints} />
-              {weeklyPoints.split(" ").map((point) => {
-                const [cx, cy] = point.split(",");
-                return <circle cx={cx} cy={cy} r="7" key={point} />;
-              })}
-            </svg>
-            <div className="admin-line-x-axis">
-              {weeklyOrders.map((item) => (
-                <span key={item.day}>{item.day}</span>
-              ))}
-            </div>
-          </div>
+          ) : (
+            <div className="admin-dashboard-empty">Waiting for order data.</div>
+          )}
         </article>
       </div>
 
@@ -146,22 +188,26 @@ export default function AdminDashboardPage() {
               View all <ArrowRight aria-hidden="true" />
             </Link>
           </div>
-          <div className="admin-orders-table">
-            <div className="admin-orders-head">
-              <span>Order</span>
-              <span>Customer</span>
-              <span>Status</span>
-              <span>Total</span>
-            </div>
-            {recentOrders.map((order) => (
-              <div className="admin-orders-row" key={order.id}>
-                <strong>{order.id}</strong>
-                <span>{order.customer}</span>
-                <span className={`admin-status admin-status-${order.status}`}>{order.status}</span>
-                <strong>{order.total}</strong>
+          {recentOrders.length ? (
+            <div className="admin-orders-table">
+              <div className="admin-orders-head">
+                <span>Order</span>
+                <span>Customer</span>
+                <span>Status</span>
+                <span>Total</span>
               </div>
-            ))}
-          </div>
+              {recentOrders.map((order) => (
+                <div className="admin-orders-row" key={order._id}>
+                  <strong>{order._id.slice(-8).toUpperCase()}</strong>
+                  <span>{getOrderCustomer(order)}</span>
+                  <span className={`admin-status admin-status-${order.status}`}>{order.status}</span>
+                  <strong>{formatMoney(order.totalAmount)}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="admin-dashboard-empty">No orders yet.</div>
+          )}
         </article>
 
         <article className="admin-dashboard-card admin-top-products-card">
@@ -171,18 +217,24 @@ export default function AdminDashboardPage() {
               Manage <ArrowRight aria-hidden="true" />
             </Link>
           </div>
-          <div className="admin-top-product-list">
-            {topProducts.map((product, index) => (
-              <div className="admin-top-product" key={product.name}>
-                <span className="admin-product-thumb">{index + 1}</span>
-                <div>
-                  <strong>{product.name}</strong>
-                  <span>{product.meta}</span>
+          {analytics.topProducts.length ? (
+            <div className="admin-top-product-list">
+              {analytics.topProducts.map((product, index) => (
+                <div className="admin-top-product" key={product.name}>
+                  <span className="admin-product-thumb">{index + 1}</span>
+                  <div>
+                    <strong>{product.name}</strong>
+                    <span>
+                      {product.sold} sold - {formatMoney(product.revenue)}
+                    </span>
+                  </div>
+                  <em>{index + 1}</em>
                 </div>
-                <em>{index + 1}</em>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="admin-dashboard-empty">No product sales yet.</div>
+          )}
         </article>
       </div>
     </section>
