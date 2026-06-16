@@ -84,6 +84,13 @@ export const API_ENDPOINTS = {
     uploadPhoto: '/trainers/upload-photo',
   },
 
+  // Homepage
+  homepage: {
+    settings: '/homepage/settings',
+    hero: '/homepage/hero',
+    uploadImage: '/homepage/upload-image',
+  },
+
   // Vouchers
   vouchers: {
     validate: '/vouchers/validate',
