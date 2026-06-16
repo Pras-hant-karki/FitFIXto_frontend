@@ -97,12 +97,17 @@ type UploadedProductImage = {
   url?: string;
 };
 
-const toAbsoluteUploadUrl = (path: string) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
+const toFrontendAssetUrl = (image: UploadedProductImage) => {
+  if (image.filename) {
+    return `/assets/${image.filename}`;
   }
 
-  return `${new URL(API_BASE_URL).origin}${path}`;
+  const uploadsIndex = image.path.indexOf("/uploads/");
+  if (uploadsIndex >= 0) {
+    return `/assets/${image.path.slice(uploadsIndex + "/uploads/".length)}`;
+  }
+
+  return image.url || image.path;
 };
 
 export const uploadProductImages = async (files: File[]) => {
@@ -127,5 +132,5 @@ export const uploadProductImages = async (files: File[]) => {
   }
 
   const images = (result.data?.images || []) as UploadedProductImage[];
-  return images.map((image) => image.url || toAbsoluteUploadUrl(image.path));
+  return images.map(toFrontendAssetUrl);
 };

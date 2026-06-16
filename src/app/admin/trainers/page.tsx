@@ -8,6 +8,7 @@ import {
   createTrainer,
   deleteTrainer,
   fetchAdminTrainers,
+  normalizeTrainerPhotoUrl,
   updateTrainer,
   uploadTrainerPhoto,
 } from "@/features/trainers";
@@ -62,7 +63,7 @@ const toFormState = (trainer: BackendTrainer): TrainerFormState => ({
   specialties: trainer.specialties.join(", "),
   certifications: trainer.certifications.join(", "),
   bio: trainer.userId.bio || "",
-  profilePicture: trainer.userId.profilePicture || "",
+  profilePicture: normalizeTrainerPhotoUrl(trainer.userId.profilePicture),
   isFeatured: trainer.isFeatured,
 });
 
@@ -317,9 +318,9 @@ export default function AdminTrainersPage() {
                   {isUploading ? "Uploading..." : "Upload Picture"}
                 </button>
               </div>
-              {form.profilePicture ? (
+              {normalizeTrainerPhotoUrl(form.profilePicture) ? (
                 <div className="admin-trainer-photo-preview">
-                  <img src={form.profilePicture} alt="" />
+                  <img src={normalizeTrainerPhotoUrl(form.profilePicture)} alt="" />
                   <span>Current trainer photo</span>
                 </div>
               ) : null}
@@ -360,8 +361,8 @@ export default function AdminTrainersPage() {
             return (
               <article className={`admin-trainer-card ${trainer.isSuspended ? "suspended" : ""}`} key={trainer._id}>
                 <div className="admin-trainer-card-main">
-                  {trainer.userId.profilePicture ? (
-                    <img src={trainer.userId.profilePicture} alt="" />
+                  {normalizeTrainerPhotoUrl(trainer.userId.profilePicture) ? (
+                    <img src={normalizeTrainerPhotoUrl(trainer.userId.profilePicture)} alt="" />
                   ) : (
                     <span className="admin-trainer-avatar">{initials}</span>
                   )}

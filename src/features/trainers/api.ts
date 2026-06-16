@@ -63,12 +63,23 @@ export const deleteTrainer = async (trainerId: string) => {
   return response.data;
 };
 
-const toAbsoluteUploadUrl = (path: string) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
+export const normalizeTrainerPhotoUrl = (url?: string | null) => {
+  if (!url) return "";
+
+  const uploadsIndex = url.indexOf("/uploads/");
+  if (uploadsIndex >= 0) {
+    return `/assets/${url.slice(uploadsIndex + "/uploads/".length)}`;
   }
 
-  return `${new URL(API_BASE_URL).origin}${path}`;
+  return url;
+};
+
+const toFrontendAssetUrl = (filename?: string, path?: string) => {
+  if (filename) {
+    return `/assets/${filename}`;
+  }
+
+  return normalizeTrainerPhotoUrl(path);
 };
 
 export const uploadTrainerPhoto = async (file: File) => {
@@ -90,5 +101,5 @@ export const uploadTrainerPhoto = async (file: File) => {
     throw new Error(result.message || "Unable to upload trainer photo.");
   }
 
-  return toAbsoluteUploadUrl(result.data?.photo?.path || "");
+  return toFrontendAssetUrl(result.data?.photo?.filename, result.data?.photo?.path);
 };
