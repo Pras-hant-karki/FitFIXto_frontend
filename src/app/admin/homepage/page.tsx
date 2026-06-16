@@ -1,20 +1,41 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ImageIcon, Plus, Save } from "lucide-react";
-import { HomepageHero, fetchHomepageSettings, updateHomepageHero, uploadHomepageImage } from "@/features/homepage/api";
+import { ImageIcon, Megaphone, Plus, Save } from "lucide-react";
+import {
+  HomepageHero,
+  HomepagePromotionalBanner,
+  fetchHomepageSettings,
+  updateHomepageHero,
+  updateHomepagePromotionalBanner,
+  uploadHomepageImage,
+} from "@/features/homepage/api";
 
 const defaultHero: HomepageHero = {
-  eyebrow: "Built for the strong",
-  title: "Equipment, trainers and gyms - under one roof.",
-  subtitle: "FitFIXto powers your fitness journey from first dumbbell to full commercial setup.",
+  eyebrow: "",
+  title: "Built for Strength",
+  subtitle: "Premium equipment, expert installation, and professional trainers for serious results.",
   ctaLabel: "Shop Equipment",
-  ctaLink: "/shop",
+  ctaLink: "#shop",
   imageUrl: "/home-hero-gym.png",
+  eyebrowFontSize: 14,
+  titleFontSize: 72,
+  subtitleFontSize: 24,
+  ctaFontSize: 18,
 };
+
+const defaultPromotionalBanner: HomepagePromotionalBanner = {
+  text: "Free shipping inside Kathmandu Valley over Npr 5,000",
+  link: "/shop",
+  isVisible: true,
+  fontSize: 16,
+};
+
+const fontSizeOptions = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
 
 export default function AdminHomepagePage() {
   const [hero, setHero] = useState<HomepageHero>(defaultHero);
+  const [promotionalBanner, setPromotionalBanner] = useState<HomepagePromotionalBanner>(defaultPromotionalBanner);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,7 +52,10 @@ export default function AdminHomepagePage() {
       try {
         const settings = await fetchHomepageSettings();
         if (settings?.hero) {
-          setHero(settings.hero);
+          setHero({ ...defaultHero, ...settings.hero });
+        }
+        if (settings?.promotionalBanner) {
+          setPromotionalBanner({ ...defaultPromotionalBanner, ...settings.promotionalBanner });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load homepage settings.");
@@ -85,6 +109,25 @@ export default function AdminHomepagePage() {
     }
   };
 
+  const handleSavePromotionalBanner = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const settings = await updateHomepagePromotionalBanner(promotionalBanner);
+      if (settings?.promotionalBanner) {
+        setPromotionalBanner({ ...defaultPromotionalBanner, ...settings.promotionalBanner });
+      }
+      setMessage("Promotional banner saved successfully.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save promotional banner.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <section className="admin-homepage-page">
       <header className="admin-homepage-header">
@@ -106,23 +149,63 @@ export default function AdminHomepagePage() {
         ) : (
           <div className="admin-hero-editor">
             <form className="admin-hero-form" onSubmit={handleSaveHero}>
-              <label>
-                Eyebrow
-                <input value={hero.eyebrow} onChange={(event) => setHero((current) => ({ ...current, eyebrow: event.target.value }))} />
-              </label>
-              <label>
-                Title
-                <input value={hero.title} onChange={(event) => setHero((current) => ({ ...current, title: event.target.value }))} />
-              </label>
-              <label>
-                Subtitle
-                <textarea value={hero.subtitle} onChange={(event) => setHero((current) => ({ ...current, subtitle: event.target.value }))} />
-              </label>
-              <div className="admin-hero-two-col">
+              <div className="admin-home-field-with-size">
                 <label>
-                  CTA Label
-                  <input value={hero.ctaLabel} onChange={(event) => setHero((current) => ({ ...current, ctaLabel: event.target.value }))} />
+                  Eyebrow
+                  <input value={hero.eyebrow} onChange={(event) => setHero((current) => ({ ...current, eyebrow: event.target.value }))} />
                 </label>
+                <label>
+                  Font size
+                  <select value={hero.eyebrowFontSize} onChange={(event) => setHero((current) => ({ ...current, eyebrowFontSize: Number(event.target.value) }))}>
+                    {fontSizeOptions.map((size) => (
+                      <option value={size} key={size}>{size}px</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="admin-home-field-with-size">
+                <label>
+                  Title
+                  <input value={hero.title} onChange={(event) => setHero((current) => ({ ...current, title: event.target.value }))} />
+                </label>
+                <label>
+                  Font size
+                  <select value={hero.titleFontSize} onChange={(event) => setHero((current) => ({ ...current, titleFontSize: Number(event.target.value) }))}>
+                    {fontSizeOptions.map((size) => (
+                      <option value={size} key={size}>{size}px</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="admin-home-field-with-size">
+                <label>
+                  Subtitle
+                  <textarea value={hero.subtitle} onChange={(event) => setHero((current) => ({ ...current, subtitle: event.target.value }))} />
+                </label>
+                <label>
+                  Font size
+                  <select value={hero.subtitleFontSize} onChange={(event) => setHero((current) => ({ ...current, subtitleFontSize: Number(event.target.value) }))}>
+                    {fontSizeOptions.map((size) => (
+                      <option value={size} key={size}>{size}px</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="admin-hero-two-col">
+                <div className="admin-home-field-with-size">
+                  <label>
+                    CTA Label
+                    <input value={hero.ctaLabel} onChange={(event) => setHero((current) => ({ ...current, ctaLabel: event.target.value }))} />
+                  </label>
+                  <label>
+                    Size
+                    <select value={hero.ctaFontSize} onChange={(event) => setHero((current) => ({ ...current, ctaFontSize: Number(event.target.value) }))}>
+                      {fontSizeOptions.map((size) => (
+                        <option value={size} key={size}>{size}px</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <label>
                   CTA Link
                   <input value={hero.ctaLink} onChange={(event) => setHero((current) => ({ ...current, ctaLink: event.target.value }))} />
@@ -162,14 +245,57 @@ export default function AdminHomepagePage() {
 
             <div className="admin-hero-preview" style={{ backgroundImage: `url(${hero.imageUrl || "/home-hero-gym.png"})` }}>
               <div>
-                <span>{hero.eyebrow}</span>
-                <h3>{hero.title}</h3>
-                <p>{hero.subtitle}</p>
-                <strong>{hero.ctaLabel}</strong>
+                {hero.eyebrow ? <span style={{ fontSize: hero.eyebrowFontSize }}>{hero.eyebrow}</span> : null}
+                <h3 style={{ fontSize: hero.titleFontSize }}>{hero.title || hero.eyebrow}</h3>
+                <p style={{ fontSize: hero.subtitleFontSize }}>{hero.subtitle}</p>
+                <strong style={{ fontSize: hero.ctaFontSize }}>{hero.ctaLabel}</strong>
               </div>
             </div>
           </div>
         )}
+      </article>
+
+      <article className="admin-home-card">
+        <div className="admin-home-card-title">
+          <Megaphone aria-hidden="true" />
+          <h2>Promotional Banner</h2>
+        </div>
+
+        <form className="admin-promo-form" onSubmit={handleSavePromotionalBanner}>
+          <div className="admin-home-field-with-size">
+            <label>
+              Banner Text
+              <input value={promotionalBanner.text} onChange={(event) => setPromotionalBanner((current) => ({ ...current, text: event.target.value }))} />
+            </label>
+            <label>
+              Font size
+              <select value={promotionalBanner.fontSize} onChange={(event) => setPromotionalBanner((current) => ({ ...current, fontSize: Number(event.target.value) }))}>
+                {fontSizeOptions.map((size) => (
+                  <option value={size} key={size}>{size}px</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label>
+            Link
+            <input value={promotionalBanner.link} onChange={(event) => setPromotionalBanner((current) => ({ ...current, link: event.target.value }))} />
+          </label>
+          <label className="admin-promo-toggle">
+            <input
+              type="checkbox"
+              checked={promotionalBanner.isVisible}
+              onChange={(event) => setPromotionalBanner((current) => ({ ...current, isVisible: event.target.checked }))}
+            />
+            Show
+          </label>
+          <button type="submit" className="admin-home-save-button" disabled={isSaving}>
+            <Save aria-hidden="true" />
+            {isSaving ? "Saving..." : "Save Banner"}
+          </button>
+          <div className="admin-promo-preview" style={{ fontSize: promotionalBanner.fontSize }}>
+            {promotionalBanner.isVisible ? promotionalBanner.text : "Banner hidden"}
+          </div>
+        </form>
       </article>
     </section>
   );

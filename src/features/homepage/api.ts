@@ -8,11 +8,23 @@ export type HomepageHero = {
   ctaLabel: string;
   ctaLink: string;
   imageUrl: string;
+  eyebrowFontSize: number;
+  titleFontSize: number;
+  subtitleFontSize: number;
+  ctaFontSize: number;
+};
+
+export type HomepagePromotionalBanner = {
+  text: string;
+  link: string;
+  isVisible: boolean;
+  fontSize: number;
 };
 
 export type HomepageSettings = {
   _id: string;
   hero: HomepageHero;
+  promotionalBanner: HomepagePromotionalBanner;
 };
 
 const toFrontendAssetUrl = (filename?: string, path?: string) => {
@@ -33,6 +45,11 @@ export const fetchHomepageSettings = async () => {
 
 export const updateHomepageHero = async (payload: HomepageHero) => {
   const response = await apiClient.put<{ settings: HomepageSettings }>(API_ENDPOINTS.homepage.hero, payload);
+  return response.data?.settings;
+};
+
+export const updateHomepagePromotionalBanner = async (payload: HomepagePromotionalBanner) => {
+  const response = await apiClient.put<{ settings: HomepageSettings }>(API_ENDPOINTS.homepage.promotionalBanner, payload);
   return response.data?.settings;
 };
 
