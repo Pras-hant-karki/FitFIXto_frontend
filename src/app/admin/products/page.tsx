@@ -212,22 +212,6 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handlePasteUrl = async () => {
-    setError("");
-
-    try {
-      const clipboardValue = await navigator.clipboard.readText();
-      if (!clipboardValue.trim()) {
-        setError("Clipboard is empty.");
-        return;
-      }
-
-      setForm((current) => ({ ...current, imageUrl: clipboardValue.trim() }));
-    } catch {
-      setError("Clipboard permission was blocked. Paste the URL manually.");
-    }
-  };
-
   const handleFeaturedToggle = async (product: BackendProduct) => {
     setError("");
     setMessage("");
@@ -388,19 +372,6 @@ export default function AdminProductsPage() {
                 </button>
               </div>
 
-              <label className="admin-url-field">
-                Image URL
-                <div>
-                  <input
-                    type="url"
-                    value={form.imageUrl}
-                    onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-                  />
-                  <button type="button" onClick={handlePasteUrl}>
-                    Paste URL
-                  </button>
-                </div>
-              </label>
             </div>
             {form.imageUrl ? (
               <div className="admin-product-image-preview">

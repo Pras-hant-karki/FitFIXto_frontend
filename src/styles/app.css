@@ -3784,6 +3784,122 @@ a {
   white-space: nowrap;
 }
 
+.admin-partner-gyms-page {
+  display: grid;
+  gap: 92px;
+  width: min(1180px, 100%);
+}
+
+.admin-partner-gyms-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-partner-gyms-header h1 {
+  margin: 0 0 8px;
+  color: #050507;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.admin-partner-gyms-header p {
+  margin: 0;
+  color: #747584;
+  font-size: 18px;
+}
+
+.admin-partner-gyms-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.admin-gym-map-placeholder,
+.admin-gym-list-panel {
+  border: 1px solid #e5e5e8;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.admin-gym-map-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 520px;
+  padding: 32px;
+  background:
+    linear-gradient(45deg, transparent 0 44%, rgba(5, 5, 7, 0.04) 44% 47%, transparent 47% 100%),
+    #efeff3;
+  color: #747584;
+  text-align: center;
+}
+
+.admin-gym-map-placeholder svg {
+  width: 64px;
+  height: 64px;
+  color: #030213;
+}
+
+.admin-gym-map-placeholder h2 {
+  margin: 18px 0 8px;
+  color: #050507;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.admin-gym-map-placeholder p {
+  margin: 0;
+  font-size: 17px;
+}
+
+.admin-gym-list-panel {
+  min-height: 520px;
+  overflow: hidden;
+}
+
+.admin-gym-list-panel h2 {
+  margin: 0;
+  border-bottom: 1px solid #e5e5e8;
+  padding: 24px;
+  color: #050507;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.admin-gym-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 360px;
+  padding: 28px;
+  color: #747584;
+  text-align: center;
+}
+
+.admin-gym-empty-state svg {
+  width: 42px;
+  height: 42px;
+  color: #747584;
+}
+
+.admin-gym-empty-state strong {
+  margin-top: 14px;
+  color: #050507;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.admin-gym-empty-state p {
+  margin: 8px 0 0;
+  max-width: 280px;
+}
+
 .admin-footer {
   border-top: 1px solid #e5e5e8;
   background: #ffffff;
@@ -4542,6 +4658,14 @@ a {
   .admin-analytics-grid {
     grid-template-columns: 1fr;
   }
+
+  .admin-partner-gyms-page {
+    gap: 36px;
+  }
+
+  .admin-partner-gyms-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -4626,6 +4750,19 @@ a {
 
   .admin-analytics-trainers b {
     grid-column: 3;
+  }
+
+  .admin-partner-gyms-header h1 {
+    font-size: 28px;
+  }
+
+  .admin-partner-gyms-header p {
+    font-size: 15px;
+  }
+
+  .admin-gym-map-placeholder,
+  .admin-gym-list-panel {
+    min-height: 360px;
   }
 
   .admin-product-form-wide,
