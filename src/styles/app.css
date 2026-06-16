@@ -4247,6 +4247,141 @@ a {
   margin-right: 6px;
 }
 
+.admin-settings-page {
+  display: grid;
+  gap: 24px;
+  width: min(920px, 100%);
+}
+
+.admin-settings-header h1 {
+  margin: 0 0 8px;
+  color: #050507;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.admin-settings-header p {
+  margin: 0;
+  color: #747584;
+  font-size: 16px;
+}
+
+.admin-settings-card {
+  border: 1px solid #e5e5e8;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 26px;
+}
+
+.admin-settings-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+  color: #050507;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.admin-settings-card h2 svg {
+  width: 20px;
+  height: 20px;
+}
+
+.admin-settings-profile-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+
+.admin-settings-photo-block {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-settings-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 132px;
+  border: 1px solid #e5e5e8;
+  border-radius: 50%;
+  background: #f0f0f3;
+  color: #747584;
+  overflow: hidden;
+}
+
+.admin-settings-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-settings-avatar svg {
+  width: 46px;
+  height: 46px;
+}
+
+.admin-settings-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-settings-form label {
+  display: grid;
+  gap: 8px;
+  color: #050507;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-settings-form input {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 5px;
+  background: #f0f0f3;
+  color: #050507;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.admin-settings-form input[readonly] {
+  color: #747584;
+  cursor: not-allowed;
+}
+
+.admin-settings-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  min-height: 46px;
+  border: 0;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-settings-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.admin-settings-form button svg {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
+
 .admin-footer {
   border-top: 1px solid #e5e5e8;
   background: #ffffff;
@@ -4372,8 +4507,11 @@ a {
 .dark .admin-trainers-header h1,
 .dark .admin-users-header h1,
 .dark .admin-homepage-header h1,
+.dark .admin-settings-header h1,
 .dark .admin-product-form label,
 .dark .admin-trainer-form label,
+.dark .admin-settings-card h2,
+.dark .admin-settings-form label,
 .dark .admin-upload-field > span,
 .dark .admin-url-field,
 .dark .admin-product-cell strong,
@@ -4415,7 +4553,8 @@ a {
 .dark .admin-order-detail,
 .dark .admin-trainer-form-panel,
 .dark .admin-trainer-card,
-.dark .admin-users-table-card {
+.dark .admin-users-table-card,
+.dark .admin-settings-card {
   border-color: #25272d;
   background: #0f1117;
 }
@@ -4470,6 +4609,8 @@ a {
 .dark .admin-product-form textarea,
 .dark .admin-trainer-form input,
 .dark .admin-trainer-form textarea,
+.dark .admin-settings-form input,
+.dark .admin-settings-avatar,
 .dark .admin-product-image-preview,
 .dark .admin-trainer-photo-preview,
 .dark .admin-upload-drop,
@@ -5013,6 +5154,10 @@ a {
   .admin-partner-gyms-grid {
     grid-template-columns: 1fr;
   }
+
+  .admin-settings-profile-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -5124,6 +5269,14 @@ a {
   .admin-gym-thumb {
     width: 54px;
     height: 54px;
+  }
+
+  .admin-settings-card {
+    padding: 18px;
+  }
+
+  .admin-settings-form button {
+    width: 100%;
   }
 
   .admin-product-form-wide,

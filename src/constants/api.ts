@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     logout: '/auth/logout',
     me: '/auth/me',
     profile: '/auth/profile',
+    uploadProfileImage: '/auth/profile/upload-image',
     verify: '/auth/verify-email',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
