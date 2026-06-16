@@ -3818,11 +3818,81 @@ a {
   align-items: stretch;
 }
 
-.admin-gym-map-placeholder,
+.admin-gym-map-shell,
 .admin-gym-list-panel {
   border: 1px solid #e5e5e8;
   border-radius: 14px;
   background: #ffffff;
+}
+
+.admin-gym-map-shell {
+  position: relative;
+  min-height: 520px;
+  overflow: hidden;
+}
+
+.admin-gym-map-search {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  right: 18px;
+  left: 18px;
+}
+
+.admin-gym-map-search form {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #e5e5e8;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 10px;
+  box-shadow: 0 12px 32px rgba(5, 5, 7, 0.1);
+}
+
+.admin-gym-map-search svg {
+  width: 20px;
+  height: 20px;
+  color: #747584;
+}
+
+.admin-gym-map-search input {
+  min-height: 36px;
+  border: 0;
+  outline: 0;
+  color: #050507;
+  font: inherit;
+  font-weight: 800;
+}
+
+.admin-gym-map-search input::placeholder {
+  color: rgba(5, 5, 7, 0.35);
+}
+
+.admin-gym-map-search button,
+.admin-gym-search-results button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-gym-map-search button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-gym-map-canvas {
+  width: 100%;
+  min-height: 520px;
+  background: #efeff3;
 }
 
 .admin-gym-map-placeholder {
@@ -3830,6 +3900,7 @@ a {
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  width: 100%;
   min-height: 520px;
   padding: 32px;
   background:
@@ -3854,15 +3925,61 @@ a {
 
 .admin-gym-map-placeholder p {
   margin: 0;
+  max-width: 520px;
   font-size: 17px;
 }
 
+.admin-gym-search-results {
+  position: absolute;
+  z-index: 2;
+  right: 18px;
+  bottom: 76px;
+  left: 18px;
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.admin-gym-search-results article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #e5e5e8;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 12px;
+  box-shadow: 0 12px 26px rgba(5, 5, 7, 0.08);
+}
+
+.admin-gym-search-results strong,
+.admin-gym-search-results span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-gym-search-results strong {
+  color: #050507;
+  font-weight: 900;
+}
+
+.admin-gym-search-results span {
+  color: #747584;
+  font-size: 13px;
+}
+
 .admin-gym-map-pills {
+  position: absolute;
+  z-index: 2;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: auto;
-  width: 100%;
 }
 
 .admin-gym-map-pills button {
