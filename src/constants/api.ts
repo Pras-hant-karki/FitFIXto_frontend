@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
     users: '/admin/users',
     userStatus: (id: string) => `/admin/users/${id}/status`,
     deleteUser: (id: string) => `/admin/users/${id}`,
+    analytics: '/admin/analytics',
   },
 
   // Auth
