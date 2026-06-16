@@ -12,6 +12,9 @@ export const API_ENDPOINTS = {
   // Admin
   admin: {
     login: '/admin/login',
+    users: '/admin/users',
+    userStatus: (id: string) => `/admin/users/${id}/status`,
+    deleteUser: (id: string) => `/admin/users/${id}`,
   },
 
   // Auth
