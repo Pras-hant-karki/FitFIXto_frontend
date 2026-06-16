@@ -23,6 +23,12 @@ export interface BackendOrderItem {
 
 export interface BackendOrder {
   _id: string;
+  userId?: string | {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   items: BackendOrderItem[];
   deliveryAddressId: DeliveryAddress;
   paymentMethod: "cash_on_delivery" | "esewa" | "khalti";
@@ -43,6 +49,11 @@ export const fetchDeliveryAddresses = async () => {
 
 export const fetchMyOrders = async () => {
   const response = await apiClient.get<{ orders: BackendOrder[] }>(API_ENDPOINTS.orders.myOrders);
+  return response.data?.orders || [];
+};
+
+export const fetchAdminOrders = async () => {
+  const response = await apiClient.get<{ orders: BackendOrder[] }>(API_ENDPOINTS.orders.adminAll);
   return response.data?.orders || [];
 };
 

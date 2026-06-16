@@ -50,6 +50,7 @@ export const API_ENDPOINTS = {
   orders: {
     list: '/orders/my-orders',
     myOrders: '/orders/my-orders',
+    adminAll: '/orders/admin/all',
     detail: (id: string) => `/orders/${id}`,
     create: '/orders',
     cancel: (id: string) => `/orders/${id}/cancel`,
