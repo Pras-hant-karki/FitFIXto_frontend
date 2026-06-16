@@ -78,6 +78,7 @@ export const API_ENDPOINTS = {
     list: '/trainers',
     detail: (id: string) => `/trainers/${id}`,
     search: '/trainers/search',
+    uploadPhoto: '/trainers/upload-photo',
   },
 
   // Vouchers

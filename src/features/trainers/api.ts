@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
 
 export type BackendTrainerUser = {
@@ -61,4 +61,34 @@ export const updateTrainer = async (trainerId: string, payload: Partial<TrainerP
 export const deleteTrainer = async (trainerId: string) => {
   const response = await apiClient.delete<{ trainerId: string }>(API_ENDPOINTS.trainers.detail(trainerId));
   return response.data;
+};
+
+const toAbsoluteUploadUrl = (path: string) => {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  return `${new URL(API_BASE_URL).origin}${path}`;
+};
+
+export const uploadTrainerPhoto = async (file: File) => {
+  const formData = new FormData();
+  formData.append("photo", file);
+
+  const token = apiClient.getAuthToken();
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.trainers.uploadPhoto}`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message || "Unable to upload trainer photo.");
+  }
+
+  return toAbsoluteUploadUrl(result.data?.photo?.path || "");
 };

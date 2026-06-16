@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Plus, Star, Trash2, X } from "lucide-react";
 import {
   BackendTrainer,
@@ -9,6 +9,7 @@ import {
   deleteTrainer,
   fetchAdminTrainers,
   updateTrainer,
+  uploadTrainerPhoto,
 } from "@/features/trainers";
 
 type TrainerFormState = {
@@ -84,12 +85,16 @@ const toPayload = (form: TrainerFormState, isEditing: boolean): TrainerPayload &
 export default function AdminTrainersPage() {
   const [trainers, setTrainers] = useState<BackendTrainer[]>([]);
   const [form, setForm] = useState<TrainerFormState>(emptyForm);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [editingTrainer, setEditingTrainer] = useState<BackendTrainer | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const trainerPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const selectedPhotoLabel = selectedPhotoFile?.name || "No file chosen";
 
   const loadTrainers = async () => {
     setIsLoading(true);
@@ -111,6 +116,7 @@ export default function AdminTrainersPage() {
   const openCreateForm = () => {
     setEditingTrainer(null);
     setForm(emptyForm);
+    setSelectedPhotoFile(null);
     setIsFormOpen(true);
     setMessage("");
     setError("");
@@ -119,6 +125,7 @@ export default function AdminTrainersPage() {
   const openEditForm = (trainer: BackendTrainer) => {
     setEditingTrainer(trainer);
     setForm(toFormState(trainer));
+    setSelectedPhotoFile(null);
     setIsFormOpen(true);
     setMessage("");
     setError("");
@@ -127,7 +134,36 @@ export default function AdminTrainersPage() {
   const closeForm = () => {
     setEditingTrainer(null);
     setForm(emptyForm);
+    setSelectedPhotoFile(null);
+    if (trainerPhotoInputRef.current) {
+      trainerPhotoInputRef.current.value = "";
+    }
     setIsFormOpen(false);
+  };
+
+  const handleTrainerPhotoUpload = async () => {
+    if (!selectedPhotoFile) {
+      setError("Please choose a trainer photo before uploading.");
+      return;
+    }
+
+    setIsUploading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const photoUrl = await uploadTrainerPhoto(selectedPhotoFile);
+      setForm((current) => ({ ...current, profilePicture: photoUrl }));
+      setSelectedPhotoFile(null);
+      if (trainerPhotoInputRef.current) {
+        trainerPhotoInputRef.current.value = "";
+      }
+      setMessage("Trainer photo uploaded successfully.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to upload trainer photo.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -250,10 +286,44 @@ export default function AdminTrainersPage() {
               Experience years
               <input required min="0" type="number" value={form.experienceYears} onChange={(event) => setForm((current) => ({ ...current, experienceYears: event.target.value }))} />
             </label>
-            <label className="admin-trainer-form-wide">
-              Profile picture URL
-              <input type="url" value={form.profilePicture} onChange={(event) => setForm((current) => ({ ...current, profilePicture: event.target.value }))} />
-            </label>
+            <div className="admin-trainer-photo-row">
+              <div className="admin-upload-field">
+                <span>Upload trainer photo</span>
+                <button
+                  type="button"
+                  className="admin-upload-drop"
+                  onClick={() => trainerPhotoInputRef.current?.click()}
+                  aria-label="Choose trainer photo"
+                >
+                  <Plus aria-hidden="true" />
+                </button>
+                <input
+                  ref={trainerPhotoInputRef}
+                  className="admin-hidden-file-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  disabled={isUploading}
+                  onChange={(event) => setSelectedPhotoFile(event.target.files?.[0] || null)}
+                />
+                <small>
+                  Choose files <span>{selectedPhotoLabel}</span>
+                </small>
+                <button
+                  type="button"
+                  className="admin-upload-picture-button"
+                  disabled={isUploading}
+                  onClick={handleTrainerPhotoUpload}
+                >
+                  {isUploading ? "Uploading..." : "Upload Picture"}
+                </button>
+              </div>
+              {form.profilePicture ? (
+                <div className="admin-trainer-photo-preview">
+                  <img src={form.profilePicture} alt="" />
+                  <span>Current trainer photo</span>
+                </div>
+              ) : null}
+            </div>
             <label className="admin-trainer-form-wide">
               Specialties
               <input placeholder="Strength, Powerlifting, Hypertrophy" value={form.specialties} onChange={(event) => setForm((current) => ({ ...current, specialties: event.target.value }))} />
