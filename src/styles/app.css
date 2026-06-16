@@ -3857,6 +3857,25 @@ a {
   font-size: 17px;
 }
 
+.admin-gym-map-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: auto;
+  width: 100%;
+}
+
+.admin-gym-map-pills button {
+  min-height: 42px;
+  border: 1px solid #e5e5e8;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #050507;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 900;
+}
+
 .admin-gym-list-panel {
   min-height: 520px;
   overflow: hidden;
@@ -3898,6 +3917,217 @@ a {
 .admin-gym-empty-state p {
   margin: 8px 0 0;
   max-width: 280px;
+}
+
+.admin-gym-form {
+  display: grid;
+}
+
+.admin-gym-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e5e8;
+  padding: 24px;
+}
+
+.admin-gym-form-header h2 {
+  border: 0;
+  padding: 0;
+}
+
+.admin-gym-form-header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #747584;
+  cursor: pointer;
+}
+
+.admin-gym-form-header svg {
+  width: 22px;
+  height: 22px;
+}
+
+.admin-gym-form-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 24px;
+}
+
+.admin-gym-form-body label {
+  display: grid;
+  gap: 8px;
+  color: #050507;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.admin-gym-form-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-gym-form-body input {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 5px;
+  background: #f0f0f3;
+  color: #050507;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.admin-gym-form-body input::placeholder {
+  color: rgba(5, 5, 7, 0.25);
+}
+
+.admin-gym-visible-check {
+  display: flex !important;
+  align-items: center;
+  flex-direction: row;
+  grid-column: 1 / -1;
+  gap: 12px !important;
+  font-size: 18px !important;
+}
+
+.admin-gym-visible-check input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.admin-gym-form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.admin-gym-form-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border: 1px solid #e5e5e8;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #050507;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-gym-form-actions button:first-child {
+  border-color: #030213;
+  background: #030213;
+  color: #ffffff;
+}
+
+.admin-gym-form-actions svg {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
+
+.admin-gym-list {
+  display: grid;
+}
+
+.admin-gym-list-item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 16px;
+  border-bottom: 1px solid #e5e5e8;
+  padding: 24px;
+}
+
+.admin-gym-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 5px;
+  background: #efeff3;
+  color: #030213;
+}
+
+.admin-gym-thumb svg {
+  width: 30px;
+  height: 30px;
+}
+
+.admin-gym-details {
+  min-width: 0;
+}
+
+.admin-gym-details > div:first-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-gym-details strong {
+  color: #050507;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.admin-gym-details p {
+  margin: 4px 0 14px;
+  color: #747584;
+}
+
+.admin-gym-details span {
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-gym-details span.live {
+  background: #dff8ed;
+  color: #009c5a;
+}
+
+.admin-gym-details span.hidden {
+  background: #eeeef1;
+  color: #747584;
+}
+
+.admin-gym-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-gym-actions button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid #e5e5e8;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #050507;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-gym-actions svg {
+  width: 15px;
+  height: 15px;
+  margin-right: 6px;
 }
 
 .admin-footer {
@@ -4763,6 +4993,20 @@ a {
   .admin-gym-map-placeholder,
   .admin-gym-list-panel {
     min-height: 360px;
+  }
+
+  .admin-gym-form-body,
+  .admin-gym-form-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-gym-list-item {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-gym-thumb {
+    width: 54px;
+    height: 54px;
   }
 
   .admin-product-form-wide,
