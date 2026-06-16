@@ -1,15 +1,19 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ImageIcon, Megaphone, Plus, Save } from "lucide-react";
+import { ArrowDown, ArrowUp, Box, ExternalLink, GripVertical, ImageIcon, Megaphone, Plus, Save, Star, UserCog, Wrench } from "lucide-react";
 import {
   HomepageHero,
   HomepagePromotionalBanner,
+  HomepageSectionOrderItem,
   fetchHomepageSettings,
   updateHomepageHero,
   updateHomepagePromotionalBanner,
+  updateHomepageSectionOrder,
   uploadHomepageImage,
 } from "@/features/homepage/api";
+import { BackendProduct, fetchProducts, getProductImage } from "@/features/products";
+import { BackendTrainer, fetchAdminTrainers, normalizeTrainerPhotoUrl } from "@/features/trainers";
 
 const defaultHero: HomepageHero = {
   eyebrow: "",
@@ -33,9 +37,25 @@ const defaultPromotionalBanner: HomepagePromotionalBanner = {
 
 const fontSizeOptions = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
 
+const defaultSectionOrder: HomepageSectionOrderItem[] = [
+  { id: "featured-products", label: "Featured Products" },
+  { id: "featured-services", label: "Featured Services" },
+  { id: "promotional-banner", label: "Promotional Banner" },
+  { id: "featured-trainers", label: "Featured Trainers" },
+];
+
+const featuredServices = [
+  { name: "Full Gym", image: "/assets/ctabanner.png" },
+  { name: "Sauna & Steam", image: "/home-hero-gym.png" },
+  { name: "Equipment", image: "/home-hero-gym.png" },
+];
+
 export default function AdminHomepagePage() {
   const [hero, setHero] = useState<HomepageHero>(defaultHero);
   const [promotionalBanner, setPromotionalBanner] = useState<HomepagePromotionalBanner>(defaultPromotionalBanner);
+  const [sectionOrder, setSectionOrder] = useState<HomepageSectionOrderItem[]>(defaultSectionOrder);
+  const [featuredProducts, setFeaturedProducts] = useState<BackendProduct[]>([]);
+  const [featuredTrainers, setFeaturedTrainers] = useState<BackendTrainer[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,6 +77,17 @@ export default function AdminHomepagePage() {
         if (settings?.promotionalBanner) {
           setPromotionalBanner({ ...defaultPromotionalBanner, ...settings.promotionalBanner });
         }
+        if (settings?.sectionOrder?.length) {
+          setSectionOrder(settings.sectionOrder);
+        }
+
+        const [productResponse, trainers] = await Promise.all([
+          fetchProducts({ isFeatured: true, limit: 9 }),
+          fetchAdminTrainers(),
+        ]);
+
+        setFeaturedProducts(productResponse?.products || []);
+        setFeaturedTrainers(trainers.filter((trainer) => trainer.isFeatured));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load homepage settings.");
       } finally {
@@ -123,6 +154,35 @@ export default function AdminHomepagePage() {
       setMessage("Promotional banner saved successfully.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save promotional banner.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const moveSection = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= sectionOrder.length) return;
+
+    setSectionOrder((current) => {
+      const next = [...current];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  };
+
+  const handleSaveSectionOrder = async () => {
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const settings = await updateHomepageSectionOrder(sectionOrder);
+      if (settings?.sectionOrder?.length) {
+        setSectionOrder(settings.sectionOrder);
+      }
+      setMessage("Homepage section order saved successfully.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save section order.");
     } finally {
       setIsSaving(false);
     }
@@ -296,6 +356,95 @@ export default function AdminHomepagePage() {
             {promotionalBanner.isVisible ? promotionalBanner.text : "Banner hidden"}
           </div>
         </form>
+      </article>
+
+      <div className="admin-feature-summary-grid">
+        <article className="admin-feature-summary-card">
+          <div className="admin-feature-summary-title">
+            <Star aria-hidden="true" />
+            <h2>Featured Products</h2>
+            <a href="/admin/products">
+              Manage <ExternalLink aria-hidden="true" />
+            </a>
+          </div>
+          <p>{featuredProducts.length}/9 active</p>
+          <div className="admin-feature-thumbs">
+            {featuredProducts.slice(0, 4).map((product) => (
+              <span key={product._id} style={{ backgroundImage: getProductImage(product) ? `url(${getProductImage(product)})` : undefined }}>
+                {product.name}
+              </span>
+            ))}
+            {featuredProducts.length === 0 ? <em>No featured products</em> : null}
+          </div>
+        </article>
+
+        <article className="admin-feature-summary-card">
+          <div className="admin-feature-summary-title">
+            <UserCog aria-hidden="true" />
+            <h2>Featured Trainers</h2>
+            <a href="/admin/trainers">
+              Manage <ExternalLink aria-hidden="true" />
+            </a>
+          </div>
+          <p>{featuredTrainers.length}/6 active</p>
+          <div className="admin-feature-thumbs">
+            {featuredTrainers.slice(0, 3).map((trainer) => (
+              <span
+                key={trainer._id}
+                style={{ backgroundImage: normalizeTrainerPhotoUrl(trainer.userId.profilePicture) ? `url(${normalizeTrainerPhotoUrl(trainer.userId.profilePicture)})` : undefined }}
+              >
+                {trainer.userId.firstName} {trainer.userId.lastName}
+              </span>
+            ))}
+            {featuredTrainers.length === 0 ? <em>No featured trainers</em> : null}
+          </div>
+        </article>
+
+        <article className="admin-feature-summary-card">
+          <div className="admin-feature-summary-title">
+            <Wrench aria-hidden="true" />
+            <h2>Featured Services</h2>
+            <a href="/services">
+              Manage <ExternalLink aria-hidden="true" />
+            </a>
+          </div>
+          <p>{featuredServices.length}/3 active</p>
+          <div className="admin-feature-thumbs">
+            {featuredServices.map((service) => (
+              <span key={service.name} style={{ backgroundImage: `url(${service.image})` }}>
+                {service.name}
+              </span>
+            ))}
+          </div>
+        </article>
+      </div>
+
+      <article className="admin-home-card">
+        <div className="admin-home-card-title">
+          <GripVertical aria-hidden="true" />
+          <h2>Section Order</h2>
+        </div>
+        <p className="admin-section-order-help">Use the arrows to reorder how sections appear on the homepage.</p>
+        <div className="admin-section-order-list">
+          {sectionOrder.map((section, index) => (
+            <div className="admin-section-order-item" key={section.id}>
+              <GripVertical aria-hidden="true" />
+              <Box aria-hidden="true" />
+              <strong>{section.label}</strong>
+              <span>{index + 1}</span>
+              <button type="button" onClick={() => moveSection(index, -1)} disabled={index === 0} aria-label={`Move ${section.label} up`}>
+                <ArrowUp aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => moveSection(index, 1)} disabled={index === sectionOrder.length - 1} aria-label={`Move ${section.label} down`}>
+                <ArrowDown aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="admin-home-save-button" disabled={isSaving} onClick={handleSaveSectionOrder}>
+          <Save aria-hidden="true" />
+          {isSaving ? "Saving..." : "Save Section Order"}
+        </button>
       </article>
     </section>
   );

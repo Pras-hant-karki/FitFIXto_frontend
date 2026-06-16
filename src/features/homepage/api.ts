@@ -21,10 +21,16 @@ export type HomepagePromotionalBanner = {
   fontSize: number;
 };
 
+export type HomepageSectionOrderItem = {
+  id: string;
+  label: string;
+};
+
 export type HomepageSettings = {
   _id: string;
   hero: HomepageHero;
   promotionalBanner: HomepagePromotionalBanner;
+  sectionOrder: HomepageSectionOrderItem[];
 };
 
 const toFrontendAssetUrl = (filename?: string, path?: string) => {
@@ -50,6 +56,11 @@ export const updateHomepageHero = async (payload: HomepageHero) => {
 
 export const updateHomepagePromotionalBanner = async (payload: HomepagePromotionalBanner) => {
   const response = await apiClient.put<{ settings: HomepageSettings }>(API_ENDPOINTS.homepage.promotionalBanner, payload);
+  return response.data?.settings;
+};
+
+export const updateHomepageSectionOrder = async (sectionOrder: HomepageSectionOrderItem[]) => {
+  const response = await apiClient.put<{ settings: HomepageSettings }>(API_ENDPOINTS.homepage.sectionOrder, { sectionOrder });
   return response.data?.settings;
 };
 

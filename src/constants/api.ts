@@ -89,6 +89,7 @@ export const API_ENDPOINTS = {
     settings: '/homepage/settings',
     hero: '/homepage/hero',
     promotionalBanner: '/homepage/promotional-banner',
+    sectionOrder: '/homepage/section-order',
     uploadImage: '/homepage/upload-image',
   },
 
