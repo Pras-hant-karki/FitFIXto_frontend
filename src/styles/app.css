@@ -2688,6 +2688,250 @@ a {
   font-size: 18px;
 }
 
+.admin-trainers-page {
+  display: grid;
+  gap: 22px;
+  width: min(1180px, 100%);
+}
+
+.admin-trainers-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-trainers-header h1 {
+  margin: 0 0 5px;
+  color: #050507;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.admin-trainers-header p {
+  margin: 0;
+  color: #747584;
+  font-size: 16px;
+}
+
+.admin-trainer-form-panel {
+  border: 1px solid #e5e5e8;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 24px;
+}
+
+.admin-trainer-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-trainer-form label {
+  display: grid;
+  gap: 8px;
+  color: #050507;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-trainer-form input,
+.admin-trainer-form textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #e5e5e8;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #050507;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.admin-trainer-form textarea {
+  min-height: 94px;
+  resize: vertical;
+  padding: 12px;
+}
+
+.admin-trainer-form-wide {
+  grid-column: span 4;
+}
+
+.admin-trainer-form button[type="submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 0;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-trainer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-trainer-card {
+  overflow: hidden;
+  border: 1px solid #e5e5e8;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.admin-trainer-card.suspended {
+  opacity: 0.68;
+}
+
+.admin-trainer-card-main {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 18px;
+}
+
+.admin-trainer-card-main img,
+.admin-trainer-avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.admin-trainer-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #030213;
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.admin-trainer-card h2 {
+  margin: 0 0 3px;
+  color: #050507;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.admin-trainer-card p {
+  margin: 0;
+  color: #747584;
+}
+
+.admin-trainer-card-main span {
+  display: block;
+  margin-top: 6px;
+  color: #747584;
+  font-size: 14px;
+}
+
+.admin-trainer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.admin-trainer-tags strong {
+  min-height: 22px;
+  border-radius: 4px;
+  background: #e8e8eb;
+  color: #050507;
+  padding: 5px 8px 0;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-trainer-star {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #747584;
+  cursor: pointer;
+}
+
+.admin-trainer-star svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+}
+
+.admin-trainer-star.active {
+  color: #f5a400;
+}
+
+.admin-trainer-star.active svg {
+  fill: currentColor;
+}
+
+.admin-trainer-bio {
+  padding: 0 18px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.admin-trainer-certs {
+  padding: 0 18px 16px;
+  color: #747584;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-trainer-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  border-top: 1px solid #e5e5e8;
+  padding: 14px 18px;
+}
+
+.admin-trainer-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid #e5e5e8;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #050507;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-trainer-actions button:first-child {
+  border-color: transparent;
+  background: #dff7ef;
+  color: #008f5a;
+}
+
+.admin-trainer-actions button.danger {
+  color: #b42318;
+}
+
+.admin-trainer-actions svg {
+  width: 14px;
+  height: 14px;
+}
+
 .admin-footer {
   border-top: 1px solid #e5e5e8;
   background: #ffffff;
@@ -2810,7 +3054,9 @@ a {
 .dark .admin-overview-empty h1,
 .dark .admin-products-header h1,
 .dark .admin-orders-header h1,
+.dark .admin-trainers-header h1,
 .dark .admin-product-form label,
+.dark .admin-trainer-form label,
 .dark .admin-upload-field > span,
 .dark .admin-url-field,
 .dark .admin-product-cell strong,
@@ -2820,6 +3066,9 @@ a {
 .dark .admin-orders-admin-row > strong,
 .dark .admin-order-view-button,
 .dark .admin-order-detail h2,
+.dark .admin-trainer-card h2,
+.dark .admin-trainer-tags strong,
+.dark .admin-trainer-actions button,
 .dark .admin-stat-card strong,
 .dark .admin-dashboard-card h2,
 .dark .admin-card-header a,
@@ -2837,7 +3086,9 @@ a {
 .dark .admin-products-table-card,
 .dark .admin-orders-table-card,
 .dark .admin-order-tabs,
-.dark .admin-order-detail {
+.dark .admin-order-detail,
+.dark .admin-trainer-form-panel,
+.dark .admin-trainer-card {
   border-color: #25272d;
   background: #0f1117;
 }
@@ -2856,6 +3107,8 @@ a {
 .dark .admin-orders-admin-row,
 .dark .admin-order-detail-lines div,
 .dark .admin-order-detail-total,
+.dark .admin-trainer-actions,
+.dark .admin-trainer-actions button,
 .dark .admin-product-actions button,
 .dark .admin-order-view-button,
 .dark .admin-bar-plot {
@@ -2867,6 +3120,8 @@ a {
 .dark .admin-product-form input,
 .dark .admin-product-form select,
 .dark .admin-product-form textarea,
+.dark .admin-trainer-form input,
+.dark .admin-trainer-form textarea,
 .dark .admin-product-image-preview,
 .dark .admin-upload-drop,
 .dark .admin-product-actions button,
@@ -2885,6 +3140,10 @@ a {
 .dark .admin-form-close {
   background: #181a20;
   color: #ffffff;
+}
+
+.dark .admin-trainer-tags strong {
+  background: #181a20;
 }
 
 .dark .admin-bar-plot {
@@ -3173,6 +3432,11 @@ a {
     flex-direction: column;
   }
 
+  .admin-trainers-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .admin-order-toolbar {
     grid-template-columns: 1fr;
   }
@@ -3194,6 +3458,10 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-trainer-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-product-form-wide,
   .admin-feature-check,
   .admin-product-image-preview,
@@ -3203,6 +3471,14 @@ a {
 
   .admin-product-media-row {
     grid-template-columns: 220px minmax(260px, 1fr);
+  }
+
+  .admin-trainer-form-wide {
+    grid-column: span 2;
+  }
+
+  .admin-trainer-grid {
+    grid-template-columns: 1fr;
   }
 
   .admin-products-table-head {
@@ -3373,6 +3649,10 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .admin-trainer-form {
+    grid-template-columns: 1fr;
+  }
+
   .admin-product-form-wide,
   .admin-feature-check,
   .admin-product-image-preview,
@@ -3382,6 +3662,29 @@ a {
 
   .admin-product-media-row {
     grid-template-columns: 1fr;
+  }
+
+  .admin-trainer-form-wide {
+    grid-column: span 1;
+  }
+
+  .admin-trainer-card-main {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .admin-trainer-card-main img,
+  .admin-trainer-avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .admin-trainer-star {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .admin-trainer-actions {
+    flex-direction: column;
   }
 
   .admin-url-field div {
