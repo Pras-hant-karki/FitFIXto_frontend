@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Heart, ShoppingCart, Star } from "lucide-react";
 import {
   BackendProduct,
@@ -10,12 +11,6 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
-
-interface Filters {
-  categories: string[];
-  priceRange: [number, number];
-  brands: string[];
-}
 
 const DEFAULT_MAX_PRICE = 3000;
 
@@ -26,14 +21,19 @@ interface DualRangeSliderProps {
   onChange: (value: [number, number]) => void;
 }
 
+const parseListParam = (value: string | null) =>
+  value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onChange }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<"min" | "max" | null>(null);
 
-  const getPercentage = useCallback(
-    (val: number) => ((val - min) / (max - min || 1)) * 100,
-    [min, max]
-  );
+  const getPercentage = useCallback((val: number) => ((val - min) / (max - min || 1)) * 100, [min, max]);
 
   const getValueFromPosition = useCallback(
     (clientX: number) => {
@@ -46,9 +46,9 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (event: MouseEvent) => {
       if (!dragging) return;
-      const newValue = getValueFromPosition(e.clientX);
+      const newValue = getValueFromPosition(event.clientX);
       if (dragging === "min") {
         onChange([Math.min(newValue, value[1] - 50), value[1]]);
       } else {
@@ -62,6 +62,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     }
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
@@ -93,8 +94,8 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
         onMouseDown={() => setDragging("max")}
       />
       <div className="flex justify-between mt-4 text-sm text-gray-600">
-        <span>${value[0]}</span>
-        <span>${value[1]}</span>
+        <span>Npr {value[0]}</span>
+        <span>Npr {value[1]}</span>
       </div>
     </div>
   );
@@ -108,14 +109,16 @@ interface FilterCheckboxProps {
 
 const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChange }) => (
   <label className="flex items-center space-x-3 cursor-pointer group">
-    <div
+    <button
+      type="button"
       className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
         checked ? "bg-black border-black" : "border-gray-300 group-hover:border-gray-400"
       }`}
       onClick={onChange}
+      aria-label={label}
     >
       {checked && <CheckCircle2 className="w-3 h-3 text-white" />}
-    </div>
+    </button>
     <span className="text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
   </label>
 );
@@ -140,11 +143,7 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
             <span>VERIFIED</span>
           </div>
         )}
-        {discount > 0 ? (
-          <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
-            -{discount}%
-          </div>
-        ) : null}
+        {discount > 0 ? <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div> : null}
         <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors">
           <Heart className="w-4 h-4 text-gray-600" />
         </button>
@@ -163,8 +162,8 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
           <span className="text-sm text-gray-500">({product.ratingCount})</span>
         </div>
         <div className="flex items-baseline space-x-2 mb-4">
-          <span className="text-xl font-bold text-gray-900">${product.price}</span>
-          {originalPrice ? <span className="text-sm text-gray-400 line-through">${originalPrice}</span> : null}
+          <span className="text-xl font-bold text-gray-900">Npr {product.price}</span>
+          {originalPrice ? <span className="text-sm text-gray-400 line-through">Npr {originalPrice}</span> : null}
         </div>
         <button className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium">
           <ShoppingCart className="w-4 h-4" />
@@ -175,15 +174,75 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
   );
 };
 
-const Shop: React.FC = () => {
+const ShopContent: React.FC = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamString = searchParams.toString();
   const [products, setProducts] = useState<BackendProduct[]>([]);
+  const [facetProducts, setFacetProducts] = useState<BackendProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filters, setFilters] = useState<Filters>({
-    categories: [],
-    priceRange: [0, DEFAULT_MAX_PRICE],
-    brands: [],
-  });
+
+  const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
+  const selectedBrands = useMemo(() => parseListParam(searchParams.get("brand")), [searchParamString]);
+  const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
+  const minPrice = Number.isFinite(parsedMinPrice) ? parsedMinPrice : 0;
+  const selectedMaxPrice = searchParams.get("maxPrice");
+
+  useEffect(() => {
+    const loadFacets = async () => {
+      try {
+        const data = await fetchProducts({ limit: 100, sortBy: "createdAt", order: "desc" });
+        setFacetProducts(data?.products || []);
+      } catch {
+        setFacetProducts([]);
+      }
+    };
+
+    loadFacets();
+  }, []);
+
+  const maxPrice = useMemo(() => {
+    const highestPrice = Math.max(...facetProducts.map((product) => product.price), DEFAULT_MAX_PRICE);
+    return Math.ceil(highestPrice / 100) * 100;
+  }, [facetProducts]);
+
+  const parsedMaxPrice = Number(selectedMaxPrice);
+  const priceRange: [number, number] = [minPrice, selectedMaxPrice && Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : maxPrice];
+
+  const categories = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.category))).filter(Boolean), [facetProducts]);
+  const brands = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.brand).filter(Boolean))) as string[], [facetProducts]);
+
+  const updateUrl = (updates: Record<string, string | null>) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        nextParams.set(key, value);
+      } else {
+        nextParams.delete(key);
+      }
+    });
+
+    const nextQuery = nextParams.toString();
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  };
+
+  const toggleFilter = (key: "category" | "brand", value: string) => {
+    const current = key === "category" ? selectedCategories : selectedBrands;
+    const updated = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+    updateUrl({ [key]: updated.length ? updated.join(",") : null });
+  };
+
+  const updatePriceRange = (range: [number, number]) => {
+    updateUrl({
+      minPrice: range[0] > 0 ? String(range[0]) : null,
+      maxPrice: range[1] < maxPrice ? String(range[1]) : null,
+    });
+  };
+
+  const resetFilters = () => router.push(pathname);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -191,7 +250,18 @@ const Shop: React.FC = () => {
       setError("");
 
       try {
-        const data = await fetchProducts({ isActive: true, limit: 100 });
+        const params: Record<string, string | number | boolean> = {
+          limit: 100,
+          sortBy: "createdAt",
+          order: "desc",
+        };
+
+        if (selectedCategories.length) params.category = selectedCategories.join(",");
+        if (selectedBrands.length) params.brand = selectedBrands.join(",");
+        if (priceRange[0] > 0) params.minPrice = priceRange[0];
+        if (selectedMaxPrice) params.maxPrice = priceRange[1];
+
+        const data = await fetchProducts(params);
         setProducts(data?.products || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load products.");
@@ -201,67 +271,17 @@ const Shop: React.FC = () => {
     };
 
     loadProducts();
-  }, []);
-
-  const maxPrice = useMemo(() => {
-    const highestPrice = Math.max(...products.map((product) => product.price), DEFAULT_MAX_PRICE);
-    return Math.ceil(highestPrice / 100) * 100;
-  }, [products]);
-
-  useEffect(() => {
-    setFilters((current) => ({
-      ...current,
-      priceRange: [current.priceRange[0], Math.max(current.priceRange[1], maxPrice)],
-    }));
-  }, [maxPrice]);
-
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((product) => product.category))).filter(Boolean),
-    [products]
-  );
-
-  const brands = useMemo(
-    () => Array.from(new Set(products.map((product) => product.brand).filter(Boolean))) as string[],
-    [products]
-  );
-
-  const toggleFilter = (key: "categories" | "brands", value: string) => {
-    setFilters((prev) => {
-      const current = prev[key];
-      const updated = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
-      return { ...prev, [key]: updated };
-    });
-  };
-
-  const filteredProducts = products.filter((product) => {
-    if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false;
-    if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) return false;
-    if (filters.brands.length > 0 && (!product.brand || !filters.brands.includes(product.brand))) return false;
-    return true;
-  });
-
-  const resetFilters = () =>
-    setFilters({
-      categories: [],
-      priceRange: [0, maxPrice],
-      brands: [],
-    });
+  }, [searchParamString, selectedCategories, selectedBrands, selectedMaxPrice, priceRange[0], priceRange[1]]);
 
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop Your Needs</h1>
-          <p className="text-sm text-gray-500">
-            {isLoading ? "Loading products..." : `Showing ${filteredProducts.length} of ${products.length} products`}
-          </p>
+          <p className="text-sm text-gray-500">{isLoading ? "Loading products..." : `Showing ${products.length} products`}</p>
         </div>
 
-        {error ? (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            {error}
-          </div>
-        ) : null}
+        {error ? <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
 
         <div className="flex flex-col lg:flex-row gap-8">
           <aside className="w-full lg:w-64 flex-shrink-0">
@@ -271,12 +291,7 @@ const Shop: React.FC = () => {
                 <div className="space-y-3">
                   {categories.length > 0 ? (
                     categories.map((cat) => (
-                      <FilterCheckbox
-                        key={cat}
-                        label={formatCategory(cat)}
-                        checked={filters.categories.includes(cat)}
-                        onChange={() => toggleFilter("categories", cat)}
-                      />
+                      <FilterCheckbox key={cat} label={formatCategory(cat)} checked={selectedCategories.includes(cat)} onChange={() => toggleFilter("category", cat)} />
                     ))
                   ) : (
                     <p className="text-sm text-gray-500">No categories yet.</p>
@@ -286,13 +301,8 @@ const Shop: React.FC = () => {
 
               <div>
                 <h3 className="font-bold text-gray-900 mb-4">Price Range</h3>
-                <DualRangeSlider
-                  min={0}
-                  max={maxPrice}
-                  value={filters.priceRange}
-                  onChange={(range) => setFilters((prev) => ({ ...prev, priceRange: range }))}
-                />
-                <p className="text-xs text-gray-500 mt-2">Up to ${maxPrice}</p>
+                <DualRangeSlider min={0} max={maxPrice} value={priceRange} onChange={updatePriceRange} />
+                <p className="text-xs text-gray-500 mt-2">Up to Npr {maxPrice}</p>
               </div>
 
               <div>
@@ -300,12 +310,7 @@ const Shop: React.FC = () => {
                 <div className="space-y-3">
                   {brands.length > 0 ? (
                     brands.map((brand) => (
-                      <FilterCheckbox
-                        key={brand}
-                        label={brand}
-                        checked={filters.brands.includes(brand)}
-                        onChange={() => toggleFilter("brands", brand)}
-                      />
+                      <FilterCheckbox key={brand} label={brand} checked={selectedBrands.includes(brand)} onChange={() => toggleFilter("brand", brand)} />
                     ))
                   ) : (
                     <p className="text-sm text-gray-500">No brands yet.</p>
@@ -322,13 +327,13 @@ const Shop: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <ProductCard key={product._id} product={product} />
                 ))}
               </div>
             )}
 
-            {!isLoading && filteredProducts.length === 0 && (
+            {!isLoading && products.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-gray-500 text-lg">No products match your filters.</p>
                 <button onClick={resetFilters} className="mt-4 text-black font-semibold hover:underline">
@@ -343,4 +348,16 @@ const Shop: React.FC = () => {
   );
 };
 
-export default Shop;
+export default function ShopPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-gray-500">Loading shop...</div>
+        </div>
+      }
+    >
+      <ShopContent />
+    </Suspense>
+  );
+}
