@@ -14,6 +14,7 @@ type WishlistContextValue = {
   wishlistCount: number;
   wishlistProductIds: Set<string>;
   isWishlistLoading: boolean;
+  wishlistError: string;
   refreshWishlist: () => Promise<BackendWishlist>;
   toggleWishlistItem: (productId: string) => Promise<BackendWishlist>;
   removeFromWishlist: (productId: string) => Promise<BackendWishlist>;
@@ -27,19 +28,26 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   const [wishlist, setWishlist] = useState<BackendWishlist>(emptyWishlist);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const [wishlistError, setWishlistError] = useState("");
 
   const refreshWishlist = useCallback(async () => {
     if (!isAuthenticated) {
       setWishlist(emptyWishlist);
+      setWishlistError("");
       return emptyWishlist;
     }
 
     setIsWishlistLoading(true);
+    setWishlistError("");
 
     try {
       const nextWishlist = await fetchWishlist();
       setWishlist(nextWishlist);
       return nextWishlist;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to load wishlist.";
+      setWishlistError(message);
+      throw err;
     } finally {
       setIsWishlistLoading(false);
     }
@@ -78,11 +86,12 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       wishlistCount: wishlist.items.length,
       wishlistProductIds,
       isWishlistLoading,
+      wishlistError,
       refreshWishlist,
       toggleWishlistItem,
       removeFromWishlist,
     }),
-    [isWishlistLoading, refreshWishlist, removeFromWishlist, toggleWishlistItem, wishlist, wishlistProductIds]
+    [isWishlistLoading, refreshWishlist, removeFromWishlist, toggleWishlistItem, wishlist, wishlistError, wishlistProductIds]
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;

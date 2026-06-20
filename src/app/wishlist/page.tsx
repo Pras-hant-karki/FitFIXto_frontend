@@ -7,6 +7,25 @@ import { formatCategory, getProductImage } from "@/features/products";
 import { useAuth, useWishlist } from "@/contexts";
 import type { BackendWishlistItem } from "@/features/wishlist";
 
+const WishlistSkeleton = () => (
+  <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {[0, 1, 2].map((item) => (
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white" key={item}>
+        <div className="h-72 animate-pulse bg-gray-100" />
+        <div className="space-y-4 p-5">
+          <div className="h-4 w-28 animate-pulse rounded bg-gray-100" />
+          <div className="h-6 w-4/5 animate-pulse rounded bg-gray-100" />
+          <div className="h-8 w-24 animate-pulse rounded bg-gray-100" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-12 animate-pulse rounded-md bg-gray-100" />
+            <div className="h-12 animate-pulse rounded-md bg-gray-100" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const WishlistProductCard = ({
   item,
   onRemove,
@@ -66,7 +85,7 @@ const WishlistProductCard = ({
 
 export default function WishlistPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { wishlist, wishlistCount, isWishlistLoading, removeFromWishlist } = useWishlist();
+  const { wishlist, wishlistCount, isWishlistLoading, wishlistError, refreshWishlist, removeFromWishlist } = useWishlist();
   const isLoading = isAuthLoading || isWishlistLoading;
 
   const handleRemove = async (productId: string) => {
@@ -97,7 +116,18 @@ export default function WishlistPage() {
         {isLoading ? "Loading saved items..." : `${wishlistCount} saved ${wishlistCount === 1 ? "item" : "items"}`}
       </p>
 
-      {!isLoading && wishlistCount === 0 ? (
+      {!isLoading && wishlistError ? (
+        <div className="mt-10 rounded-xl border border-red-200 bg-red-50 px-6 py-20 text-center">
+          <Heart className="mx-auto h-16 w-16 text-red-400" />
+          <h2 className="mt-6 text-2xl font-black text-gray-950">Unable to load wishlist</h2>
+          <p className="mt-4 text-lg text-red-700">{wishlistError}</p>
+          <button type="button" onClick={() => refreshWishlist()} className="mt-8 rounded-md bg-[#020011] px-8 py-4 text-lg font-bold text-white">
+            Try Again
+          </button>
+        </div>
+      ) : null}
+
+      {!isLoading && !wishlistError && wishlistCount === 0 ? (
         <div className="mt-10 rounded-xl border border-gray-200 bg-white px-6 py-24 text-center">
           <Heart className="mx-auto h-16 w-16 text-gray-500" />
           <h2 className="mt-6 text-2xl font-black text-gray-950">Your wishlist is empty</h2>
@@ -108,13 +138,9 @@ export default function WishlistPage() {
         </div>
       ) : null}
 
-      {isLoading ? (
-        <div className="mt-10 rounded-xl border border-gray-200 bg-white px-6 py-16 text-center text-lg font-bold text-gray-500">
-          Loading wishlist...
-        </div>
-      ) : null}
+      {isLoading ? <WishlistSkeleton /> : null}
 
-      {!isLoading && wishlistCount > 0 ? (
+      {!isLoading && !wishlistError && wishlistCount > 0 ? (
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {wishlist.items.map((item) => (
             <WishlistProductCard key={item.productId._id} item={item} onRemove={handleRemove} />

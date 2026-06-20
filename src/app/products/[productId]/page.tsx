@@ -28,6 +28,49 @@ const ProductTile = ({ product }: { product: BackendProduct }) => (
   </Link>
 );
 
+const ProductDetailsSkeleton = () => (
+  <main className="product-detail-page">
+    <div className="h-5 w-28 animate-pulse rounded bg-gray-100" />
+    <section className="product-detail-hero">
+      <div className="product-detail-gallery">
+        <div className="product-detail-main-image animate-pulse bg-gray-100" />
+        <div className="product-detail-thumbs">
+          {[0, 1, 2].map((item) => (
+            <div className="h-20 w-20 animate-pulse rounded-lg bg-gray-100" key={item} />
+          ))}
+        </div>
+      </div>
+      <div className="product-detail-info">
+        <div className="h-5 w-32 animate-pulse rounded bg-gray-100" />
+        <div className="h-10 w-4/5 animate-pulse rounded bg-gray-100" />
+        <div className="h-5 w-36 animate-pulse rounded bg-gray-100" />
+        <div className="h-11 w-44 animate-pulse rounded bg-gray-100" />
+        <div className="h-8 w-28 animate-pulse rounded bg-gray-100" />
+        <div className="space-y-3">
+          <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-gray-100" />
+          <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
+        </div>
+        <div className="flex gap-3">
+          <div className="h-12 w-44 animate-pulse rounded-lg bg-gray-100" />
+          <div className="h-12 w-12 animate-pulse rounded-lg bg-gray-100" />
+        </div>
+      </div>
+    </section>
+    <section className="product-detail-specs">
+      <div className="h-8 w-40 animate-pulse rounded bg-gray-100" />
+      <div>
+        {[0, 1, 2, 3].map((item) => (
+          <article key={item}>
+            <span className="h-4 w-24 animate-pulse rounded bg-gray-100" />
+            <strong className="h-5 w-32 animate-pulse rounded bg-gray-100" />
+          </article>
+        ))}
+      </div>
+    </section>
+  </main>
+);
+
 export default function ProductDetailsPage() {
   const params = useParams<{ productId: string }>();
   const productId = params.productId;
@@ -91,14 +134,20 @@ export default function ProductDetailsPage() {
     : [];
 
   if (isLoading) {
-    return <div className="product-detail-state">Loading product...</div>;
+    return <ProductDetailsSkeleton />;
   }
 
   if (error || !product) {
     return (
       <div className="product-detail-state">
         <strong>{error || "Product not found."}</strong>
-        <Link href="/shop">Back to shop</Link>
+        <span>We could not load this product right now.</span>
+        <div>
+          <button type="button" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+          <Link href="/shop">Back to shop</Link>
+        </div>
       </div>
     );
   }
@@ -187,7 +236,10 @@ export default function ProductDetailsPage() {
             ))}
           </div>
         ) : (
-          <p>No related products yet.</p>
+          <div className="product-detail-empty">
+            <strong>No related products yet.</strong>
+            <span>More items from this category will appear here when they are available.</span>
+          </div>
         )}
       </section>
     </main>

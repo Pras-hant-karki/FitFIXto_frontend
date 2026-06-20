@@ -201,6 +201,23 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
   );
 };
 
+const ProductGridSkeleton = () => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+    {[0, 1, 2, 3, 4, 5].map((item) => (
+      <div className="overflow-hidden rounded-lg border border-gray-100 bg-white" key={item}>
+        <div className="h-56 animate-pulse bg-gray-100" />
+        <div className="space-y-4 p-4">
+          <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
+          <div className="h-6 w-5/6 animate-pulse rounded bg-gray-100" />
+          <div className="h-4 w-24 animate-pulse rounded bg-gray-100" />
+          <div className="h-7 w-28 animate-pulse rounded bg-gray-100" />
+          <div className="h-12 animate-pulse rounded-lg bg-gray-100" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const ShopContent: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -348,7 +365,15 @@ const ShopContent: React.FC = () => {
           </label>
         </div>
 
-        {error ? <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
+        {error ? (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm font-semibold text-red-700">
+            <strong className="block text-base text-red-800">Unable to load products.</strong>
+            <span className="mt-1 block">{error}</span>
+            <button type="button" onClick={() => window.location.reload()} className="mt-3 rounded-md bg-red-700 px-4 py-2 text-white">
+              Try Again
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex flex-col lg:flex-row gap-8">
           <aside className="w-full lg:w-64 flex-shrink-0">
@@ -389,9 +414,7 @@ const ShopContent: React.FC = () => {
 
           <main className="flex-1">
             {isLoading ? (
-              <div className="text-center py-16">
-                <p className="text-gray-500 text-lg">Loading products...</p>
-              </div>
+              <ProductGridSkeleton />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map((product) => (
@@ -401,9 +424,12 @@ const ShopContent: React.FC = () => {
             )}
 
             {!isLoading && products.length === 0 && (
-              <div className="text-center py-16">
-                <p className="text-gray-500 text-lg">No products match your filters.</p>
-                <button onClick={resetFilters} className="mt-4 text-black font-semibold hover:underline">
+              <div className="rounded-xl border border-gray-200 bg-white px-6 py-16 text-center">
+                <h2 className="text-2xl font-black text-gray-950">No products found</h2>
+                <p className="mt-3 text-lg text-gray-500">
+                  {searchQuery ? `No products match "${searchQuery}" with the current filters.` : "No products match your current filters."}
+                </p>
+                <button onClick={resetFilters} className="mt-6 rounded-md bg-[#020011] px-6 py-3 font-semibold text-white">
                   Clear all filters
                 </button>
               </div>
