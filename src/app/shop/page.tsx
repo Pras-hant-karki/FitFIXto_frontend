@@ -14,6 +14,16 @@ import {
 import { useAuth, useWishlist } from "@/contexts";
 
 const DEFAULT_MAX_PRICE = 3000;
+const PRODUCT_PAGE_SIZE = 6;
+
+type ProductPagination = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
 
 interface DualRangeSliderProps {
   min: number;
@@ -203,7 +213,7 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
 
 const ProductGridSkeleton = () => (
   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-    {[0, 1, 2, 3, 4, 5].map((item) => (
+    {Array.from({ length: PRODUCT_PAGE_SIZE }, (_, item) => (
       <div className="overflow-hidden rounded-lg border border-gray-100 bg-white" key={item}>
         <div className="h-56 animate-pulse bg-gray-100" />
         <div className="space-y-4 p-4">
@@ -218,6 +228,15 @@ const ProductGridSkeleton = () => (
   </div>
 );
 
+const getPaginationPages = (currentPage: number, totalPages: number) => {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  return Array.from({ length: 5 }, (_, index) => start + index);
+};
+
 const ShopContent: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -225,6 +244,7 @@ const ShopContent: React.FC = () => {
   const searchParamString = searchParams.toString();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [facetProducts, setFacetProducts] = useState<BackendProduct[]>([]);
+  const [pagination, setPagination] = useState<ProductPagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -235,6 +255,8 @@ const ShopContent: React.FC = () => {
   const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
   const minPrice = Number.isFinite(parsedMinPrice) ? parsedMinPrice : 0;
   const selectedMaxPrice = searchParams.get("maxPrice");
+  const parsedPage = Number(searchParams.get("page") || 1);
+  const currentPage = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1;
 
   useEffect(() => {
     setSearchInput(searchQuery);
@@ -293,7 +315,7 @@ const ShopContent: React.FC = () => {
     }
 
     const timeoutId = window.setTimeout(() => {
-      updateUrl({ search: normalizedInput || null }, "replace");
+      updateUrl({ search: normalizedInput || null, page: null }, "replace");
     }, 400);
 
     return () => window.clearTimeout(timeoutId);
@@ -302,17 +324,23 @@ const ShopContent: React.FC = () => {
   const toggleFilter = (key: "category" | "brand", value: string) => {
     const current = key === "category" ? selectedCategories : selectedBrands;
     const updated = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
-    updateUrl({ [key]: updated.length ? updated.join(",") : null });
+    updateUrl({ [key]: updated.length ? updated.join(",") : null, page: null });
   };
 
   const updatePriceRange = (range: [number, number]) => {
     updateUrl({
       minPrice: range[0] > 0 ? String(range[0]) : null,
       maxPrice: range[1] < maxPrice ? String(range[1]) : null,
+      page: null,
     });
   };
 
   const resetFilters = () => router.push(pathname);
+
+  const goToPage = (page: number) => {
+    updateUrl({ page: page > 1 ? String(page) : null });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -321,7 +349,8 @@ const ShopContent: React.FC = () => {
 
       try {
         const params: Record<string, string | number | boolean> = {
-          limit: 100,
+          page: currentPage,
+          limit: PRODUCT_PAGE_SIZE,
           sortBy: "createdAt",
           order: "desc",
         };
@@ -334,15 +363,21 @@ const ShopContent: React.FC = () => {
 
         const data = await fetchProducts(params);
         setProducts(data?.products || []);
+        setPagination(data?.pagination || null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load products.");
+        setPagination(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadProducts();
-  }, [searchParamString, selectedCategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1]]);
+  }, [searchParamString, selectedCategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1], currentPage]);
+
+  const totalProducts = pagination?.total ?? products.length;
+  const totalPages = pagination?.totalPages ?? 1;
+  const paginationPages = getPaginationPages(currentPage, totalPages);
 
   return (
     <div className="min-h-screen bg-white">
@@ -350,7 +385,11 @@ const ShopContent: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop Your Needs</h1>
           <p className="text-sm text-gray-500">
-            {isLoading ? "Loading products..." : searchQuery ? `Showing ${products.length} products for "${searchQuery}"` : `Showing ${products.length} products`}
+            {isLoading
+              ? "Loading products..."
+              : searchQuery
+                ? `Showing ${products.length} of ${totalProducts} products for "${searchQuery}"`
+                : `Showing ${products.length} of ${totalProducts} products`}
           </p>
           <label className="relative mt-5 block w-full max-w-xl">
             <span className="sr-only">Search products</span>
@@ -434,6 +473,40 @@ const ShopContent: React.FC = () => {
                 </button>
               </div>
             )}
+
+            {!isLoading && !error && products.length > 0 && totalPages > 1 ? (
+              <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Shop pagination">
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={!pagination?.hasPrevPage}
+                  className="rounded-md border border-gray-200 px-4 py-2 text-sm font-bold text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                {paginationPages.map((page) => (
+                  <button
+                    type="button"
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    aria-current={page === currentPage ? "page" : undefined}
+                    className={`h-10 min-w-10 rounded-md border px-3 text-sm font-black ${
+                      page === currentPage ? "border-[#020011] bg-[#020011] text-white" : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={!pagination?.hasNextPage}
+                  className="rounded-md border border-gray-200 px-4 py-2 text-sm font-bold text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </nav>
+            ) : null}
           </main>
         </div>
       </div>
