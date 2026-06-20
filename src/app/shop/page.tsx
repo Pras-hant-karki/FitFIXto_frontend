@@ -3,7 +3,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Heart, ShoppingCart, Star } from "lucide-react";
+import { CheckCircle2, Heart, Search, ShoppingCart, Star } from "lucide-react";
 import {
   BackendProduct,
   fetchProducts,
@@ -186,9 +186,15 @@ const ShopContent: React.FC = () => {
 
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
   const selectedBrands = useMemo(() => parseListParam(searchParams.get("brand")), [searchParamString]);
+  const searchQuery = searchParams.get("search") || "";
+  const [searchInput, setSearchInput] = useState(searchQuery);
   const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
   const minPrice = Number.isFinite(parsedMinPrice) ? parsedMinPrice : 0;
   const selectedMaxPrice = searchParams.get("maxPrice");
+
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
 
   useEffect(() => {
     const loadFacets = async () => {
@@ -214,7 +220,7 @@ const ShopContent: React.FC = () => {
   const categories = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.category))).filter(Boolean), [facetProducts]);
   const brands = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.brand).filter(Boolean))) as string[], [facetProducts]);
 
-  const updateUrl = (updates: Record<string, string | null>) => {
+  const updateUrl = useCallback((updates: Record<string, string | null>, mode: "push" | "replace" = "push") => {
     const nextParams = new URLSearchParams(searchParams.toString());
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -226,8 +232,28 @@ const ShopContent: React.FC = () => {
     });
 
     const nextQuery = nextParams.toString();
-    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-  };
+    const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+
+    if (mode === "replace") {
+      router.replace(nextUrl);
+    } else {
+      router.push(nextUrl);
+    }
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    const normalizedInput = searchInput.trim();
+
+    if (normalizedInput === searchQuery) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      updateUrl({ search: normalizedInput || null }, "replace");
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput, searchQuery, updateUrl]);
 
   const toggleFilter = (key: "category" | "brand", value: string) => {
     const current = key === "category" ? selectedCategories : selectedBrands;
@@ -258,6 +284,7 @@ const ShopContent: React.FC = () => {
 
         if (selectedCategories.length) params.category = selectedCategories.join(",");
         if (selectedBrands.length) params.brand = selectedBrands.join(",");
+        if (searchQuery.trim()) params.search = searchQuery.trim();
         if (priceRange[0] > 0) params.minPrice = priceRange[0];
         if (selectedMaxPrice) params.maxPrice = priceRange[1];
 
@@ -271,14 +298,27 @@ const ShopContent: React.FC = () => {
     };
 
     loadProducts();
-  }, [searchParamString, selectedCategories, selectedBrands, selectedMaxPrice, priceRange[0], priceRange[1]]);
+  }, [searchParamString, selectedCategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1]]);
 
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop Your Needs</h1>
-          <p className="text-sm text-gray-500">{isLoading ? "Loading products..." : `Showing ${products.length} products`}</p>
+          <p className="text-sm text-gray-500">
+            {isLoading ? "Loading products..." : searchQuery ? `Showing ${products.length} products for "${searchQuery}"` : `Showing ${products.length} products`}
+          </p>
+          <label className="relative mt-5 block w-full max-w-xl">
+            <span className="sr-only">Search products</span>
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search products..."
+              className="w-full rounded-lg border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm font-semibold text-gray-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
+            />
+          </label>
         </div>
 
         {error ? <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
