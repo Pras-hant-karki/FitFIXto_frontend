@@ -82,7 +82,7 @@ export default function WishlistPage() {
           <Heart className="mx-auto h-16 w-16 text-gray-500" />
           <h2 className="mt-6 text-2xl font-black text-gray-950">Your wishlist is waiting</h2>
           <p className="mt-4 text-lg text-gray-500">Login to save your favourite gear and find it again later.</p>
-          <Link href="/login" className="mt-8 inline-flex rounded-md bg-[#020011] px-8 py-4 text-lg font-bold text-white">
+          <Link href="/login" className="wishlist-primary-link mt-8 inline-flex rounded-md bg-[#020011] px-8 py-4 text-lg font-bold">
             Login
           </Link>
         </div>
@@ -102,7 +102,7 @@ export default function WishlistPage() {
           <Heart className="mx-auto h-16 w-16 text-gray-500" />
           <h2 className="mt-6 text-2xl font-black text-gray-950">Your wishlist is empty</h2>
           <p className="mt-4 text-lg text-gray-500">Save your favourite gear and we'll keep it ready.</p>
-          <Link href="/shop" className="mt-8 inline-flex rounded-md bg-[#020011] px-8 py-4 text-lg font-bold text-white">
+          <Link href="/shop" className="wishlist-primary-link mt-8 inline-flex rounded-md bg-[#020011] px-8 py-4 text-lg font-bold">
             Start Shopping
           </Link>
         </div>

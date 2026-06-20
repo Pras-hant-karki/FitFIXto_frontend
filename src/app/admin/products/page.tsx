@@ -25,6 +25,7 @@ type ProductFormState = {
   sku: string;
   tags: string;
   isFeatured: boolean;
+  verifiedBadge: boolean;
 };
 
 const emptyForm: ProductFormState = {
@@ -38,6 +39,7 @@ const emptyForm: ProductFormState = {
   sku: "",
   tags: "",
   isFeatured: false,
+  verifiedBadge: false,
 };
 
 const categoryOptions: Array<{ label: string; value: ProductPayload["category"] }> = [
@@ -57,6 +59,7 @@ const toFormState = (product: BackendProduct): ProductFormState => ({
   sku: product.sku || "",
   tags: product.tags?.join(", ") || "",
   isFeatured: product.isFeatured,
+  verifiedBadge: product.verifiedBadge,
 });
 
 const toPayload = (form: ProductFormState): ProductPayload => ({
@@ -74,6 +77,7 @@ const toPayload = (form: ProductFormState): ProductPayload => ({
     .filter(Boolean),
   isFeatured: form.isFeatured,
   isActive: true,
+  verifiedBadge: form.verifiedBadge,
 });
 
 export default function AdminProductsPage() {
@@ -403,6 +407,14 @@ export default function AdminProductsPage() {
                 onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))}
               />
               Star as featured/favourite product
+            </label>
+            <label className="admin-feature-check">
+              <input
+                type="checkbox"
+                checked={form.verifiedBadge}
+                onChange={(event) => setForm((current) => ({ ...current, verifiedBadge: event.target.checked }))}
+              />
+              Show verified badge on product card
             </label>
             <button type="submit" disabled={isSaving}>
               {isSaving ? "Saving..." : editingProduct ? "Update Product" : "Create Product"}

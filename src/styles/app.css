@@ -178,6 +178,10 @@ a {
   text-align: center;
 }
 
+.wishlist-primary-link {
+  color: #ffffff !important;
+}
+
 .account-menu-wrap {
   position: relative;
 }
