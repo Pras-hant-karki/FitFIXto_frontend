@@ -130,6 +130,7 @@ a {
   background: transparent;
   color: currentColor;
   cursor: pointer;
+  position: relative;
   transition: background 160ms ease, color 160ms ease;
 }
 
@@ -159,6 +160,22 @@ a {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
+}
+
+.nav-count-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #020011;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
 }
 
 .account-menu-wrap {

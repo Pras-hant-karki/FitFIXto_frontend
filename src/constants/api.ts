@@ -51,6 +51,13 @@ export const API_ENDPOINTS = {
     clear: '/cart/clear',
   },
 
+  // Wishlist
+  wishlist: {
+    get: '/wishlist',
+    add: '/wishlist',
+    remove: '/wishlist',
+  },
+
   // Orders
   orders: {
     list: '/orders/my-orders',

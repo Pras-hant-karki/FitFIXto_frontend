@@ -11,6 +11,7 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { useAuth, useWishlist } from "@/contexts";
 
 const DEFAULT_MAX_PRICE = 3000;
 
@@ -126,6 +127,25 @@ const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChang
 const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
   const discount = product.discountPercentage || 0;
   const originalPrice = getOriginalPrice(product);
+  const { isAuthenticated } = useAuth();
+  const { wishlistProductIds, toggleWishlistItem } = useWishlist();
+  const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const isWishlisted = wishlistProductIds.has(product._id);
+
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setIsUpdatingWishlist(true);
+
+    try {
+      await toggleWishlistItem(product._id);
+    } finally {
+      setIsUpdatingWishlist(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
@@ -144,8 +164,15 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
           </div>
         )}
         {discount > 0 ? <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div> : null}
-        <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors">
-          <Heart className="w-4 h-4 text-gray-600" />
+        <button
+          type="button"
+          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-60"
+          onClick={handleWishlistToggle}
+          disabled={isUpdatingWishlist}
+          aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+          aria-pressed={isWishlisted}
+        >
+          <Heart className={`w-4 h-4 ${isWishlisted ? "fill-black text-black" : "text-gray-600"}`} />
         </button>
       </div>
 
