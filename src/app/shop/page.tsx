@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, Heart, ShoppingCart, Star } from "lucide-react";
 import {
   BackendProduct,
@@ -126,11 +127,13 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
   return (
     <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
       <div className="relative h-56 bg-gray-50">
-        {getProductImage(product) ? (
-          <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="product-no-image">No image</div>
-        )}
+        <Link href={`/products/${product._id}`} className="block h-full">
+          {getProductImage(product) ? (
+            <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="product-no-image">No image</div>
+          )}
+        </Link>
         {product.verifiedBadge && (
           <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
             <CheckCircle2 className="w-3 h-3" />
@@ -151,7 +154,9 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
         <div className="text-xs text-gray-500 mb-1">
           {formatCategory(product.category)} - {product.brand || "FitFIXto"}
         </div>
-        <h3 className="font-semibold text-gray-900 mb-2 leading-tight">{product.name}</h3>
+        <Link href={`/products/${product._id}`} className="block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
+          {product.name}
+        </Link>
         <div className="flex items-center space-x-1 mb-3">
           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
           <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
