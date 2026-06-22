@@ -73,6 +73,7 @@ export function Navbar() {
           height={58}
           priority
           className="site-logo"
+          style={{ width: "100%", height: "auto" }}
         />
       </Link>
 

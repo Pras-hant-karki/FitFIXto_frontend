@@ -69,6 +69,9 @@ export const API_ENDPOINTS = {
   trainers: {
     list: '/trainers',
     detail: (id: string) => `/trainers/${id}`,
+    applications: '/trainers/applications',
+    approveApplication: (id: string) => `/trainers/applications/${id}/approve`,
+    rejectApplication: (id: string) => `/trainers/applications/${id}/reject`,
     uploadPhoto: '/trainers/upload-photo',
   },
 

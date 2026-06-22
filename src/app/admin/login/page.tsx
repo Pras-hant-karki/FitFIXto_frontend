@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
         <div className="auth-panel">
           <div className="auth-form-wrap">
             <Link className="auth-logo-link" href="/" aria-label="FitFIXto home">
-              <Image src="/fitfixto_logo.png" alt="FitFIXto" width={190} height={77} className="auth-logo" priority />
+              <Image src="/fitfixto_logo.png" alt="FitFIXto" width={190} height={77} className="auth-logo" priority style={{ width: "auto", height: "auto" }} />
             </Link>
             <div className="auth-title">
               <h1>Admin sign in</h1>

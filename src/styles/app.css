@@ -3161,6 +3161,37 @@ a {
   font-size: 16px;
 }
 
+.admin-trainer-tabs {
+  display: inline-flex;
+  width: fit-content;
+  overflow: hidden;
+  border: 1px solid #e5e5e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.admin-trainer-tabs button {
+  min-height: 38px;
+  border: 0;
+  border-right: 1px solid #e5e5e8;
+  background: transparent;
+  color: #747584;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-trainer-tabs button:last-child {
+  border-right: 0;
+}
+
+.admin-trainer-tabs button.active {
+  background: #030213;
+  color: #ffffff;
+}
+
 .admin-trainer-form-panel {
   border: 1px solid #e5e5e8;
   border-radius: 10px;
@@ -3180,6 +3211,49 @@ a {
   color: #050507;
   font-size: 13px;
   font-weight: 900;
+}
+
+.admin-trainer-form label small {
+  color: #747584;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-trainer-password-field {
+  position: relative;
+  display: block;
+}
+
+.admin-trainer-password-field input {
+  padding-right: 44px;
+}
+
+.admin-trainer-password-field button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #747584;
+  padding: 0;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.admin-trainer-password-field button:hover {
+  background: #f0f0f2;
+  color: #050507;
+}
+
+.admin-trainer-password-field svg {
+  width: 17px;
+  height: 17px;
 }
 
 .admin-trainer-form input,
@@ -3403,6 +3477,29 @@ a {
 
 .admin-trainer-actions button.danger {
   color: #b42318;
+}
+
+.admin-trainer-actions.application-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-trainer-actions.application-actions button {
+  justify-content: center;
+}
+
+.admin-trainer-actions button.approve {
+  border-color: transparent;
+  background: #dcf8ef;
+  color: #008f5a;
+}
+
+.admin-trainer-actions.application-actions span {
+  grid-column: 1 / -1;
+  color: #747584;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .admin-trainer-actions svg {
