@@ -2686,6 +2686,16 @@ a {
   background: #067647;
 }
 
+.admin-product-specifications-field {
+  display: grid;
+  gap: 8px;
+  align-self: stretch;
+}
+
+.admin-product-specifications-field textarea {
+  min-height: 178px;
+}
+
 .admin-upload-picture-button:disabled {
   cursor: not-allowed;
   opacity: 0.65;

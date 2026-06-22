@@ -17,6 +17,7 @@ import {
 type ProductFormState = {
   name: string;
   description: string;
+  specifications: string;
   price: string;
   stock: string;
   category: ProductPayload["category"];
@@ -31,6 +32,7 @@ type ProductFormState = {
 const emptyForm: ProductFormState = {
   name: "",
   description: "",
+  specifications: "",
   price: "",
   stock: "",
   category: "gym_equipment",
@@ -51,6 +53,7 @@ const categoryOptions: Array<{ label: string; value: ProductPayload["category"] 
 const toFormState = (product: BackendProduct): ProductFormState => ({
   name: product.name,
   description: product.description,
+  specifications: product.specifications || "",
   price: String(product.price),
   stock: String(product.stock),
   category: product.category as ProductPayload["category"],
@@ -65,6 +68,7 @@ const toFormState = (product: BackendProduct): ProductFormState => ({
 const toPayload = (form: ProductFormState): ProductPayload => ({
   name: form.name.trim(),
   description: form.description.trim(),
+  specifications: form.specifications.trim() || undefined,
   price: Number(form.price),
   stock: Number(form.stock),
   category: form.category,
@@ -375,6 +379,14 @@ export default function AdminProductsPage() {
                   {isUploading ? "Uploading..." : "Upload Picture"}
                 </button>
               </div>
+              <label className="admin-product-specifications-field">
+                Specifications
+                <textarea
+                  placeholder="Seller description, product form, material, warranty, verification notes..."
+                  value={form.specifications}
+                  onChange={(event) => setForm((current) => ({ ...current, specifications: event.target.value }))}
+                />
+              </label>
 
             </div>
             {form.imageUrl ? (

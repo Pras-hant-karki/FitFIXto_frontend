@@ -5,6 +5,7 @@ export interface BackendProduct {
   _id: string;
   name: string;
   description: string;
+  specifications?: string;
   price: number;
   stock: number;
   category: string;
@@ -73,6 +74,7 @@ export const fetchProduct = async (productId: string) => {
 export type ProductPayload = {
   name: string;
   description: string;
+  specifications?: string;
   price: number;
   stock: number;
   category: "gym_equipment" | "supplements" | "accessories";
