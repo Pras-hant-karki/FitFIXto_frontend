@@ -2257,6 +2257,12 @@ a {
   font-weight: 700;
 }
 
+.compare-max-message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .compare-error,
 .compare-loading {
   margin: 0;
@@ -6691,7 +6697,7 @@ a {
   }
 
   .compare-slots {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 16px;
     margin-top: 0;
   }

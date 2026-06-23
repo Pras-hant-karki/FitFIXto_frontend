@@ -15,6 +15,8 @@ import { useAuth, useWishlist } from "@/contexts";
 
 const DEFAULT_MAX_PRICE = 3000;
 const PRODUCT_PAGE_SIZE = 6;
+const MIN_COMPARE_PRODUCTS = 3;
+const MAX_COMPARE_PRODUCTS = 5;
 
 type ProductPagination = {
   total: number;
@@ -39,6 +41,13 @@ const parseListParam = (value: string | null) =>
         .map((item) => item.trim())
         .filter(Boolean)
     : [];
+
+const parseCompareSlotCount = (value: string | null) => {
+  const parsed = Number(value || MIN_COMPARE_PRODUCTS);
+  const safeValue = Number.isFinite(parsed) ? Math.floor(parsed) : MIN_COMPARE_PRODUCTS;
+
+  return Math.min(MAX_COMPARE_PRODUCTS, Math.max(MIN_COMPARE_PRODUCTS, safeValue));
+};
 
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onChange }) => {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -308,7 +317,8 @@ const ShopContent: React.FC = () => {
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
   const selectedBrands = useMemo(() => parseListParam(searchParams.get("brand")), [searchParamString]);
   const isComparePickMode = searchParams.get("compare") === "1";
-  const selectedCompareIds = useMemo(() => parseListParam(searchParams.get("ids")).slice(0, 3), [searchParamString]);
+  const compareSlotCount = parseCompareSlotCount(searchParams.get("slots"));
+  const selectedCompareIds = useMemo(() => parseListParam(searchParams.get("ids")).slice(0, compareSlotCount), [searchParamString, compareSlotCount]);
   const searchQuery = searchParams.get("search") || "";
   const [searchInput, setSearchInput] = useState(searchQuery);
   const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
@@ -396,17 +406,19 @@ const ShopContent: React.FC = () => {
 
   const resetFilters = () => router.push(pathname);
   const compareIdsQuery = selectedCompareIds.join(",");
-  const compareHref = compareIdsQuery ? `/compare?ids=${encodeURIComponent(compareIdsQuery)}` : "/compare";
+  const compareHref = compareIdsQuery
+    ? `/compare?ids=${encodeURIComponent(compareIdsQuery)}&slots=${compareSlotCount}`
+    : `/compare?slots=${compareSlotCount}`;
 
   const toggleCompareProduct = (productId: string) => {
     const isSelected = selectedCompareIds.includes(productId);
     const nextIds = isSelected
       ? selectedCompareIds.filter((id) => id !== productId)
-      : selectedCompareIds.length < 3
+      : selectedCompareIds.length < compareSlotCount
         ? [...selectedCompareIds, productId]
         : selectedCompareIds;
 
-    updateUrl({ compare: "1", ids: nextIds.length ? nextIds.join(",") : null }, "replace");
+    updateUrl({ compare: "1", ids: nextIds.length ? nextIds.join(",") : null, slots: String(compareSlotCount) }, "replace");
   };
 
   const goToPage = (page: number) => {
@@ -463,7 +475,7 @@ const ShopContent: React.FC = () => {
                 <path d="M17 17H7.5A2.5 2.5 0 0 1 5 14.5V7" />
                 <path d="m8 10-3-3-3 3" />
               </svg>
-              <strong>Pick a product to add to Compare ({selectedCompareIds.length}/3)</strong>
+              <strong>Pick a product to add to Compare ({selectedCompareIds.length}/{compareSlotCount})</strong>
             </div>
             <Link href={compareHref}>← Back to Compare</Link>
           </div>
@@ -549,7 +561,7 @@ const ShopContent: React.FC = () => {
                     product={product}
                     compareMode={isComparePickMode}
                     isSelectedForCompare={selectedCompareIds.includes(product._id)}
-                    isCompareSelectionDisabled={!selectedCompareIds.includes(product._id) && selectedCompareIds.length >= 3}
+                    isCompareSelectionDisabled={!selectedCompareIds.includes(product._id) && selectedCompareIds.length >= compareSlotCount}
                     onCompareSelect={toggleCompareProduct}
                   />
                 ))}

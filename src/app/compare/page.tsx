@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, ShoppingCart } from "lucide-react";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import {
@@ -11,8 +11,8 @@ import {
   getProductImage,
 } from "@/features/products";
 
-const MAX_COMPARE_PRODUCTS = 3;
-const compareSlots = Array.from({ length: MAX_COMPARE_PRODUCTS }, (_, index) => index);
+const MIN_COMPARE_PRODUCTS = 3;
+const MAX_COMPARE_PRODUCTS = 5;
 
 const parseCompareIds = (value: string | null) =>
   value
@@ -22,6 +22,13 @@ const parseCompareIds = (value: string | null) =>
         .filter(Boolean)
         .slice(0, MAX_COMPARE_PRODUCTS)
     : [];
+
+const parseSlotCount = (value: string | null, selectedCount: number) => {
+  const parsed = Number(value || MIN_COMPARE_PRODUCTS);
+  const safeValue = Number.isFinite(parsed) ? Math.floor(parsed) : MIN_COMPARE_PRODUCTS;
+
+  return Math.min(MAX_COMPARE_PRODUCTS, Math.max(MIN_COMPARE_PRODUCTS, selectedCount, safeValue));
+};
 
 const formatDimensions = (product: BackendProduct) => {
   const dimensions = product.dimensions;
@@ -82,13 +89,28 @@ const CompareProductCard = ({ product }: { product: BackendProduct }) => (
 );
 
 function CompareContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const selectedIds = useMemo(() => parseCompareIds(searchParams.get("ids")), [searchParams]);
+  const slotCount = useMemo(() => parseSlotCount(searchParams.get("slots"), selectedIds.length), [searchParams, selectedIds.length]);
+  const compareSlots = useMemo(() => Array.from({ length: slotCount }, (_, index) => index), [slotCount]);
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const idsQuery = selectedIds.join(",");
-  const shopPickHref = idsQuery ? `/shop?compare=1&ids=${encodeURIComponent(idsQuery)}` : "/shop?compare=1";
+  const shopPickHref = idsQuery
+    ? `/shop?compare=1&ids=${encodeURIComponent(idsQuery)}&slots=${slotCount}`
+    : `/shop?compare=1&slots=${slotCount}`;
+
+  const handleAddSlot = () => {
+    const nextSlotCount = Math.min(MAX_COMPARE_PRODUCTS, slotCount + 1);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("slots", String(nextSlotCount));
+    if (idsQuery) {
+      nextParams.set("ids", idsQuery);
+    }
+    router.push(`/compare?${nextParams.toString()}`);
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -145,7 +167,11 @@ function CompareContent() {
       {error ? <p className="compare-error">{error}</p> : null}
       {isLoading ? <p className="compare-loading">Loading compared products...</p> : null}
 
-      <div className="compare-slots" aria-label="Products selected for comparison">
+      <div
+        className="compare-slots"
+        aria-label="Products selected for comparison"
+        style={{ gridTemplateColumns: `repeat(${slotCount}, minmax(0, 1fr))` }}
+      >
         {compareSlots.map((slot) => {
           const product = displayProducts[slot];
 
@@ -162,7 +188,11 @@ function CompareContent() {
 
       <div className="compare-table" aria-label="Product comparison table">
         {compareRows.map((row) => (
-          <div className="compare-row" key={row}>
+          <div
+            className="compare-row"
+            key={row}
+            style={{ gridTemplateColumns: `230px repeat(${slotCount}, minmax(0, 1fr))` }}
+          >
             <strong>{row}</strong>
             {displayProducts.map((product, slot) => (
               <span key={`${row}-${slot}`}>{getCompareValue(row, product)}</span>
@@ -171,12 +201,16 @@ function CompareContent() {
         ))}
       </div>
 
-      <Link href={shopPickHref} className="compare-add-more">
-        + Add more products ({selectedIds.length}/{MAX_COMPARE_PRODUCTS})
-      </Link>
+      {slotCount < MAX_COMPARE_PRODUCTS ? (
+        <button type="button" className="compare-add-more" onClick={handleAddSlot}>
+          + Add more products ({slotCount}/{MAX_COMPARE_PRODUCTS})
+        </button>
+      ) : (
+        <p className="compare-max-message">Max 5 products reached.</p>
+      )}
 
       <Link href="/shop" className="compare-back-link">
-        ← Back to shop
+        &larr; Back to shop
       </Link>
     </section>
   );
