@@ -65,3 +65,10 @@ export const placeOrder = async (payload: {
   const response = await apiClient.post<{ order: BackendOrder }>(API_ENDPOINTS.orders.create, payload);
   return response.data?.order;
 };
+
+export const cancelOrder = async (orderId: string, reason: string) => {
+  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.cancel(orderId), {
+    reason,
+  });
+  return response.data?.order;
+};

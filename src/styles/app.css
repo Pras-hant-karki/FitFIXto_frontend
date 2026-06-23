@@ -1693,6 +1693,193 @@ a {
   grid-template-columns: 1fr auto;
 }
 
+.user-orders-message {
+  margin: 0 0 16px;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.user-orders-message.success {
+  background: #e7f8ef;
+  color: #027a45;
+}
+
+.user-orders-message.error {
+  background: #ffe9e9;
+  color: #b42318;
+}
+
+.user-order-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.user-order-summary {
+  text-align: right;
+}
+
+.user-order-cancel-button {
+  min-height: 38px;
+  border: 1px solid #f2b8bd;
+  border-radius: 5px;
+  background: #fff5f5;
+  color: #b42318;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.user-order-cancel-button:hover:not(:disabled) {
+  border-color: #d92d20;
+  background: #ffe4e8;
+}
+
+.user-order-cancel-button:disabled {
+  border-color: var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.user-order-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 5, 7, 0.58);
+  padding: 20px;
+}
+
+.user-order-cancel-modal {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  width: min(440px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--background);
+  padding: 22px;
+  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.28);
+}
+
+.user-order-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.user-order-modal-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.user-order-modal-heading {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  padding-right: 32px;
+}
+
+.user-order-modal-heading > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #fff0f3;
+  color: #d92d20;
+}
+
+.user-order-modal-heading svg {
+  width: 20px;
+  height: 20px;
+}
+
+.user-order-modal-heading h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.user-order-modal-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.user-order-cancel-modal label {
+  display: grid;
+  gap: 8px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.user-order-cancel-modal textarea {
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--foreground);
+  padding: 12px;
+  font: inherit;
+  resize: vertical;
+}
+
+.user-order-modal-error {
+  margin: -4px 0 0;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.user-order-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.user-order-modal-actions button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.user-order-modal-actions button.danger {
+  border-color: #d92d20;
+  background: #d92d20;
+  color: #ffffff;
+}
+
+.user-order-modal-actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .checkout-form {
   align-items: start;
 }

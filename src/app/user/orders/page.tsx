@@ -1,13 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AlertTriangle, X } from "lucide-react";
 import { RouteShell } from "@/components/shared";
-import { BackendOrder, fetchMyOrders } from "@/features/orders";
+import { BackendOrder, cancelOrder, fetchMyOrders } from "@/features/orders";
+
+const cancellableStatuses = new Set(["pending", "confirmed"]);
+
+const canCancelOrder = (status: string) => cancellableStatuses.has(status);
 
 export default function UserOrdersPage() {
   const [orders, setOrders] = useState<BackendOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<BackendOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [cancellingOrderId, setCancellingOrderId] = useState("");
   const [error, setError] = useState("");
+  const [cancelError, setCancelError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -27,6 +37,48 @@ export default function UserOrdersPage() {
     loadOrders();
   }, []);
 
+  const openCancelModal = (order: BackendOrder) => {
+    setSelectedOrder(order);
+    setCancelReason("");
+    setCancelError("");
+    setMessage("");
+  };
+
+  const closeCancelModal = () => {
+    if (cancellingOrderId) return;
+
+    setSelectedOrder(null);
+    setCancelReason("");
+    setCancelError("");
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrder) return;
+
+    const reason = cancelReason.trim();
+    if (!reason) {
+      setCancelError("Please add a cancellation reason.");
+      return;
+    }
+
+    setCancellingOrderId(selectedOrder._id);
+    setCancelError("");
+
+    try {
+      const cancelledOrder = await cancelOrder(selectedOrder._id, reason);
+      if (cancelledOrder) {
+        setOrders((current) => current.map((order) => (order._id === cancelledOrder._id ? cancelledOrder : order)));
+      }
+      setMessage("Order cancelled successfully.");
+      setSelectedOrder(null);
+      setCancelReason("");
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "Unable to cancel order.");
+    } finally {
+      setCancellingOrderId("");
+    }
+  };
+
   return (
     <RouteShell
       eyebrow="Account"
@@ -35,6 +87,9 @@ export default function UserOrdersPage() {
       actionHref="/shop"
       actionLabel="Continue Shopping"
     >
+      {message ? <p className="user-orders-message success">{message}</p> : null}
+      {error ? <p className="user-orders-message error">{error}</p> : null}
+
       {isLoading ? (
         <div className="empty-state">
           <strong>Loading orders...</strong>
@@ -52,23 +107,74 @@ export default function UserOrdersPage() {
         </div>
       ) : (
         <div className="connected-list">
-          {orders.map((order) => (
-            <article className="connected-list-item order-list-item" key={order._id}>
-              <div>
-                <strong>Order #{order._id.slice(-8).toUpperCase()}</strong>
-                <span>
-                  {order.items.length} item{order.items.length === 1 ? "" : "s"} - {order.status}
-                </span>
-                <span>{new Date(order.createdAt).toLocaleDateString()}</span>
-              </div>
-              <div>
-                <strong>${order.totalAmount.toFixed(2)}</strong>
-                <span>{order.paymentStatus}</span>
-              </div>
-            </article>
-          ))}
+          {orders.map((order) => {
+            const isCancellable = canCancelOrder(order.status);
+            const isCancelling = cancellingOrderId === order._id;
+
+            return (
+              <article className="connected-list-item order-list-item user-order-row" key={order._id}>
+                <div>
+                  <strong>Order #{order._id.slice(-8).toUpperCase()}</strong>
+                  <span>
+                    {order.items.length} item{order.items.length === 1 ? "" : "s"} - {order.status}
+                  </span>
+                  <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="user-order-summary">
+                  <strong>Npr {order.totalAmount.toFixed(2)}</strong>
+                  <span>{order.paymentStatus}</span>
+                </div>
+                <button
+                  type="button"
+                  className="user-order-cancel-button"
+                  disabled={!isCancellable || isCancelling}
+                  onClick={() => openCancelModal(order)}
+                  title={isCancellable ? "Cancel this order" : "Only pending or confirmed orders can be cancelled"}
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel Order"}
+                </button>
+              </article>
+            );
+          })}
         </div>
       )}
+
+      {selectedOrder ? (
+        <div className="user-order-modal-backdrop" role="presentation" onClick={closeCancelModal}>
+          <section className="user-order-cancel-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="user-order-modal-close" onClick={closeCancelModal} aria-label="Close cancel order modal">
+              <X aria-hidden="true" />
+            </button>
+            <div className="user-order-modal-heading">
+              <span>
+                <AlertTriangle aria-hidden="true" />
+              </span>
+              <div>
+                <h2>Cancel this order?</h2>
+                <p>Please tell us why so we can improve. This cannot be undone.</p>
+              </div>
+            </div>
+            <label>
+              Reason for cancellation *
+              <textarea
+                required
+                value={cancelReason}
+                onChange={(event) => setCancelReason(event.target.value)}
+                disabled={Boolean(cancellingOrderId)}
+              />
+            </label>
+            {cancelError ? <p className="user-order-modal-error">{cancelError}</p> : null}
+            <div className="user-order-modal-actions">
+              <button type="button" onClick={closeCancelModal} disabled={Boolean(cancellingOrderId)}>
+                Keep Order
+              </button>
+              <button type="button" className="danger" onClick={handleCancelOrder} disabled={Boolean(cancellingOrderId)}>
+                {cancellingOrderId ? "Cancelling..." : "Confirm Cancellation"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </RouteShell>
   );
 }

@@ -58,6 +58,7 @@ export const API_ENDPOINTS = {
     myOrders: '/orders/my-orders',
     adminAll: '/orders/admin/all',
     create: '/orders',
+    cancel: (id: string) => `/orders/${id}/cancel`,
   },
 
   // User
