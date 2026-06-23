@@ -1883,15 +1883,16 @@ a {
 .customer-dashboard-page {
   display: grid;
   gap: 28px;
-  width: min(1200px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 44px 0 80px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 32px 26px 80px;
 }
 
 .customer-dashboard-header h1 {
   margin: 0;
   color: var(--foreground);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 900;
   letter-spacing: 0;
 }
@@ -1899,19 +1900,19 @@ a {
 .customer-dashboard-header p {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .customer-dashboard-layout {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
-  gap: 34px;
+  grid-template-columns: 274px minmax(0, 1fr);
+  gap: 32px;
   align-items: start;
 }
 
 .customer-dashboard-nav {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--background);
@@ -1924,7 +1925,7 @@ a {
   grid-template-columns: 22px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
-  min-height: 42px;
+  min-height: 44px;
   border: 0;
   border-radius: 5px;
   background: transparent;
@@ -1955,6 +1956,7 @@ a {
 .customer-orders-panel {
   display: grid;
   gap: 18px;
+  min-width: 0;
 }
 
 .customer-orders-heading {
@@ -2009,6 +2011,7 @@ a {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
+  min-height: 112px;
 }
 
 .customer-order-card div {
@@ -6318,19 +6321,6 @@ a {
     width: 100%;
   }
 
-  .customer-dashboard-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .customer-dashboard-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .customer-orders-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .admin-url-field div {
     grid-template-columns: 1fr;
   }
@@ -6396,13 +6386,24 @@ a {
     flex-direction: column;
   }
 
+}
+
+@media (max-width: 760px) {
   .customer-dashboard-page {
-    width: min(100% - 28px, 1200px);
-    padding: 30px 0 60px;
+    padding: 30px 14px 60px;
+  }
+
+  .customer-dashboard-layout {
+    grid-template-columns: 1fr;
   }
 
   .customer-dashboard-nav {
     grid-template-columns: 1fr;
+  }
+
+  .customer-orders-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .customer-order-card {

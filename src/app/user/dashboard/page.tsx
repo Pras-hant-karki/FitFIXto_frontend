@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Box, RotateCcw, Settings, Star, CalendarDays, RefreshCw } from "lucide-react";
+import { Box, RotateCcw, Settings, Star, CalendarDays, RefreshCw, UserRound } from "lucide-react";
 import { useAuth } from "@/contexts";
 import { BackendOrder, fetchMyOrders } from "@/features/orders";
 
@@ -11,7 +11,8 @@ const dashboardNav = [
   { label: "Bookings", Icon: CalendarDays },
   { label: "To Review", Icon: Star },
   { label: "Returns", Icon: RotateCcw },
-  { label: "Settings", Icon: Settings, href: "/user/profile" },
+  { label: "Profile", Icon: UserRound, href: "/user/profile" },
+  { label: "Settings", Icon: Settings },
 ];
 
 const formatOrderId = (id: string) => `ORD-${id.slice(-4).toUpperCase()}`;
