@@ -2078,6 +2078,112 @@ a {
   font-weight: 800;
 }
 
+.compare-page {
+  display: grid;
+  gap: 28px;
+  width: min(100% - 48px, 1280px);
+  margin: 0 auto;
+  padding: 38px 0 80px;
+}
+
+.compare-header h1 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.compare-header p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.compare-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  width: min(1080px, 100%);
+  margin: 22px auto 0;
+}
+
+.compare-add-card {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 74px;
+  min-height: 340px;
+  border: 1px dashed #cfd1dc;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.compare-add-card:hover {
+  border-color: #030213;
+  color: #030213;
+}
+
+.compare-add-card svg {
+  width: 30px;
+  height: 30px;
+}
+
+.compare-add-card span {
+  font-size: 12px;
+}
+
+.compare-table {
+  display: grid;
+  width: 100%;
+}
+
+.compare-row {
+  display: grid;
+  grid-template-columns: 230px repeat(3, minmax(0, 1fr));
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.compare-row:nth-child(even) {
+  background: var(--panel);
+}
+
+.compare-row strong {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.compare-row span {
+  color: var(--foreground);
+  text-align: center;
+  font-size: 16px;
+}
+
+.compare-add-more,
+.compare-back-link {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  padding: 0;
+  text-decoration: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.compare-back-link {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .checkout-form {
   align-items: start;
 }
@@ -6412,5 +6518,30 @@ a {
 
   .customer-order-total {
     justify-items: start;
+  }
+
+  .compare-page {
+    width: min(100% - 28px, 1280px);
+    padding-top: 28px;
+  }
+
+  .compare-slots {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 0;
+  }
+
+  .compare-add-card {
+    min-height: 180px;
+    gap: 34px;
+  }
+
+  .compare-row {
+    grid-template-columns: 120px repeat(3, minmax(80px, 1fr));
+    min-width: 520px;
+  }
+
+  .compare-table {
+    overflow-x: auto;
   }
 }

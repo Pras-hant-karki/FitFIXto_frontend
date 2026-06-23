@@ -91,14 +91,14 @@ export function Navbar() {
             <path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
           </svg>
         </IconButton>
-        <IconButton label="Compare">
+        <Link className="nav-icon-button" href="/compare" aria-label="Compare">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 7h9.5A2.5 2.5 0 0 1 19 9.5V17" />
             <path d="m16 14 3 3 3-3" />
             <path d="M17 17H7.5A2.5 2.5 0 0 1 5 14.5V7" />
             <path d="m8 10-3-3-3 3" />
           </svg>
-        </IconButton>
+        </Link>
         <Link className="nav-icon-button" href="/wishlist" aria-label="Wishlist">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
