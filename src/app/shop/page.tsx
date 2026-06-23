@@ -134,7 +134,13 @@ const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChang
   </label>
 );
 
-const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
+const ProductCard: React.FC<{
+  product: BackendProduct;
+  compareMode?: boolean;
+  isSelectedForCompare?: boolean;
+  isCompareSelectionDisabled?: boolean;
+  onCompareSelect?: (productId: string) => void;
+}> = ({ product, compareMode = false, isSelectedForCompare = false, isCompareSelectionDisabled = false, onCompareSelect }) => {
   const discount = product.discountPercentage || 0;
   const originalPrice = getOriginalPrice(product);
   const { isAuthenticated } = useAuth();
@@ -157,16 +163,52 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
     }
   };
 
+  const handleCompareCardClick = () => {
+    if (!compareMode || isCompareSelectionDisabled) return;
+    onCompareSelect?.(product._id);
+  };
+
+  const cardClasses = [
+    "bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-shadow",
+    compareMode ? "shop-compare-product-card" : "border-gray-100",
+    isSelectedForCompare ? "selected" : "",
+    isCompareSelectionDisabled ? "disabled" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
+    <div
+      className={cardClasses}
+      onClick={handleCompareCardClick}
+      role={compareMode ? "button" : undefined}
+      tabIndex={compareMode && !isCompareSelectionDisabled ? 0 : undefined}
+      onKeyDown={(event) => {
+        if (compareMode && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          handleCompareCardClick();
+        }
+      }}
+      aria-pressed={compareMode ? isSelectedForCompare : undefined}
+    >
       <div className="relative h-56 bg-gray-50">
-        <Link href={`/products/${product._id}`} className="block h-full">
-          {getProductImage(product) ? (
-            <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="product-no-image">No image</div>
-          )}
-        </Link>
+        {compareMode ? (
+          <div className="block h-full">
+            {getProductImage(product) ? (
+              <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="product-no-image">No image</div>
+            )}
+          </div>
+        ) : (
+          <Link href={`/products/${product._id}`} className="block h-full">
+            {getProductImage(product) ? (
+              <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="product-no-image">No image</div>
+            )}
+          </Link>
+        )}
         {product.verifiedBadge && (
           <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
             <CheckCircle2 className="w-3 h-3" />
@@ -174,25 +216,33 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
           </div>
         )}
         {discount > 0 ? <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div> : null}
-        <button
-          type="button"
-          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-60"
-          onClick={handleWishlistToggle}
-          disabled={isUpdatingWishlist}
-          aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-          aria-pressed={isWishlisted}
-        >
-          <Heart className={`w-4 h-4 ${isWishlisted ? "fill-black text-black" : "text-gray-600"}`} />
-        </button>
+        {compareMode ? (
+          <span className="shop-compare-check">{isSelectedForCompare ? "Selected" : "Pick"}</span>
+        ) : (
+          <button
+            type="button"
+            className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-60"
+            onClick={handleWishlistToggle}
+            disabled={isUpdatingWishlist}
+            aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+            aria-pressed={isWishlisted}
+          >
+            <Heart className={`w-4 h-4 ${isWishlisted ? "fill-black text-black" : "text-gray-600"}`} />
+          </button>
+        )}
       </div>
 
       <div className="p-4">
         <div className="text-xs text-gray-500 mb-1">
           {formatCategory(product.category)} - {product.brand || "FitFIXto"}
         </div>
-        <Link href={`/products/${product._id}`} className="block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
-          {product.name}
-        </Link>
+        {compareMode ? (
+          <strong className="block font-semibold text-gray-900 mb-2 leading-tight">{product.name}</strong>
+        ) : (
+          <Link href={`/products/${product._id}`} className="block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
+            {product.name}
+          </Link>
+        )}
         <div className="flex items-center space-x-1 mb-3">
           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
           <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
@@ -202,7 +252,14 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
           <span className="text-xl font-bold text-gray-900">Npr {product.price}</span>
           {originalPrice ? <span className="text-sm text-gray-400 line-through">Npr {originalPrice}</span> : null}
         </div>
-        <button className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium">
+        <button
+          className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
+          onClick={(event) => {
+            if (compareMode) {
+              event.stopPropagation();
+            }
+          }}
+        >
           <ShoppingCart className="w-4 h-4" />
           <span>Add to Cart</span>
         </button>
@@ -250,6 +307,8 @@ const ShopContent: React.FC = () => {
 
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
   const selectedBrands = useMemo(() => parseListParam(searchParams.get("brand")), [searchParamString]);
+  const isComparePickMode = searchParams.get("compare") === "1";
+  const selectedCompareIds = useMemo(() => parseListParam(searchParams.get("ids")).slice(0, 3), [searchParamString]);
   const searchQuery = searchParams.get("search") || "";
   const [searchInput, setSearchInput] = useState(searchQuery);
   const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
@@ -336,6 +395,19 @@ const ShopContent: React.FC = () => {
   };
 
   const resetFilters = () => router.push(pathname);
+  const compareIdsQuery = selectedCompareIds.join(",");
+  const compareHref = compareIdsQuery ? `/compare?ids=${encodeURIComponent(compareIdsQuery)}` : "/compare";
+
+  const toggleCompareProduct = (productId: string) => {
+    const isSelected = selectedCompareIds.includes(productId);
+    const nextIds = isSelected
+      ? selectedCompareIds.filter((id) => id !== productId)
+      : selectedCompareIds.length < 3
+        ? [...selectedCompareIds, productId]
+        : selectedCompareIds;
+
+    updateUrl({ compare: "1", ids: nextIds.length ? nextIds.join(",") : null }, "replace");
+  };
 
   const goToPage = (page: number) => {
     updateUrl({ page: page > 1 ? String(page) : null });
@@ -382,8 +454,23 @@ const ShopContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {isComparePickMode ? (
+          <div className="shop-compare-picker-bar">
+            <div>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 7h9.5A2.5 2.5 0 0 1 19 9.5V17" />
+                <path d="m16 14 3 3 3-3" />
+                <path d="M17 17H7.5A2.5 2.5 0 0 1 5 14.5V7" />
+                <path d="m8 10-3-3-3 3" />
+              </svg>
+              <strong>Pick a product to add to Compare ({selectedCompareIds.length}/3)</strong>
+            </div>
+            <Link href={compareHref}>← Back to Compare</Link>
+          </div>
+        ) : null}
+
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop Your Needs</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">{isComparePickMode ? "Shop Equipment" : "Shop Your Needs"}</h1>
           <p className="text-sm text-gray-500">
             {isLoading
               ? "Loading products..."
@@ -457,7 +544,14 @@ const ShopContent: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map((product) => (
-                  <ProductCard key={product._id} product={product} />
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                    compareMode={isComparePickMode}
+                    isSelectedForCompare={selectedCompareIds.includes(product._id)}
+                    isCompareSelectionDisabled={!selectedCompareIds.includes(product._id) && selectedCompareIds.length >= 3}
+                    onCompareSelect={toggleCompareProduct}
+                  />
                 ))}
               </div>
             )}

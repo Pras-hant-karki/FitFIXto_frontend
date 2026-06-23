@@ -2121,6 +2121,7 @@ a {
   font: inherit;
   font-weight: 900;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .compare-add-card:hover {
@@ -2135,6 +2136,78 @@ a {
 
 .compare-add-card span {
   font-size: 12px;
+}
+
+.compare-product-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--background);
+  padding: 18px;
+}
+
+.compare-product-image {
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.compare-product-image img,
+.compare-product-image div {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+}
+
+.compare-product-image div {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.compare-product-image span {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  padding: 5px 9px;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.compare-product-card > strong {
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.compare-product-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.compare-product-card button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .compare-table {
@@ -2182,6 +2255,98 @@ a {
 .compare-back-link {
   color: var(--muted);
   font-weight: 700;
+}
+
+.compare-error,
+.compare-loading {
+  margin: 0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.compare-error {
+  background: #ffe9e9;
+  color: #b42318;
+}
+
+.compare-loading {
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.shop-compare-picker-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 30px;
+  border: 1px solid #030213;
+  border-radius: 12px;
+  background: #f1f1f3;
+  color: #030213;
+  padding: 18px 22px;
+}
+
+.shop-compare-picker-bar div,
+.shop-compare-picker-bar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shop-compare-picker-bar svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shop-compare-picker-bar strong,
+.shop-compare-picker-bar a {
+  color: #030213;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.shop-compare-picker-bar a {
+  text-decoration: underline;
+}
+
+.shop-compare-product-card {
+  border-color: #e5e5e8;
+  cursor: pointer;
+}
+
+.shop-compare-product-card:hover {
+  border-color: #030213;
+}
+
+.shop-compare-product-card.selected {
+  border-color: #030213;
+  box-shadow: 0 0 0 2px #030213;
+}
+
+.shop-compare-product-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.shop-compare-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #030213;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
 .checkout-form {
@@ -6536,6 +6701,13 @@ a {
     gap: 34px;
   }
 
+  .compare-product-image,
+  .compare-product-image img,
+  .compare-product-image div {
+    min-height: 180px;
+    height: 180px;
+  }
+
   .compare-row {
     grid-template-columns: 120px repeat(3, minmax(80px, 1fr));
     min-width: 520px;
@@ -6543,5 +6715,10 @@ a {
 
   .compare-table {
     overflow-x: auto;
+  }
+
+  .shop-compare-picker-bar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

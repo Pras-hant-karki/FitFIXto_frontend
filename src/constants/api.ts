@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
   products: {
     list: '/products',
     detail: (id: string) => `/products/${id}`,
+    compare: '/products/compare',
     uploadImages: '/products/upload-images',
   },
 
