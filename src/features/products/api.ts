@@ -6,6 +6,8 @@ export interface BackendProduct {
   name: string;
   description: string;
   specifications?: string;
+  importedFrom?: string;
+  warrantyMonths?: number;
   price: number;
   stock: number;
   category: string;
@@ -15,6 +17,7 @@ export interface BackendProduct {
   sku?: string;
   discountPercentage?: number;
   weight?: number;
+  weightUnit?: "gm" | "kg";
   dimensions?: {
     length?: number;
     width?: number;
@@ -82,6 +85,8 @@ export type ProductPayload = {
   name: string;
   description: string;
   specifications?: string;
+  importedFrom?: string;
+  warrantyMonths?: number;
   price: number;
   stock: number;
   category: "gym_equipment" | "supplements" | "accessories";
@@ -90,6 +95,13 @@ export type ProductPayload = {
   tags?: string[];
   sku?: string;
   discountPercentage?: number;
+  weight?: number;
+  weightUnit?: "gm" | "kg";
+  dimensions?: {
+    length?: number;
+    width?: number;
+    height?: number;
+  };
   isFeatured?: boolean;
   isActive?: boolean;
   verifiedBadge?: boolean;

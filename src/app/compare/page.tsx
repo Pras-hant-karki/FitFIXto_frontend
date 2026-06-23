@@ -38,7 +38,7 @@ const formatDimensions = (product: BackendProduct) => {
   }
 
   return [dimensions.length, dimensions.width, dimensions.height]
-    .map((value) => (value ? `${value}` : "—"))
+    .map((value) => (value ? `${value}"` : "—"))
     .join(" x ");
 };
 
@@ -58,11 +58,11 @@ const getCompareValue = (row: string, product?: BackendProduct) => {
     case "Condition":
       return getCondition(product);
     case "Warranty":
-      return product.specifications || "—";
+      return product.warrantyMonths !== undefined ? `${product.warrantyMonths} months` : product.specifications || "—";
     case "Capacity":
       return product.stock > 0 ? `${product.stock} pc in stock` : "Out of stock";
     case "Weight":
-      return product.weight ? `${product.weight}` : "—";
+      return product.weight ? `${product.weight} ${product.weightUnit || "kg"}` : "—";
     case "Dimensions":
       return formatDimensions(product);
     case "Verified":
