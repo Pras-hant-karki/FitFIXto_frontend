@@ -1880,6 +1880,201 @@ a {
   cursor: not-allowed;
 }
 
+.customer-dashboard-page {
+  display: grid;
+  gap: 28px;
+  width: min(1200px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 44px 0 80px;
+}
+
+.customer-dashboard-header h1 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.customer-dashboard-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.customer-dashboard-layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 34px;
+  align-items: start;
+}
+
+.customer-dashboard-nav {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--background);
+  padding: 10px;
+}
+
+.customer-dashboard-nav a,
+.customer-dashboard-nav button {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--foreground);
+  padding: 0 12px;
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.customer-dashboard-nav button:not(.active) {
+  cursor: default;
+}
+
+.customer-dashboard-nav a:hover,
+.customer-dashboard-nav button.active {
+  background: #030213;
+  color: #ffffff;
+}
+
+.customer-dashboard-nav svg {
+  width: 17px;
+  height: 17px;
+}
+
+.customer-orders-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.customer-orders-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.customer-orders-heading h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.customer-reorder-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  padding: 0 16px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.customer-reorder-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.customer-orders-list {
+  display: grid;
+  gap: 12px;
+}
+
+.customer-order-card,
+.customer-orders-empty {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--background);
+  padding: 18px 22px;
+}
+
+.customer-order-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.customer-order-card div {
+  display: grid;
+  gap: 4px;
+}
+
+.customer-order-card time,
+.customer-order-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.customer-order-card strong {
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.customer-order-total {
+  justify-items: end;
+}
+
+.customer-order-total strong {
+  font-size: 17px;
+}
+
+.customer-order-status {
+  width: fit-content;
+  border-radius: 5px;
+  background: #eeeef1;
+  color: #6f7080;
+  padding: 4px 8px;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.customer-order-status-pending {
+  background: #fff1da;
+  color: #f79009;
+}
+
+.customer-order-status-confirmed,
+.customer-order-status-shipped {
+  background: #e8f1ff;
+  color: #2563eb;
+}
+
+.customer-order-status-delivered {
+  background: #ddf8ed;
+  color: #009966;
+}
+
+.customer-order-status-cancelled,
+.customer-order-status-returned {
+  background: #f1f1f3;
+  color: #747584;
+}
+
+.customer-orders-empty {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 800;
+}
+
 .checkout-form {
   align-items: start;
 }
@@ -6123,6 +6318,19 @@ a {
     width: 100%;
   }
 
+  .customer-dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-dashboard-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customer-orders-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .admin-url-field div {
     grid-template-columns: 1fr;
   }
@@ -6186,5 +6394,22 @@ a {
 
   .admin-footer-bottom {
     flex-direction: column;
+  }
+
+  .customer-dashboard-page {
+    width: min(100% - 28px, 1200px);
+    padding: 30px 0 60px;
+  }
+
+  .customer-dashboard-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-order-card {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-order-total {
+    justify-items: start;
   }
 }
