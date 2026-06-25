@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, ShoppingCart, Trash2 } from "lucide-react";
-import { addCartItem } from "@/features/cart";
+import { Heart, Trash2 } from "lucide-react";
+import { AddToCartButton } from "@/features/cart";
 import { formatCategory, getProductImage } from "@/features/products";
 import { useAuth, useWishlist } from "@/contexts";
 import type { BackendWishlistItem } from "@/features/wishlist";
@@ -39,10 +39,6 @@ const WishlistProductCard = ({
     return null;
   }
 
-  const handleAddToCart = async () => {
-    await addCartItem(product._id, 1);
-  };
-
   return (
     <article className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       <Link href={`/products/${product._id}`} className="block h-72 bg-gray-100">
@@ -61,14 +57,12 @@ const WishlistProductCard = ({
         <p className="mt-5 text-2xl font-black text-gray-950">Npr {product.price}</p>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={handleAddToCart}
+          <AddToCartButton
+            productId={product._id}
+            stock={product.stock}
+            label="Add"
             className="flex h-12 items-center justify-center gap-2 rounded-md bg-[#020011] text-sm font-black text-white transition hover:bg-gray-800"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            Add
-          </button>
+          />
           <button
             type="button"
             onClick={() => onRemove(product._id)}

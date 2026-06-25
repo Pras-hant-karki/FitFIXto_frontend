@@ -3,7 +3,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Heart, Search, ShoppingCart, Star } from "lucide-react";
+import { CheckCircle2, Heart, Search, Star } from "lucide-react";
 import {
   BackendProduct,
   fetchProducts,
@@ -11,6 +11,7 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { AddToCartButton } from "@/features/cart";
 import { useAuth, useWishlist } from "@/contexts";
 
 const DEFAULT_MAX_PRICE = 3000;
@@ -261,17 +262,12 @@ const ProductCard: React.FC<{
           <span className="text-xl font-bold text-gray-900">Npr {product.price}</span>
           {originalPrice ? <span className="text-sm text-gray-400 line-through">Npr {originalPrice}</span> : null}
         </div>
-        <button
+        <AddToCartButton
+          productId={product._id}
+          stock={product.stock}
+          stopPropagation={compareMode}
           className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
-          onClick={(event) => {
-            if (compareMode) {
-              event.stopPropagation();
-            }
-          }}
-        >
-          <ShoppingCart className="w-4 h-4" />
-          <span>Add to Cart</span>
-        </button>
+        />
       </div>
     </div>
   );
