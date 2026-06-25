@@ -3,8 +3,8 @@
 import { ButtonHTMLAttributes, MouseEvent, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
-import { useAuth } from "@/contexts";
-import { addCartItem, BackendCart } from "../api";
+import { useAuth, useCart } from "@/contexts";
+import { BackendCart } from "../api";
 
 type AddToCartButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "disabled"> & {
   productId: string;
@@ -39,6 +39,7 @@ export function AddToCartButton({
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { addToCart } = useCart();
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const isOutOfStock = stock !== undefined && stock <= 0;
@@ -69,7 +70,7 @@ export function AddToCartButton({
     setStatus("loading");
 
     try {
-      const cart = await addCartItem(productId, quantity);
+      const cart = await addToCart(productId, quantity);
       setStatus("success");
       onAdded?.(cart);
       window.setTimeout(() => setStatus("idle"), 1400);

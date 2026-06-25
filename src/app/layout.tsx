@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Footer, Navbar } from "@/components/layout";
-import { AuthProvider, WishlistProvider } from "@/contexts";
+import { AuthProvider, CartProvider, WishlistProvider } from "@/contexts";
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -31,11 +31,13 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} scroll-smooth`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body style={{ overscrollBehaviorX: "contain", overscrollBehaviorY: "contain" }} suppressHydrationWarning>
         <AuthProvider>
-          <WishlistProvider>
-            <Navbar />
-            <main className="site-main">{children}</main>
-            <Footer />
-          </WishlistProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <Navbar />
+              <main className="site-main">{children}</main>
+              <Footer />
+            </WishlistProvider>
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

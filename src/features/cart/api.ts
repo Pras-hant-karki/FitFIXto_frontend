@@ -30,3 +30,20 @@ export const addCartItem = async (productId: string, quantity = 1) => {
   const response = await apiClient.post<{ cart: BackendCart }>(API_ENDPOINTS.cart.add, { productId, quantity });
   return response.data?.cart || { items: [] };
 };
+
+export const updateCartItemQuantity = async (productId: string, quantity: number) => {
+  const response = await apiClient.patch<{ cart: BackendCart }>(API_ENDPOINTS.cart.update, { productId, quantity });
+  return response.data?.cart || { items: [] };
+};
+
+export const removeCartItem = async (productId: string) => {
+  const response = await apiClient.delete<{ cart: BackendCart }>(API_ENDPOINTS.cart.remove, {
+    body: JSON.stringify({ productId }),
+  });
+  return response.data?.cart || { items: [] };
+};
+
+export const clearCart = async () => {
+  const response = await apiClient.delete<{ cart: BackendCart }>(API_ENDPOINTS.cart.clear);
+  return response.data?.cart || { items: [] };
+};
