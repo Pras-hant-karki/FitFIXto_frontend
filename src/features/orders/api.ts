@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
+import type { BackendProduct } from "@/features/products";
 
 export interface DeliveryAddress {
   _id: string;
@@ -14,7 +15,7 @@ export interface DeliveryAddress {
 }
 
 export interface BackendOrderItem {
-  productId: string | { _id: string };
+  productId: string | BackendProduct;
   productName: string;
   quantity: number;
   unitPrice: number;
@@ -40,9 +41,29 @@ export interface BackendOrder {
   shippingAmount?: number;
   taxAmount?: number;
   totalAmount: number;
+  estimatedDeliveryDate?: string | null;
+  deliveredAt?: string | null;
+  cancelledAt?: string | null;
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BackendOrderTracking {
+  orderId: string;
+  status: string;
+  paymentStatus: string;
+  placedAt: string;
+  lastUpdated: string;
+  estimatedDeliveryDate: string | null;
+  daysUntilDelivery: number | null;
+  deliveredAt: string | null;
+  cancelledAt: string | null;
+  timeline: Array<{
+    status: string;
+    timestamp?: string;
+    label: string;
+  }>;
 }
 
 export const fetchDeliveryAddresses = async () => {
@@ -63,6 +84,16 @@ export const fetchMyOrders = async () => {
 export const fetchAdminOrders = async () => {
   const response = await apiClient.get<{ orders: BackendOrder[] }>(API_ENDPOINTS.orders.adminAll);
   return response.data?.orders || [];
+};
+
+export const fetchOrder = async (orderId: string) => {
+  const response = await apiClient.get<{ order: BackendOrder }>(API_ENDPOINTS.orders.detail(orderId));
+  return response.data?.order;
+};
+
+export const fetchOrderTracking = async (orderId: string) => {
+  const response = await apiClient.get<{ tracking: BackendOrderTracking }>(API_ENDPOINTS.orders.track(orderId));
+  return response.data?.tracking;
 };
 
 export const placeOrder = async (payload: {

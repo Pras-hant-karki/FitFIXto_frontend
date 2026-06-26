@@ -201,13 +201,23 @@ export default function UserDashboardPage() {
                       <span />
                     </label>
                   ) : null}
-                  <div>
-                    <time dateTime={order.createdAt}>{formatDate(order.createdAt)}</time>
-                    <strong>Order #{formatOrderId(order._id)}</strong>
-                    <span>
-                      {order.items.length} item{order.items.length === 1 ? "" : "s"}
-                    </span>
-                  </div>
+                  {isReorderMode ? (
+                    <div>
+                      <time dateTime={order.createdAt}>{formatDate(order.createdAt)}</time>
+                      <strong>Order #{formatOrderId(order._id)}</strong>
+                      <span>
+                        {order.items.length} item{order.items.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  ) : (
+                    <Link href={`/user/orders/${order._id}`} className="customer-order-link">
+                      <time dateTime={order.createdAt}>{formatDate(order.createdAt)}</time>
+                      <strong>Order #{formatOrderId(order._id)}</strong>
+                      <span>
+                        {order.items.length} item{order.items.length === 1 ? "" : "s"}
+                      </span>
+                    </Link>
+                  )}
                   <div className="customer-order-total">
                     <span className={`customer-order-status customer-order-status-${order.status}`}>
                       {formatStatus(order.status)}

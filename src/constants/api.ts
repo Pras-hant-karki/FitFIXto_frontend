@@ -59,6 +59,8 @@ export const API_ENDPOINTS = {
     myOrders: '/orders/my-orders',
     adminAll: '/orders/admin/all',
     create: '/orders',
+    detail: (id: string) => `/orders/${id}`,
+    track: (id: string) => `/orders/${id}/track`,
     cancel: (id: string) => `/orders/${id}/cancel`,
   },
 

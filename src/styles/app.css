@@ -2796,6 +2796,12 @@ a {
   gap: 4px;
 }
 
+.customer-order-link {
+  display: grid;
+  gap: 4px;
+  text-decoration: none;
+}
+
 .customer-order-card time,
 .customer-order-card span {
   color: var(--muted);
@@ -2852,6 +2858,243 @@ a {
 .customer-orders-empty {
   color: var(--muted);
   font-size: 15px;
+  font-weight: 800;
+}
+
+.track-order-page {
+  display: grid;
+  gap: 24px;
+  width: min(100% - 48px, 1120px);
+  margin: 0 auto;
+  padding: 38px 0 80px;
+}
+
+.track-order-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.track-order-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.track-order-header h1 {
+  margin: 2px 0 0;
+  color: var(--foreground);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.track-order-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid #f4a7b9;
+  border-radius: 5px;
+  background: #fff7f9;
+  color: #e11d48;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.track-order-cancel svg {
+  width: 16px;
+  height: 16px;
+}
+
+.track-order-cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.track-order-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--background);
+  padding: 24px;
+}
+
+.track-order-steps div {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.track-order-steps span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #eeeef4;
+}
+
+.track-order-steps svg {
+  width: 20px;
+  height: 20px;
+}
+
+.track-order-steps strong {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.track-order-steps .active span {
+  background: #030213;
+  color: #ffffff;
+}
+
+.track-order-steps .active strong {
+  color: var(--foreground);
+}
+
+.track-order-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 314px;
+  gap: 30px;
+  align-items: start;
+}
+
+.track-order-items,
+.track-order-side section {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--background);
+}
+
+.track-order-items {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+}
+
+.track-order-items h2,
+.track-order-side h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.track-order-item {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.track-order-item-image {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #f3f3f5;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.track-order-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.track-order-item div:not(.track-order-item-image) {
+  display: grid;
+  gap: 5px;
+}
+
+.track-order-item strong {
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.track-order-item span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.track-order-side {
+  display: grid;
+  gap: 16px;
+}
+
+.track-order-side section {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.track-order-side p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.track-order-side section div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.track-order-side span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.track-order-side strong {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.track-order-total {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.track-order-total span,
+.track-order-total strong {
+  color: var(--foreground);
+  font-size: 18px;
+}
+
+.track-order-eta {
+  display: grid;
+  gap: 4px;
+  width: fit-content;
+}
+
+.track-order-eta span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.track-order-eta strong {
+  color: var(--muted);
+  font-size: 14px;
   font-weight: 800;
 }
 

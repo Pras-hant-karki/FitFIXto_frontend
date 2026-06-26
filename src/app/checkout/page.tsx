@@ -160,7 +160,7 @@ export default function CheckoutPage() {
         selectedProductIds: checkoutItems.map((item) => item.productId._id),
       });
       await refreshCart();
-      router.push("/user/orders");
+      router.push("/user/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to place order.");
     } finally {
