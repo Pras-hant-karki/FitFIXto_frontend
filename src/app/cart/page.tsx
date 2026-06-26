@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/contexts";
-import { calculateCartTotals, getCartLineTotal } from "@/features/cart";
+import { getCartLineTotal } from "@/features/cart";
+import { CartOrderSummary } from "@/features/orders";
 import { formatCategory, getProductImage } from "@/features/products";
 
 const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
@@ -31,12 +32,10 @@ export default function CartPage() {
     () => cart.items.filter((item) => selectedProductIds.includes(item.productId._id)),
     [cart.items, selectedProductIds]
   );
-  const selectedCart = useMemo(() => ({ ...cart, items: selectedItems }), [cart, selectedItems]);
   const selectedCount = selectedItems.reduce((total, item) => total + item.quantity, 0);
   const checkoutHref = selectedProductIds.length
     ? `/checkout?items=${encodeURIComponent(selectedProductIds.join(","))}`
     : "/checkout";
-  const totals = calculateCartTotals(selectedCart);
 
   const toggleProductSelection = (productId: string) => {
     setSelectedProductIds((current) =>
@@ -157,41 +156,21 @@ export default function CartPage() {
             })}
           </section>
 
-          <aside className="cart-summary" aria-label="Order summary">
-            <h2>Order Summary</h2>
-            <p className="cart-selected-count">
-              {selectedCount} selected {selectedCount === 1 ? "item" : "items"}
-            </p>
-            <div className="cart-summary-lines">
-              <div>
-                <span>Subtotal</span>
-                <strong>{formatSummaryMoney(totals.subtotal)}</strong>
-              </div>
-              <div>
-                <span>Discount</span>
-                <strong>{totals.discount > 0 ? `- ${formatSummaryMoney(totals.discount)}` : formatSummaryMoney(0)}</strong>
-              </div>
-              <div>
-                <span>Shipping</span>
-                <strong>{totals.shipping > 0 ? formatSummaryMoney(totals.shipping) : "FREE"}</strong>
-              </div>
-              <div>
-                <span>Tax (2% MRP)</span>
-                <strong>{formatSummaryMoney(totals.tax)}</strong>
-              </div>
-            </div>
-            <div className="cart-summary-total">
-              <span>Grand Total</span>
-              <strong>{formatSummaryMoney(totals.grandTotal)}</strong>
-            </div>
-            {selectedItems.length > 0 ? (
-              <Link href={checkoutHref}>Proceed to Checkout</Link>
-            ) : (
-              <button type="button" disabled>
-                Select items to checkout
-              </button>
-            )}
-          </aside>
+          <CartOrderSummary
+            action={{
+              label: selectedItems.length > 0 ? "Proceed to Checkout" : "Select items to checkout",
+              href: checkoutHref,
+              disabled: selectedItems.length === 0,
+            }}
+            cart={cart}
+            className="cart-summary"
+            description={`${selectedCount} selected ${selectedCount === 1 ? "item" : "items"}`}
+            descriptionClassName="cart-selected-count"
+            formatMoney={formatSummaryMoney}
+            selectedProductIds={selectedProductIds}
+            showItems={false}
+            totalLabel="Grand Total"
+          />
         </div>
       )}
     </main>

@@ -4,12 +4,12 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CreditCard, WalletCards } from "lucide-react";
 import { useCart } from "@/contexts";
-import { BackendCart, calculateCartTotals, fetchCart } from "@/features/cart";
+import { BackendCart, fetchCart } from "@/features/cart";
 import {
+  CartOrderSummary,
   createDeliveryAddress,
   DeliveryAddress,
   fetchDeliveryAddresses,
-  OrderSummary,
   placeOrder,
 } from "@/features/orders";
 
@@ -102,14 +102,6 @@ export default function CheckoutPage() {
   const checkoutItems = selectedProductIds.length
     ? cart.items.filter((item) => selectedProductIds.includes(item.productId._id))
     : cart.items;
-  const checkoutCart = { ...cart, items: checkoutItems };
-  const totals = calculateCartTotals(checkoutCart, selectedShipping.price);
-  const summaryItems = checkoutItems.map((item) => ({
-    id: item.productId._id,
-    name: item.productId.name,
-    quantity: item.quantity,
-    amount: item.priceAtAdded * item.quantity,
-  }));
 
   const updateShippingField = (field: keyof typeof shippingForm, value: string) => {
     setSelectedAddressId("");
@@ -189,16 +181,11 @@ export default function CheckoutPage() {
   };
 
   const orderSummary = (
-    <OrderSummary
+    <CartOrderSummary
+      cart={cart}
       className="checkout-summary"
-      items={summaryItems}
-      totals={{
-        subtotal: totals.subtotal,
-        discount: totals.discount,
-        shipping: totals.shipping,
-        tax: totals.tax,
-        total: totals.grandTotal,
-      }}
+      selectedProductIds={selectedProductIds}
+      shipping={selectedShipping.price}
       formatMoney={formatMoney}
     />
   );
