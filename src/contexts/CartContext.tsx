@@ -24,19 +24,52 @@ type CartContextValue = {
 };
 
 const emptyCart: BackendCart = { items: [] };
+const CART_STORAGE_PREFIX = "fitfixto.cart";
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
+const getCartStorageKey = (userId?: string | null) => `${CART_STORAGE_PREFIX}.${userId || "guest"}`;
+
+const readStoredCart = (userId?: string | null): BackendCart => {
+  if (typeof window === "undefined") return emptyCart;
+
+  try {
+    const stored = window.localStorage.getItem(getCartStorageKey(userId));
+    if (!stored) return emptyCart;
+
+    const parsed = JSON.parse(stored) as BackendCart;
+    return Array.isArray(parsed.items) ? parsed : emptyCart;
+  } catch {
+    return emptyCart;
+  }
+};
+
+const writeStoredCart = (cart: BackendCart, userId?: string | null) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(getCartStorageKey(userId), JSON.stringify(cart));
+};
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
   const [cart, setCart] = useState<BackendCart>(emptyCart);
   const [isCartLoading, setIsCartLoading] = useState(false);
   const [cartError, setCartError] = useState("");
+  const userId = user?.id ?? null;
 
   const refreshCart = useCallback(async () => {
+    if (isAuthLoading) {
+      return readStoredCart(isAuthenticated ? userId : null);
+    }
+
     if (!isAuthenticated) {
-      setCart(emptyCart);
+      const storedCart = readStoredCart(null);
+      setCart(storedCart);
       setCartError("");
-      return emptyCart;
+      return storedCart;
+    }
+
+    const storedCart = readStoredCart(userId);
+    if (storedCart.items.length > 0) {
+      setCart(storedCart);
     }
 
     setIsCartLoading(true);
@@ -45,6 +78,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const nextCart = await fetchCart();
       setCart(nextCart);
+      writeStoredCart(nextCart, userId);
       return nextCart;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to load cart.";
@@ -53,35 +87,41 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsCartLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAuthLoading, userId]);
 
   useEffect(() => {
-    refreshCart().catch(() => setCart(emptyCart));
+    if (isAuthLoading) return;
+    setCart(readStoredCart(isAuthenticated ? userId : null));
+    refreshCart().catch(() => undefined);
   }, [refreshCart]);
 
   const addToCart = useCallback(async (productId: string, quantity = 1) => {
     const nextCart = await addCartItem(productId, quantity);
     setCart(nextCart);
+    writeStoredCart(nextCart, userId);
     return nextCart;
-  }, []);
+  }, [userId]);
 
   const updateQuantity = useCallback(async (productId: string, quantity: number) => {
     const nextCart = await updateCartItemQuantity(productId, quantity);
     setCart(nextCart);
+    writeStoredCart(nextCart, userId);
     return nextCart;
-  }, []);
+  }, [userId]);
 
   const removeFromCart = useCallback(async (productId: string) => {
     const nextCart = await removeCartItem(productId);
     setCart(nextCart);
+    writeStoredCart(nextCart, userId);
     return nextCart;
-  }, []);
+  }, [userId]);
 
   const clearUserCart = useCallback(async () => {
     const nextCart = await clearCart();
     setCart(nextCart);
+    writeStoredCart(nextCart, userId);
     return nextCart;
-  }, []);
+  }, [userId]);
 
   const cartCount = useMemo(
     () => cart.items.reduce((total, item) => total + item.quantity, 0),
