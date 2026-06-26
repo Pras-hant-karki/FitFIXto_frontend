@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/contexts";
@@ -13,10 +13,36 @@ const formatSummaryMoney = (value: number) =>
 
 export default function CartPage() {
   const { cart, cartCount, isCartLoading, cartError, refreshCart, updateQuantity, removeFromCart } = useCart();
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [updatingProductId, setUpdatingProductId] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const totals = calculateCartTotals(cart);
+  useEffect(() => {
+    setSelectedProductIds((current) => {
+      const cartProductIds = cart.items.map((item) => item.productId._id);
+      const retainedIds = current.filter((id) => cartProductIds.includes(id));
+      const missingIds = cartProductIds.filter((id) => !current.includes(id));
+
+      return [...retainedIds, ...missingIds];
+    });
+  }, [cart.items]);
+
+  const selectedItems = useMemo(
+    () => cart.items.filter((item) => selectedProductIds.includes(item.productId._id)),
+    [cart.items, selectedProductIds]
+  );
+  const selectedCart = useMemo(() => ({ ...cart, items: selectedItems }), [cart, selectedItems]);
+  const selectedCount = selectedItems.reduce((total, item) => total + item.quantity, 0);
+  const checkoutHref = selectedProductIds.length
+    ? `/checkout?items=${encodeURIComponent(selectedProductIds.join(","))}`
+    : "/checkout";
+  const totals = calculateCartTotals(selectedCart);
+
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds((current) =>
+      current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId]
+    );
+  };
 
   const runCartAction = async (productId: string, action: () => Promise<unknown>) => {
     setUpdatingProductId(productId);
@@ -71,6 +97,13 @@ export default function CartPage() {
 
               return (
                 <article className="cart-item-card" key={item.productId._id}>
+                  <label className="cart-select-item" aria-label={`Select ${item.productId.name} for checkout`}>
+                    <input
+                      type="checkbox"
+                      checked={selectedProductIds.includes(item.productId._id)}
+                      onChange={() => toggleProductSelection(item.productId._id)}
+                    />
+                  </label>
                   <Link href={`/products/${item.productId._id}`} className="cart-item-image">
                     {productImage ? (
                       <img src={productImage} alt={item.productId.name} />
@@ -126,6 +159,9 @@ export default function CartPage() {
 
           <aside className="cart-summary" aria-label="Order summary">
             <h2>Order Summary</h2>
+            <p className="cart-selected-count">
+              {selectedCount} selected {selectedCount === 1 ? "item" : "items"}
+            </p>
             <div className="cart-summary-lines">
               <div>
                 <span>Subtotal</span>
@@ -148,7 +184,13 @@ export default function CartPage() {
               <span>Grand Total</span>
               <strong>{formatSummaryMoney(totals.grandTotal)}</strong>
             </div>
-            <Link href="/checkout">Proceed to Checkout</Link>
+            {selectedItems.length > 0 ? (
+              <Link href={checkoutHref}>Proceed to Checkout</Link>
+            ) : (
+              <button type="button" disabled>
+                Select items to checkout
+              </button>
+            )}
           </aside>
         </div>
       )}

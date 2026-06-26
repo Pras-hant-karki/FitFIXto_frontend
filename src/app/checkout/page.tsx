@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CreditCard, WalletCards } from "lucide-react";
+import { useCart } from "@/contexts";
 import { BackendCart, calculateCartTotals, fetchCart } from "@/features/cart";
 import {
   createDeliveryAddress,
@@ -45,8 +46,10 @@ const formatCompactMoney = (value: number) => (value > 0 ? `Npr ${Math.round(val
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { refreshCart } = useCart();
   const [step, setStep] = useState<CheckoutStep>(1);
   const [cart, setCart] = useState<BackendCart>({ items: [] });
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [shippingForm, setShippingForm] = useState(emptyShippingForm);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
@@ -61,9 +64,15 @@ export default function CheckoutPage() {
       setError("");
 
       try {
+        const selectedIds = new URLSearchParams(window.location.search)
+          .get("items")
+          ?.split(",")
+          .map((id) => id.trim())
+          .filter(Boolean) ?? [];
         const [nextCart, addresses] = await Promise.all([fetchCart(), fetchDeliveryAddresses()]);
         const defaultAddress = addresses.find((address) => address.isDefault) || addresses[0];
 
+        setSelectedProductIds(selectedIds);
         setCart(nextCart);
 
         if (defaultAddress) {
@@ -89,7 +98,11 @@ export default function CheckoutPage() {
   }, []);
 
   const selectedShipping = shippingOptions.find((option) => option.id === shippingMethod) || shippingOptions[0];
-  const totals = calculateCartTotals(cart, selectedShipping.price);
+  const checkoutItems = selectedProductIds.length
+    ? cart.items.filter((item) => selectedProductIds.includes(item.productId._id))
+    : cart.items;
+  const checkoutCart = { ...cart, items: checkoutItems };
+  const totals = calculateCartTotals(checkoutCart, selectedShipping.price);
 
   const updateShippingField = (field: keyof typeof shippingForm, value: string) => {
     setSelectedAddressId("");
@@ -132,8 +145,8 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     setError("");
 
-    if (cart.items.length === 0) {
-      setError("Your cart is empty.");
+    if (checkoutItems.length === 0) {
+      setError("No selected cart items found. Please return to cart and choose items.");
       return;
     }
 
@@ -145,7 +158,9 @@ export default function CheckoutPage() {
         deliveryAddressId,
         paymentMethod,
         shippingMethod,
+        selectedProductIds: checkoutItems.map((item) => item.productId._id),
       });
+      await refreshCart();
       router.push("/user/orders");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to place order.");
@@ -170,7 +185,7 @@ export default function CheckoutPage() {
     <aside className="checkout-summary" aria-label="Order summary">
       <h2>Order Summary</h2>
       <div className="checkout-summary-items">
-        {cart.items.map((item) => (
+        {checkoutItems.map((item) => (
           <div key={item.productId._id}>
             <span>
               {item.productId.name} x {item.quantity}
@@ -265,7 +280,7 @@ export default function CheckoutPage() {
               <button type="button" disabled>
                 Back
               </button>
-              <button type="submit" disabled={isSubmitting || cart.items.length === 0}>
+              <button type="submit" disabled={isSubmitting || checkoutItems.length === 0}>
                 {isSubmitting ? "Saving..." : "Continue"}
               </button>
             </div>
@@ -322,7 +337,7 @@ export default function CheckoutPage() {
               <button type="button" onClick={() => setStep(2)}>
                 Back
               </button>
-              <button type="button" onClick={handlePlaceOrder} disabled={isSubmitting || cart.items.length === 0}>
+              <button type="button" onClick={handlePlaceOrder} disabled={isSubmitting || checkoutItems.length === 0}>
                 {isSubmitting ? "Placing..." : "Place Order"}
               </button>
             </div>

@@ -69,6 +69,7 @@ export const placeOrder = async (payload: {
   deliveryAddressId: string;
   paymentMethod: "cash_on_delivery" | "esewa" | "khalti";
   shippingMethod?: "standard" | "express" | "overnight";
+  selectedProductIds?: string[];
   notes?: string;
 }) => {
   const response = await apiClient.post<{ order: BackendOrder }>(API_ENDPOINTS.orders.create, payload);
