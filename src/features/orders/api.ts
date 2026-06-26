@@ -14,7 +14,7 @@ export interface DeliveryAddress {
 }
 
 export interface BackendOrderItem {
-  productId: string;
+  productId: string | { _id: string };
   productName: string;
   quantity: number;
   unitPrice: number;

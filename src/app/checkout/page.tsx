@@ -9,6 +9,7 @@ import {
   createDeliveryAddress,
   DeliveryAddress,
   fetchDeliveryAddresses,
+  OrderSummary,
   placeOrder,
 } from "@/features/orders";
 
@@ -103,6 +104,12 @@ export default function CheckoutPage() {
     : cart.items;
   const checkoutCart = { ...cart, items: checkoutItems };
   const totals = calculateCartTotals(checkoutCart, selectedShipping.price);
+  const summaryItems = checkoutItems.map((item) => ({
+    id: item.productId._id,
+    name: item.productId.name,
+    quantity: item.quantity,
+    amount: item.priceAtAdded * item.quantity,
+  }));
 
   const updateShippingField = (field: keyof typeof shippingForm, value: string) => {
     setSelectedAddressId("");
@@ -182,41 +189,18 @@ export default function CheckoutPage() {
   };
 
   const orderSummary = (
-    <aside className="checkout-summary" aria-label="Order summary">
-      <h2>Order Summary</h2>
-      <div className="checkout-summary-items">
-        {checkoutItems.map((item) => (
-          <div key={item.productId._id}>
-            <span>
-              {item.productId.name} x {item.quantity}
-            </span>
-            <strong>Npr {Math.round(item.priceAtAdded * item.quantity)}</strong>
-          </div>
-        ))}
-      </div>
-      <div className="checkout-summary-lines">
-        <div>
-          <span>Subtotal</span>
-          <strong>{formatMoney(totals.subtotal)}</strong>
-        </div>
-        <div>
-          <span>Discount</span>
-          <strong>{totals.discount > 0 ? `- ${formatMoney(totals.discount)}` : formatMoney(0)}</strong>
-        </div>
-        <div>
-          <span>Shipping</span>
-          <strong>{totals.shipping > 0 ? formatMoney(totals.shipping) : "FREE"}</strong>
-        </div>
-        <div>
-          <span>Tax (2% MRP)</span>
-          <strong>{formatMoney(totals.tax)}</strong>
-        </div>
-      </div>
-      <div className="checkout-summary-total">
-        <span>Total</span>
-        <strong>{formatMoney(totals.grandTotal)}</strong>
-      </div>
-    </aside>
+    <OrderSummary
+      className="checkout-summary"
+      items={summaryItems}
+      totals={{
+        subtotal: totals.subtotal,
+        discount: totals.discount,
+        shipping: totals.shipping,
+        tax: totals.tax,
+        total: totals.grandTotal,
+      }}
+      formatMoney={formatMoney}
+    />
   );
 
   if (isLoading) {

@@ -2193,7 +2193,8 @@ a {
   padding: 20px;
 }
 
-.checkout-summary h2 {
+.checkout-summary h2,
+.order-summary h2 {
   margin: 0;
   color: #050505;
   font-size: 18px;
@@ -2201,32 +2202,45 @@ a {
 }
 
 .checkout-summary-items,
-.checkout-summary-lines {
+.checkout-summary-lines,
+.order-summary-items,
+.order-summary-lines {
   display: grid;
   gap: 10px;
 }
 
-.checkout-summary-items {
+.checkout-summary-items,
+.order-summary-items {
   border-bottom: 1px solid #e5e5ea;
   padding-bottom: 16px;
 }
 
 .checkout-summary-items div,
 .checkout-summary-lines div,
-.checkout-summary-total {
+.checkout-summary-total,
+.order-summary-items div,
+.order-summary-lines div,
+.order-summary-total {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 16px;
   align-items: center;
 }
 
-.checkout-summary span {
+.checkout-summary span,
+.order-summary span,
+.order-summary-items p {
   color: #777789;
   font-size: 13px;
   line-height: 1.35;
 }
 
-.checkout-summary strong {
+.order-summary-items p {
+  margin: 0;
+}
+
+.checkout-summary strong,
+.order-summary strong {
   color: #050505;
   font-size: 13px;
   font-weight: 800;
@@ -2234,16 +2248,42 @@ a {
   white-space: nowrap;
 }
 
-.checkout-summary-total {
+.checkout-summary-total,
+.order-summary-total {
   border-top: 1px solid #e5e5ea;
   padding-top: 12px;
 }
 
 .checkout-summary-total span,
-.checkout-summary-total strong {
+.checkout-summary-total strong,
+.order-summary-total span,
+.order-summary-total strong {
   color: #050505;
   font-size: 18px;
   font-weight: 900;
+}
+
+.order-summary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border: 0;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  padding: 0 18px;
+  text-decoration: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.order-summary-action:disabled,
+.order-summary-action[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .checkout-error {
@@ -2661,18 +2701,45 @@ a {
   justify-content: center;
   gap: 8px;
   min-height: 42px;
+  border: 0;
   border-radius: 5px;
   background: #030213;
   color: #ffffff;
   padding: 0 16px;
   text-decoration: none;
+  font: inherit;
   font-size: 14px;
   font-weight: 900;
+  cursor: pointer;
+}
+
+.customer-reorder-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .customer-reorder-button svg {
   width: 17px;
   height: 17px;
+}
+
+.customer-reorder-hint,
+.customer-reorder-error {
+  margin: -8px 0 0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.customer-reorder-hint {
+  background: #f6f6f8;
+  color: var(--muted);
+}
+
+.customer-reorder-error {
+  background: #fff1f2;
+  color: #be123c;
 }
 
 .customer-orders-list {
@@ -2694,6 +2761,34 @@ a {
   gap: 18px;
   align-items: center;
   min-height: 112px;
+}
+
+.customer-order-card-selectable {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.customer-order-select {
+  display: grid;
+  place-items: center;
+}
+
+.customer-order-select input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.customer-order-select span {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #030213;
+  border-radius: 5px;
+  background: #ffffff;
+}
+
+.customer-order-select input:checked + span {
+  background: #030213;
+  box-shadow: inset 0 0 0 4px #ffffff;
 }
 
 .customer-order-card div {
