@@ -3,10 +3,13 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RouteShell } from "@/components/shared";
-import { BackendCart, fetchCart, getCartSubtotal } from "@/features/cart";
+import { BackendCart, calculateCartTotals, fetchCart } from "@/features/cart";
 import { DeliveryAddress, fetchDeliveryAddresses, placeOrder } from "@/features/orders";
 
 type PaymentMethod = "cash_on_delivery" | "esewa" | "khalti";
+
+const formatMoney = (value: number) =>
+  `Npr ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -40,7 +43,7 @@ export default function CheckoutPage() {
     loadCheckout();
   }, []);
 
-  const subtotal = getCartSubtotal(cart);
+  const totals = calculateCartTotals(cart);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -138,7 +141,23 @@ export default function CheckoutPage() {
                 </div>
                 <div className="connected-total">
                   <span>Subtotal</span>
-                  <strong>${subtotal.toFixed(2)}</strong>
+                  <strong>{formatMoney(totals.subtotal)}</strong>
+                </div>
+                <div className="connected-total">
+                  <span>Discount</span>
+                  <strong>{totals.discount > 0 ? `- ${formatMoney(totals.discount)}` : formatMoney(0)}</strong>
+                </div>
+                <div className="connected-total">
+                  <span>Shipping</span>
+                  <strong>{totals.shipping > 0 ? formatMoney(totals.shipping) : "FREE"}</strong>
+                </div>
+                <div className="connected-total">
+                  <span>Tax (2% MRP)</span>
+                  <strong>{formatMoney(totals.tax)}</strong>
+                </div>
+                <div className="connected-total">
+                  <span>Grand Total</span>
+                  <strong>{formatMoney(totals.grandTotal)}</strong>
                 </div>
               </>
             ) : (

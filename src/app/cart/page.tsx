@@ -4,23 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/contexts";
-import { getCartLineTotal, getCartSubtotal } from "@/features/cart";
+import { calculateCartTotals, getCartLineTotal } from "@/features/cart";
 import { formatCategory, getProductImage } from "@/features/products";
 
 const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
 const formatSummaryMoney = (value: number) =>
   `Npr ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const TAX_RATE = 0.13;
 
 export default function CartPage() {
   const { cart, cartCount, isCartLoading, cartError, refreshCart, updateQuantity, removeFromCart } = useCart();
   const [updatingProductId, setUpdatingProductId] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const subtotal = getCartSubtotal(cart);
-  const shipping = 0;
-  const tax = subtotal * TAX_RATE;
-  const total = subtotal + shipping + tax;
+  const totals = calculateCartTotals(cart);
 
   const runCartAction = async (productId: string, action: () => Promise<unknown>) => {
     setUpdatingProductId(productId);
@@ -133,20 +129,24 @@ export default function CartPage() {
             <div className="cart-summary-lines">
               <div>
                 <span>Subtotal</span>
-                <strong>{formatSummaryMoney(subtotal)}</strong>
+                <strong>{formatSummaryMoney(totals.subtotal)}</strong>
+              </div>
+              <div>
+                <span>Discount</span>
+                <strong>{totals.discount > 0 ? `- ${formatSummaryMoney(totals.discount)}` : formatSummaryMoney(0)}</strong>
               </div>
               <div>
                 <span>Shipping</span>
-                <strong>FREE</strong>
+                <strong>{totals.shipping > 0 ? formatSummaryMoney(totals.shipping) : "FREE"}</strong>
               </div>
               <div>
-                <span>Tax (est.)</span>
-                <strong>{formatSummaryMoney(tax)}</strong>
+                <span>Tax (2% MRP)</span>
+                <strong>{formatSummaryMoney(totals.tax)}</strong>
               </div>
             </div>
             <div className="cart-summary-total">
-              <span>Total</span>
-              <strong>{formatSummaryMoney(total)}</strong>
+              <span>Grand Total</span>
+              <strong>{formatSummaryMoney(totals.grandTotal)}</strong>
             </div>
             <Link href="/checkout">Proceed to Checkout</Link>
           </aside>
