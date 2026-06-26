@@ -36,6 +36,9 @@ export interface BackendOrder {
   status: string;
   subtotal: number;
   discountAmount: number;
+  shippingMethod?: "standard" | "express" | "overnight";
+  shippingAmount?: number;
+  taxAmount?: number;
   totalAmount: number;
   notes?: string;
   createdAt: string;
@@ -45,6 +48,11 @@ export interface BackendOrder {
 export const fetchDeliveryAddresses = async () => {
   const response = await apiClient.get<{ addresses: DeliveryAddress[] }>(API_ENDPOINTS.user.addresses);
   return response.data?.addresses || [];
+};
+
+export const createDeliveryAddress = async (payload: Omit<DeliveryAddress, "_id">) => {
+  const response = await apiClient.post<{ address: DeliveryAddress }>(API_ENDPOINTS.user.addresses, payload);
+  return response.data?.address;
 };
 
 export const fetchMyOrders = async () => {
@@ -60,6 +68,7 @@ export const fetchAdminOrders = async () => {
 export const placeOrder = async (payload: {
   deliveryAddressId: string;
   paymentMethod: "cash_on_delivery" | "esewa" | "khalti";
+  shippingMethod?: "standard" | "express" | "overnight";
   notes?: string;
 }) => {
   const response = await apiClient.post<{ order: BackendOrder }>(API_ENDPOINTS.orders.create, payload);
