@@ -899,6 +899,214 @@ a {
   color: #747584;
 }
 
+.trainer-detail-page {
+  display: grid;
+  gap: 22px;
+  width: min(100% - 48px, 1120px);
+  margin: 0 auto;
+  padding: 34px 0 80px;
+}
+
+.trainer-detail-back {
+  width: fit-content;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.trainer-detail-back:hover {
+  color: var(--foreground);
+}
+
+.trainer-detail-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 34px;
+  align-items: start;
+}
+
+.trainer-detail-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.trainer-detail-photo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+  background: #f3f3f5;
+  color: var(--muted);
+  min-height: 350px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.trainer-detail-photo img {
+  width: 100%;
+  height: 100%;
+  min-height: 350px;
+  object-fit: cover;
+}
+
+.trainer-detail-booking-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 0 0 8px 8px;
+  background: var(--background);
+  padding: 16px;
+}
+
+.trainer-detail-booking-card button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 4px;
+  background: #030213;
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trainer-detail-booking-card div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.trainer-detail-booking-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.trainer-detail-booking-card strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.trainer-detail-booking-card svg {
+  width: 13px;
+  height: 13px;
+}
+
+.trainer-detail-main {
+  display: grid;
+  gap: 22px;
+}
+
+.trainer-detail-main header h1 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.trainer-detail-main header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.trainer-detail-tabs {
+  display: flex;
+  gap: 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.trainer-detail-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 0 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.trainer-detail-tabs button.active {
+  border-color: #030213;
+  color: var(--foreground);
+}
+
+.trainer-detail-section {
+  display: grid;
+  gap: 14px;
+}
+
+.trainer-detail-section p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.trainer-detail-section h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.trainer-detail-check-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trainer-detail-check-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.trainer-detail-check-list svg {
+  width: 14px;
+  height: 14px;
+}
+
+.trainer-detail-specialties {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.trainer-detail-specialties article {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 78px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--background);
+  text-align: center;
+}
+
+.trainer-detail-specialties svg {
+  width: 20px;
+  height: 20px;
+}
+
+.trainer-detail-specialties strong {
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .product-badges {
   position: absolute;
   top: 10px;

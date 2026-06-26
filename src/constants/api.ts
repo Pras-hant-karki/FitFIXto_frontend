@@ -73,6 +73,7 @@ export const API_ENDPOINTS = {
   trainers: {
     list: '/trainers',
     publicList: '/trainers/public',
+    publicDetail: (id: string) => `/trainers/public/${id}`,
     detail: (id: string) => `/trainers/${id}`,
     applications: '/trainers/applications',
     approveApplication: (id: string) => `/trainers/applications/${id}/approve`,

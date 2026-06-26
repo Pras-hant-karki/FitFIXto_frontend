@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { MapPin, Search, SlidersHorizontal, Star } from "lucide-react";
 import {
   BackendTrainer,
@@ -25,7 +26,7 @@ const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
   const trainerPhoto = getTrainerPhoto(trainer);
 
   return (
-    <article className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
+    <Link href={`/trainers/${trainer._id}`} className="block bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
       <div className="relative h-72 bg-gray-100">
         {trainerPhoto ? (
           <img src={trainerPhoto} alt={trainerName} className="w-full h-full object-cover" />
@@ -70,12 +71,12 @@ const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
             </span>
             <span className="text-xs text-gray-500">/session</span>
           </div>
-          <button className="bg-black text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-colors">
+          <span className="bg-black text-white text-sm font-medium px-5 py-2.5 rounded-lg">
             Book Now
-          </button>
+          </span>
         </div>
       </div>
-    </article>
+    </Link>
   );
 };
 
