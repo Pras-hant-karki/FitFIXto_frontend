@@ -70,6 +70,11 @@ export const fetchAdminTrainers = async () => {
   return response.data?.trainers || [];
 };
 
+export const fetchPublicTrainers = async () => {
+  const response = await apiClient.get<{ trainers: BackendTrainer[] }>(API_ENDPOINTS.trainers.publicList);
+  return response.data?.trainers || [];
+};
+
 export const fetchTrainerApplications = async () => {
   const response = await apiClient.get<{ applications: BackendTrainerApplication[] }>(API_ENDPOINTS.trainers.applications);
   return response.data?.applications || [];
