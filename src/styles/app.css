@@ -3756,6 +3756,8 @@ a {
   --admin-topbar-height: 88px;
   --admin-sidebar-width: 300px;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
   background: #ffffff;
   color: #09090d;
 }
@@ -3853,6 +3855,8 @@ a {
 .admin-body {
   display: grid;
   grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
+  max-width: 100%;
+  min-width: 0;
   min-height: max(760px, calc(100vh - var(--admin-topbar-height)));
   padding-top: var(--admin-topbar-height);
   background: #ffffff;
@@ -3963,13 +3967,18 @@ a {
 }
 
 .admin-main {
+  min-width: 0;
   min-height: max(760px, calc(100vh - var(--admin-topbar-height)));
+  overflow-x: hidden;
   background: #ffffff;
 }
 
 .admin-content {
+  max-width: 100%;
+  min-width: 0;
   min-height: max(620px, calc(100vh - var(--admin-topbar-height)));
   padding: 46px 32px 72px;
+  overflow-x: hidden;
 }
 
 .admin-overview,
@@ -6356,6 +6365,7 @@ a {
   display: grid;
   gap: 92px;
   width: min(1180px, 100%);
+  min-width: 0;
 }
 
 .admin-partner-gyms-header {
@@ -6393,10 +6403,12 @@ a {
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 28px;
   align-items: stretch;
+  min-width: 0;
 }
 
 .admin-gym-map-shell,
 .admin-gym-list-panel {
+  min-width: 0;
   border: 1px solid #e5e5e8;
   border-radius: 14px;
   background: #ffffff;
@@ -6615,6 +6627,7 @@ a {
 
 .admin-gym-form {
   display: grid;
+  min-width: 0;
 }
 
 .admin-gym-form-header {
@@ -6651,12 +6664,14 @@ a {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+  min-width: 0;
   padding: 24px;
 }
 
 .admin-gym-form-body label {
   display: grid;
   gap: 8px;
+  min-width: 0;
   color: #050507;
   font-size: 15px;
   font-weight: 900;
@@ -6698,15 +6713,18 @@ a {
 
 .admin-gym-image-upload {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 1fr;
+  gap: 14px;
   align-items: start;
+  min-width: 0;
 }
 
 .admin-gym-image-preview-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(64px, 88px));
   gap: 10px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .admin-gym-image-preview-grid img,
@@ -6714,6 +6732,8 @@ a {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
+  width: 100%;
+  max-width: 88px;
   border: 1px solid #e5e5e8;
   border-radius: 8px;
   background: #f3f3f5;
@@ -6729,6 +6749,7 @@ a {
 .admin-gym-image-preview-grid span {
   grid-column: 1 / -1;
   aspect-ratio: auto;
+  max-width: 100%;
   min-height: 118px;
 }
 

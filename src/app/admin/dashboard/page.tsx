@@ -134,8 +134,8 @@ export default function AdminDashboardPage() {
                 <polyline points={revenuePoints} />
               </svg>
               <div className="admin-line-x-axis">
-                {analytics.series.map((item) => (
-                  <span key={item.label}>{item.label}</span>
+                {analytics.series.map((item, index) => (
+                  <span key={`${item.label}-revenue-${index}`}>{item.label}</span>
                 ))}
               </div>
             </div>
@@ -166,8 +166,8 @@ export default function AdminDashboardPage() {
                   : null}
               </svg>
               <div className="admin-line-x-axis">
-                {analytics.series.map((item) => (
-                  <span key={item.label}>{item.label}</span>
+                {analytics.series.map((item, index) => (
+                  <span key={`${item.label}-orders-${index}`}>{item.label}</span>
                 ))}
               </div>
             </div>

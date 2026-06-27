@@ -117,8 +117,8 @@ export default function AdminAnalyticsPage() {
                 {revenuePoints ? <polygon points={`24,250 ${revenuePoints} 520,250`} /> : null}
               </svg>
               <div className="admin-analytics-x-axis">
-                {analytics.series.map((point) => (
-                  <span key={point.label}>{point.label}</span>
+                {analytics.series.map((point, index) => (
+                  <span key={`${point.label}-revenue-${index}`}>{point.label}</span>
                 ))}
               </div>
             </div>
@@ -140,8 +140,8 @@ export default function AdminAnalyticsPage() {
                   : null}
               </svg>
               <div className="admin-analytics-x-axis">
-                {analytics.series.map((point) => (
-                  <span key={point.label}>{point.label}</span>
+                {analytics.series.map((point, index) => (
+                  <span key={`${point.label}-orders-${index}`}>{point.label}</span>
                 ))}
               </div>
             </div>
