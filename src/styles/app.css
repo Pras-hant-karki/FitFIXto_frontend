@@ -7471,6 +7471,13 @@ a {
   white-space: nowrap;
 }
 
+.search-highlight {
+  border-radius: 3px;
+  background: #fff0b8;
+  color: inherit;
+  padding: 0 2px;
+}
+
 .search-result-card.loading {
   pointer-events: none;
 }
@@ -7553,6 +7560,10 @@ a {
 .dark .search-result-image {
   background: #20232b;
   color: #ffffff;
+}
+
+.dark .search-highlight {
+  background: rgba(245, 179, 1, 0.32);
 }
 
 .site-footer {

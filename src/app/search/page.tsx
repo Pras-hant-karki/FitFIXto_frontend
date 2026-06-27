@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, MapPin, Search } from "lucide-react";
 import {
@@ -27,6 +28,8 @@ type SearchResult = {
   image?: string;
   href: string;
   verified?: boolean;
+  rank?: number;
+  typeRank?: number;
 };
 
 const serviceResults: SearchResult[] = [
@@ -76,6 +79,88 @@ const getTrainerName = (trainer: BackendTrainer) =>
 
 const includesQuery = (parts: Array<string | number | undefined | null>, query: string) =>
   parts.join(" ").toLowerCase().includes(query.toLowerCase());
+
+const wordStartsWith = (value: string, query: string) =>
+  value
+    .toLowerCase()
+    .split(/[\s\-_/.,]+/)
+    .some((word) => word.startsWith(query.toLowerCase()));
+
+const getFieldRank = (value: string | undefined, query: string, baseRank: number) => {
+  if (!value) return Number.POSITIVE_INFINITY;
+
+  const normalizedValue = value.toLowerCase();
+  const normalizedQuery = query.toLowerCase();
+
+  if (normalizedValue.startsWith(normalizedQuery)) return baseRank;
+  if (wordStartsWith(value, query)) return baseRank + 1;
+  if (normalizedValue.includes(normalizedQuery)) return baseRank + 2;
+
+  return Number.POSITIVE_INFINITY;
+};
+
+const getSearchRank = (result: SearchResult, query: string) =>
+  Math.min(
+    getFieldRank(result.title, query, 0),
+    getFieldRank(result.subtitle, query, 3),
+    getFieldRank(result.detail, query, 6),
+    getFieldRank(result.price, query, 9),
+  );
+
+const getTypeRank = (result: SearchResult) => {
+  if (result.type === "trainer") return 0;
+  if (result.type === "product") return 1;
+  return 2;
+};
+
+const withRanking = (result: SearchResult, query: string): SearchResult => ({
+  ...result,
+  rank: getSearchRank(result, query),
+  typeRank: getTypeRank(result),
+});
+
+const sortResults = (resultsToSort: SearchResult[]) =>
+  [...resultsToSort].sort((first, second) => {
+    const rankDifference = (first.rank ?? 99) - (second.rank ?? 99);
+    if (rankDifference !== 0) return rankDifference;
+
+    const typeDifference = (first.typeRank ?? 99) - (second.typeRank ?? 99);
+    if (typeDifference !== 0) return typeDifference;
+
+    return first.title.localeCompare(second.title);
+  });
+
+const highlightMatch = (value: string, query: string): ReactNode => {
+  if (!query) return value;
+
+  const normalizedValue = value.toLowerCase();
+  const normalizedQuery = query.toLowerCase();
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  let matchIndex = normalizedValue.indexOf(normalizedQuery);
+
+  while (matchIndex >= 0) {
+    if (matchIndex > cursor) {
+      parts.push(value.slice(cursor, matchIndex));
+    }
+
+    const endIndex = matchIndex + query.length;
+    parts.push(
+      <mark className="search-highlight" key={`${matchIndex}-${endIndex}`}>
+        {value.slice(matchIndex, endIndex)}
+      </mark>,
+    );
+
+    cursor = endIndex;
+    matchIndex = normalizedValue.indexOf(normalizedQuery, cursor);
+  }
+
+  if (cursor < value.length) {
+    parts.push(value.slice(cursor));
+  }
+
+  return parts;
+};
 
 const toProductResult = (product: BackendProduct): SearchResult => ({
   id: product._id,
@@ -170,20 +255,26 @@ export default function SearchPage() {
               debouncedQuery,
             ),
           )
-          .map(toTrainerResult);
+          .map(toTrainerResult)
+          .map((result) => withRanking(result, debouncedQuery))
+          .filter((result) => Number.isFinite(result.rank));
 
-        const matchingServices = serviceResults.filter((service) =>
-          includesQuery([service.title, service.subtitle, service.detail, service.price], debouncedQuery),
-        );
+        const matchingServices = serviceResults
+          .filter((service) => includesQuery([service.title, service.subtitle, service.detail, service.price], debouncedQuery))
+          .map((result) => withRanking(result, debouncedQuery))
+          .filter((result) => Number.isFinite(result.rank));
 
         if (isCurrent) {
-          const productResults = (productResponse?.products || []).map(toProductResult);
+          const productResults = (productResponse?.products || [])
+            .map(toProductResult)
+            .map((result) => withRanking(result, debouncedQuery))
+            .filter((result) => Number.isFinite(result.rank));
 
-          setResults([
+          setResults(sortResults([
             ...productResults,
             ...trainerResults,
             ...matchingServices,
-          ]);
+          ]));
         }
       } catch (searchError) {
         if (isCurrent) {
@@ -289,18 +380,18 @@ export default function SearchPage() {
                       <span>{result.type}</span>
                       {result.verified ? <CheckCircle2 aria-label="Verified product" /> : null}
                     </div>
-                    <strong>{result.title}</strong>
-                    <p>{result.subtitle}</p>
+                    <strong>{highlightMatch(result.title, debouncedQuery)}</strong>
+                    <p>{highlightMatch(result.subtitle, debouncedQuery)}</p>
                     {result.type === "trainer" && result.detail ? (
                       <small>
                         <MapPin aria-hidden="true" />
-                        {result.detail}
+                        {highlightMatch(result.detail, debouncedQuery)}
                       </small>
                     ) : result.detail ? (
-                      <small>{result.detail}</small>
+                      <small>{highlightMatch(result.detail, debouncedQuery)}</small>
                     ) : null}
                   </div>
-                  {result.price ? <b>{result.price}</b> : null}
+                  {result.price ? <b>{highlightMatch(result.price, debouncedQuery)}</b> : null}
                 </Link>
               ))}
             </div>
