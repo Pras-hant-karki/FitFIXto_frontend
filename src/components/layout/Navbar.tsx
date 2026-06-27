@@ -87,11 +87,11 @@ export function Navbar() {
       </nav>
 
       <div className="navbar-actions">
-        <IconButton label="Search">
+        <Link className="nav-icon-button" href="/search" aria-label="Search">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
           </svg>
-        </IconButton>
+        </Link>
         <Link className="nav-icon-button" href="/compare" aria-label="Compare">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 7h9.5A2.5 2.5 0 0 1 19 9.5V17" />
