@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, DollarSign, Package, ShoppingBag, Users, type LucideIcon } from "lucide-react";
+import { ArrowRight, DollarSign, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
 import { AdminAnalytics, fetchAdminAnalytics } from "@/features/admin-analytics/api";
 import { fetchAdminUsers } from "@/features/admin-users/api";
 import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
@@ -108,7 +108,10 @@ export default function AdminDashboardPage() {
               <span className="admin-stat-icon">
                 <Icon aria-hidden="true" />
               </span>
-              <span className="admin-stat-note">{isLoading ? "Loading" : "Live"}</span>
+              <span className={isLoading ? "admin-live-pill loading" : "admin-live-pill"} aria-label={isLoading ? "Loading live data" : "Live backend data"}>
+                <Radio aria-hidden="true" />
+                {isLoading ? "Loading" : "Live"}
+              </span>
             </div>
             <strong>{isLoading ? "..." : card.value}</strong>
             <p>{card.label}</p>
