@@ -90,6 +90,12 @@ export const API_ENDPOINTS = {
     uploadImage: '/homepage/upload-image',
   },
 
+  partnerGyms: {
+    list: '/partner-gyms',
+    publicList: '/partner-gyms/public',
+    detail: (id: string) => `/partner-gyms/${id}`,
+  },
+
 } as const;
 
 export const API_HEADERS = {

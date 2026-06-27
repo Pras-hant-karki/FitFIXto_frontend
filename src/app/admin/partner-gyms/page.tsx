@@ -2,9 +2,16 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Edit2, MapPin, Plus, Power, Save, Search, Trash2, X } from "lucide-react";
+import {
+  createPartnerGym,
+  deletePartnerGym,
+  fetchPartnerGyms,
+  updatePartnerGym,
+  type BackendPartnerGym,
+  type PartnerGymPayload,
+} from "@/features/partner-gyms";
 
-type PartnerGym = {
-  id: string;
+type GymFormState = {
   name: string;
   address: string;
   phone: string;
@@ -12,10 +19,9 @@ type PartnerGym = {
   rating: string;
   pin: string;
   locationUrl: string;
+  imageUrl: string;
   isVisible: boolean;
 };
-
-type GymFormState = Omit<PartnerGym, "id">;
 
 type GoogleLatLng = {
   lat: number;
@@ -81,6 +87,7 @@ const emptyGymForm: GymFormState = {
   rating: "",
   pin: "",
   locationUrl: "",
+  imageUrl: "",
   isVisible: true,
 };
 
@@ -118,7 +125,7 @@ const loadGoogleMapsScript = (apiKey: string) =>
 const formatPin = (location: GoogleLatLng) => `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
 
 export default function AdminPartnerGymsPage() {
-  const [gyms, setGyms] = useState<PartnerGym[]>([]);
+  const [gyms, setGyms] = useState<BackendPartnerGym[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGymId, setEditingGymId] = useState<string | null>(null);
   const [form, setForm] = useState<GymFormState>(emptyGymForm);
@@ -126,10 +133,32 @@ export default function AdminPartnerGymsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<GooglePlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRef = useRef<GoogleMarkerInstance | null>(null);
   const placesServiceRef = useRef<GooglePlacesService | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchPartnerGyms()
+      .then((nextGyms) => {
+        if (isMounted) {
+          setGyms(nextGyms);
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setStatusMessage(error instanceof Error ? error.message : "Unable to load partner gyms.");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!googleMapsApiKey || !mapElementRef.current) {
@@ -194,16 +223,17 @@ export default function AdminPartnerGymsPage() {
     setIsFormOpen(true);
   };
 
-  const openEditForm = (gym: PartnerGym) => {
-    setEditingGymId(gym.id);
+  const openEditForm = (gym: BackendPartnerGym) => {
+    setEditingGymId(gym._id);
     setForm({
       name: gym.name,
       address: gym.address,
-      phone: gym.phone,
-      hours: gym.hours,
-      rating: gym.rating,
-      pin: gym.pin,
-      locationUrl: gym.locationUrl,
+      phone: gym.phone || "",
+      hours: gym.hours || "",
+      rating: typeof gym.rating === "number" ? String(gym.rating) : "",
+      pin: gym.pin || "",
+      locationUrl: gym.locationUrl || "",
+      imageUrl: gym.imageUrl || "",
       isVisible: gym.isVisible,
     });
     setIsFormOpen(true);
@@ -215,24 +245,66 @@ export default function AdminPartnerGymsPage() {
     setIsFormOpen(false);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const toPayload = (): PartnerGymPayload => ({
+    name: form.name,
+    address: form.address,
+    phone: form.phone,
+    hours: form.hours,
+    rating: form.rating ? Number(form.rating) : undefined,
+    pin: form.pin,
+    locationUrl: form.locationUrl,
+    imageUrl: form.imageUrl,
+    isVisible: form.isVisible,
+  });
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSaving(true);
+    setStatusMessage("");
 
-    if (editingGymId) {
-      setGyms((current) => current.map((gym) => (gym.id === editingGymId ? { ...gym, ...form } : gym)));
-    } else {
-      setGyms((current) => [{ id: crypto.randomUUID(), ...form }, ...current]);
+    try {
+      if (editingGymId) {
+        const updatedGym = await updatePartnerGym(editingGymId, toPayload());
+        if (updatedGym) {
+          setGyms((current) => current.map((gym) => (gym._id === editingGymId ? updatedGym : gym)));
+        }
+      } else {
+        const createdGym = await createPartnerGym(toPayload());
+        if (createdGym) {
+          setGyms((current) => [createdGym, ...current]);
+        }
+      }
+
+      closeForm();
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to save partner gym.");
+    } finally {
+      setIsSaving(false);
     }
-
-    closeForm();
   };
 
-  const handleVisibilityToggle = (gymId: string) => {
-    setGyms((current) => current.map((gym) => (gym.id === gymId ? { ...gym, isVisible: !gym.isVisible } : gym)));
+  const handleVisibilityToggle = async (gym: BackendPartnerGym) => {
+    setStatusMessage("");
+
+    try {
+      const updatedGym = await updatePartnerGym(gym._id, { isVisible: !gym.isVisible });
+      if (updatedGym) {
+        setGyms((current) => current.map((currentGym) => (currentGym._id === gym._id ? updatedGym : currentGym)));
+      }
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to update gym visibility.");
+    }
   };
 
-  const handleDelete = (gymId: string) => {
-    setGyms((current) => current.filter((gym) => gym.id !== gymId));
+  const handleDelete = async (gymId: string) => {
+    setStatusMessage("");
+
+    try {
+      await deletePartnerGym(gymId);
+      setGyms((current) => current.filter((gym) => gym._id !== gymId));
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to delete partner gym.");
+    }
   };
 
   const handleSearchGyms = (event: FormEvent<HTMLFormElement>) => {
@@ -284,7 +356,11 @@ export default function AdminPartnerGymsPage() {
     });
   };
 
-  const handleGymPillClick = (gym: PartnerGym) => {
+  const handleGymPillClick = (gym: BackendPartnerGym) => {
+    if (!gym.pin) {
+      return;
+    }
+
     const [lat, lng] = gym.pin.split(",").map((value) => Number(value.trim()));
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
       setPinOnMap({ lat, lng }, gym.name);
@@ -303,6 +379,7 @@ export default function AdminPartnerGymsPage() {
           Add Gym
         </button>
       </header>
+      {statusMessage ? <p className="admin-gym-status">{statusMessage}</p> : null}
 
       <div className="admin-partner-gyms-grid">
         <section className="admin-gym-map-shell" aria-label="Partner gyms map">
@@ -349,7 +426,7 @@ export default function AdminPartnerGymsPage() {
           {gyms.length ? (
             <div className="admin-gym-map-pills">
               {gyms.map((gym) => (
-                <button type="button" key={gym.id} onClick={() => handleGymPillClick(gym)}>
+                <button type="button" key={gym._id} onClick={() => handleGymPillClick(gym)}>
                   {gym.name}
                 </button>
               ))}
@@ -419,6 +496,14 @@ export default function AdminPartnerGymsPage() {
                     onChange={(event) => setForm((current) => ({ ...current, locationUrl: event.target.value }))}
                   />
                 </label>
+                <label className="admin-gym-form-wide">
+                  Image URL
+                  <input
+                    value={form.imageUrl}
+                    placeholder="/assets/gym-photo.png"
+                    onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+                  />
+                </label>
                 <label className="admin-gym-visible-check">
                   <input
                     type="checkbox"
@@ -430,9 +515,9 @@ export default function AdminPartnerGymsPage() {
               </div>
 
               <div className="admin-gym-form-actions">
-                <button type="submit">
+                <button type="submit" disabled={isSaving}>
                   <Save aria-hidden="true" />
-                  Save
+                  {isSaving ? "Saving" : "Save"}
                 </button>
                 <button type="button" onClick={closeForm}>
                   Cancel
@@ -445,9 +530,9 @@ export default function AdminPartnerGymsPage() {
               {gyms.length ? (
                 <div className="admin-gym-list">
                   {gyms.map((gym) => (
-                    <article className="admin-gym-list-item" key={gym.id}>
+                    <article className="admin-gym-list-item" key={gym._id}>
                       <div className="admin-gym-thumb">
-                        <MapPin aria-hidden="true" />
+                        {gym.imageUrl ? <img src={gym.imageUrl} alt={gym.name} /> : <MapPin aria-hidden="true" />}
                       </div>
                       <div className="admin-gym-details">
                         <div>
@@ -460,11 +545,11 @@ export default function AdminPartnerGymsPage() {
                             <Edit2 aria-hidden="true" />
                             Edit
                           </button>
-                          <button type="button" onClick={() => handleVisibilityToggle(gym.id)}>
+                          <button type="button" onClick={() => handleVisibilityToggle(gym)}>
                             <Power aria-hidden="true" />
                             {gym.isVisible ? "Hide" : "Show"}
                           </button>
-                          <button type="button" onClick={() => handleDelete(gym.id)}>
+                          <button type="button" onClick={() => handleDelete(gym._id)}>
                             <Trash2 aria-hidden="true" />
                             Delete
                           </button>

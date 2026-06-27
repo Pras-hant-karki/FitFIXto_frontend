@@ -6379,6 +6379,15 @@ a {
   font-size: 18px;
 }
 
+.admin-gym-status {
+  margin: -70px 0 0;
+  border-radius: 8px;
+  background: #fff7e8;
+  color: #9a5a00;
+  padding: 14px 16px;
+  font-weight: 800;
+}
+
 .admin-partner-gyms-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
@@ -6715,6 +6724,11 @@ a {
   color: #ffffff;
 }
 
+.admin-gym-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .admin-gym-form-actions svg {
   width: 18px;
   height: 18px;
@@ -6747,6 +6761,13 @@ a {
 .admin-gym-thumb svg {
   width: 30px;
   height: 30px;
+}
+
+.admin-gym-thumb img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
 }
 
 .admin-gym-details {
@@ -7564,6 +7585,303 @@ a {
 
 .dark .search-highlight {
   background: rgba(245, 179, 1, 0.32);
+}
+
+.public-gyms-page {
+  display: grid;
+  gap: 30px;
+  width: min(100% - 48px, 1180px);
+  margin: 0 auto;
+  padding: 34px 0 90px;
+}
+
+.public-gyms-header {
+  display: grid;
+  gap: 22px;
+}
+
+.public-gyms-header h1 {
+  margin: 0 0 6px;
+  color: var(--foreground);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.public-gyms-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.public-gyms-search {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 50px;
+  border: 1px solid #e5e5e8;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0 16px;
+}
+
+.public-gyms-search svg {
+  width: 18px;
+  height: 18px;
+  color: #747584;
+}
+
+.public-gyms-search input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 15px;
+}
+
+.public-gyms-layout {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.98fr) minmax(360px, 0.94fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.public-gyms-map {
+  position: sticky;
+  top: calc(var(--navbar-height) + 24px);
+  display: grid;
+  place-items: center;
+  min-height: 430px;
+  overflow: hidden;
+  border: 1px solid #e5e5e8;
+  border-radius: 12px;
+  background:
+    linear-gradient(45deg, transparent 0 43%, rgba(5, 5, 7, 0.04) 43% 46%, transparent 46% 100%),
+    #efeff3;
+  color: #030213;
+}
+
+.public-gyms-map-center {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.public-gyms-map-center svg {
+  width: 58px;
+  height: 58px;
+  color: #030213;
+}
+
+.public-gyms-map-center strong {
+  color: #030213;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.public-gyms-map-center span {
+  color: #747584;
+  font-size: 14px;
+}
+
+.public-map-marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #030213;
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(5, 5, 7, 0.28);
+}
+
+.public-map-marker svg {
+  width: 18px;
+  height: 18px;
+}
+
+.public-map-marker.one {
+  top: 28%;
+  left: 23%;
+}
+
+.public-map-marker.two {
+  right: 25%;
+  bottom: 28%;
+}
+
+.public-map-marker.three {
+  top: 42%;
+  left: 52%;
+}
+
+.public-gym-list {
+  display: grid;
+  gap: 12px;
+}
+
+.public-gym-card {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  min-height: 158px;
+  overflow: hidden;
+  border: 1px solid #e5e5e8;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.public-gym-image {
+  display: grid;
+  place-items: center;
+  min-height: 158px;
+  background: #efeff3;
+  color: #747584;
+}
+
+.public-gym-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-gym-image svg {
+  width: 42px;
+  height: 42px;
+}
+
+.public-gym-info {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px;
+}
+
+.public-gym-info h2 {
+  margin: 0;
+  overflow: hidden;
+  color: #050507;
+  font-size: 18px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-gym-info p,
+.public-gym-info a {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #747584;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.public-gym-info p svg,
+.public-gym-info a svg {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+}
+
+.public-gym-info .public-gym-rating {
+  color: #050507;
+  font-weight: 900;
+}
+
+.public-gym-rating svg {
+  color: #f5b301;
+  fill: currentColor;
+}
+
+.public-gym-info a {
+  width: fit-content;
+  color: #050507;
+  font-weight: 900;
+}
+
+.public-gym-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 180px;
+  border: 1px solid #e5e5e8;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 28px;
+  text-align: center;
+}
+
+.public-gym-empty strong {
+  color: #050507;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.public-gym-empty span {
+  color: #747584;
+}
+
+.public-gym-card.loading {
+  grid-template-columns: 136px minmax(0, 1fr);
+}
+
+.public-gym-card.loading span,
+.public-gym-card.loading i,
+.public-gym-card.loading b,
+.public-gym-card.loading em {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eeeeef, #f7f7f8, #eeeeef);
+  background-size: 200% 100%;
+  animation: searchSkeleton 1.2s ease infinite;
+}
+
+.public-gym-card.loading > span {
+  min-height: 158px;
+  border-radius: 0;
+}
+
+.public-gym-card.loading > div {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  padding: 18px;
+}
+
+.public-gym-card.loading i {
+  width: 54%;
+  height: 22px;
+}
+
+.public-gym-card.loading b,
+.public-gym-card.loading em {
+  width: 72%;
+  height: 14px;
+}
+
+.dark .public-gyms-search,
+.dark .public-gym-card,
+.dark .public-gym-empty {
+  border-color: #25272d;
+  background: #101217;
+}
+
+.dark .public-gyms-map,
+.dark .public-gym-image {
+  border-color: #25272d;
+  background: #181a20;
+}
+
+.dark .public-gym-info h2,
+.dark .public-gym-info a,
+.dark .public-gym-empty strong {
+  color: #ffffff;
 }
 
 .site-footer {
@@ -8432,6 +8750,29 @@ a {
   .shop-compare-picker-bar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .public-gyms-page {
+    width: min(100% - 28px, 1180px);
+    padding-top: 28px;
+  }
+
+  .public-gyms-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .public-gyms-map {
+    position: relative;
+    top: auto;
+    min-height: 320px;
+  }
+
+  .public-gym-card {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .public-gym-image {
+    min-height: 140px;
   }
 
   .search-page {
