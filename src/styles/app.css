@@ -1441,10 +1441,26 @@ a {
   line-height: 1.5;
 }
 
+.trainer-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
 .button-light {
   gap: 10px;
   background: #ffffff;
   color: #030213;
+}
+
+.trainer-apply-button {
+  background: #dc0000;
+  color: #ffffff;
+}
+
+.trainer-apply-button:hover {
+  background: #b80000;
 }
 
 .testimonial-grid {
