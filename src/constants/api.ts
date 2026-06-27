@@ -94,6 +94,7 @@ export const API_ENDPOINTS = {
     list: '/partner-gyms',
     publicList: '/partner-gyms/public',
     detail: (id: string) => `/partner-gyms/${id}`,
+    uploadImages: '/partner-gyms/upload-images',
   },
 
 } as const;

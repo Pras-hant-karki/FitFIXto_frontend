@@ -7,6 +7,7 @@ import {
   deletePartnerGym,
   fetchPartnerGyms,
   updatePartnerGym,
+  uploadPartnerGymImages,
   type BackendPartnerGym,
   type PartnerGymPayload,
 } from "@/features/partner-gyms";
@@ -19,7 +20,7 @@ type GymFormState = {
   rating: string;
   pin: string;
   locationUrl: string;
-  imageUrl: string;
+  images: string[];
   isVisible: boolean;
 };
 
@@ -87,7 +88,7 @@ const emptyGymForm: GymFormState = {
   rating: "",
   pin: "",
   locationUrl: "",
-  imageUrl: "",
+  images: [],
   isVisible: true,
 };
 
@@ -134,8 +135,11 @@ export default function AdminPartnerGymsPage() {
   const [placeResults, setPlaceResults] = useState<GooglePlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
   const [statusMessage, setStatusMessage] = useState("");
   const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRef = useRef<GoogleMarkerInstance | null>(null);
   const placesServiceRef = useRef<GooglePlacesService | null>(null);
@@ -233,7 +237,7 @@ export default function AdminPartnerGymsPage() {
       rating: typeof gym.rating === "number" ? String(gym.rating) : "",
       pin: gym.pin || "",
       locationUrl: gym.locationUrl || "",
-      imageUrl: gym.imageUrl || "",
+      images: gym.images || [],
       isVisible: gym.isVisible,
     });
     setIsFormOpen(true);
@@ -253,9 +257,41 @@ export default function AdminPartnerGymsPage() {
     rating: form.rating ? Number(form.rating) : undefined,
     pin: form.pin,
     locationUrl: form.locationUrl,
-    imageUrl: form.imageUrl,
+    images: form.images,
     isVisible: form.isVisible,
   });
+
+  const selectedFileLabel = selectedImageFiles.length
+    ? selectedImageFiles.map((file) => file.name).join(", ")
+    : "No file chosen";
+
+  const handleImageSelection = (files: FileList | null) => {
+    setSelectedImageFiles(files ? Array.from(files).slice(0, 5) : []);
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImageFiles.length) {
+      setStatusMessage("Please choose 1-5 gym images before uploading.");
+      return;
+    }
+
+    setIsUploading(true);
+    setStatusMessage("");
+
+    try {
+      const uploadedUrls = await uploadPartnerGymImages(selectedImageFiles);
+      setForm((current) => ({ ...current, images: uploadedUrls.slice(0, 5) }));
+      setSelectedImageFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setStatusMessage(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to upload partner gym images.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -496,14 +532,46 @@ export default function AdminPartnerGymsPage() {
                     onChange={(event) => setForm((current) => ({ ...current, locationUrl: event.target.value }))}
                   />
                 </label>
-                <label className="admin-gym-form-wide">
-                  Image URL
-                  <input
-                    value={form.imageUrl}
-                    placeholder="/assets/gym-photo.png"
-                    onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-                  />
-                </label>
+                <div className="admin-gym-image-upload admin-gym-form-wide">
+                  <div className="admin-upload-field">
+                    <span>Upload gym images</span>
+                    <button
+                      type="button"
+                      className="admin-upload-drop"
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label="Choose gym image files"
+                    >
+                      <Plus aria-hidden="true" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      className="admin-hidden-file-input"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      multiple
+                      disabled={isUploading}
+                      onChange={(event) => handleImageSelection(event.target.files)}
+                    />
+                    <small>
+                      Choose files <span>{selectedFileLabel}</span>
+                    </small>
+                    <button
+                      type="button"
+                      className="admin-upload-picture-button"
+                      disabled={isUploading}
+                      onClick={handleImageUpload}
+                    >
+                      {isUploading ? "Uploading..." : "Upload Pictures"}
+                    </button>
+                  </div>
+                  <div className="admin-gym-image-preview-grid">
+                    {form.images.length ? (
+                      form.images.map((image) => <img src={image} alt="Gym upload preview" key={image} />)
+                    ) : (
+                      <span>No uploaded images yet</span>
+                    )}
+                  </div>
+                </div>
                 <label className="admin-gym-visible-check">
                   <input
                     type="checkbox"
@@ -532,7 +600,7 @@ export default function AdminPartnerGymsPage() {
                   {gyms.map((gym) => (
                     <article className="admin-gym-list-item" key={gym._id}>
                       <div className="admin-gym-thumb">
-                        {gym.imageUrl ? <img src={gym.imageUrl} alt={gym.name} /> : <MapPin aria-hidden="true" />}
+                        {gym.images?.[0] ? <img src={gym.images[0]} alt={gym.name} /> : <MapPin aria-hidden="true" />}
                       </div>
                       <div className="admin-gym-details">
                         <div>

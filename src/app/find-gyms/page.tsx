@@ -131,7 +131,7 @@ export default function FindGymsPage() {
             </div>
           ) : visibleGyms.length ? (
             visibleGyms.map((gym, index) => {
-              const image = normalizeGymImageUrl(gym.imageUrl) || fallbackImages[index % fallbackImages.length];
+              const image = normalizeGymImageUrl(gym.images?.[0]) || fallbackImages[index % fallbackImages.length];
 
               return (
                 <article className="public-gym-card" key={gym._id}>
