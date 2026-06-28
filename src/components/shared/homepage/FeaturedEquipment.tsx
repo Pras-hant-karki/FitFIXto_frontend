@@ -10,6 +10,8 @@ import {
 } from "@/features/products";
 import { AddToCartButton } from "@/features/cart";
 
+const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
+
 export function FeaturedEquipment() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,8 +86,8 @@ export function FeaturedEquipment() {
                       <small>({product.ratingCount})</small>
                     </div>
                     <div className="price-line">
-                      <strong>${product.price}</strong>
-                      {originalPrice ? <del>${originalPrice}</del> : null}
+                      <strong>{formatMoney(product.price)}</strong>
+                      {originalPrice ? <del>{formatMoney(originalPrice)}</del> : null}
                     </div>
                     <AddToCartButton productId={product._id} stock={product.stock} className="cart-button" />
                   </div>
