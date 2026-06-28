@@ -1319,9 +1319,20 @@ a {
   position: relative;
   min-height: 274px;
   overflow: hidden;
+  padding: 0;
+  border: 0;
   border-radius: 10px;
   background: var(--panel);
   color: #ffffff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.category-card-media-empty {
+  position: absolute;
+  inset: 0;
+  background: #030213;
 }
 
 .category-shade {
