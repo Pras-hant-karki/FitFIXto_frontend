@@ -1113,6 +1113,94 @@ a {
   font-weight: 900;
 }
 
+.trainer-program-list {
+  display: grid;
+  gap: 16px;
+}
+
+.trainer-program-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  min-height: 112px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--background);
+  padding: 24px;
+}
+
+.trainer-program-card h2 {
+  margin: 0 0 6px;
+  color: var(--foreground);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.trainer-program-card p,
+.trainer-program-card span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.trainer-program-card div:last-child {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+}
+
+.trainer-program-card strong {
+  color: var(--foreground);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.trainer-program-card button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 4px;
+  background: #030213;
+  color: #ffffff;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.trainer-detail-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--background);
+  padding: 32px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.trainer-detail-empty-state svg {
+  width: 42px;
+  height: 42px;
+}
+
+.trainer-detail-empty-state strong {
+  color: var(--foreground);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.trainer-detail-empty-state span {
+  max-width: 360px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
 @media (max-width: 1180px) {
   .trainer-detail-page {
     width: min(100% - 40px, 960px);
@@ -1153,6 +1241,14 @@ a {
 
   .trainer-detail-specialties {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trainer-program-card {
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-program-card div:last-child {
+    justify-items: start;
   }
 }
 

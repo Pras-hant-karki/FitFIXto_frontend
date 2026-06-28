@@ -26,6 +26,28 @@ export type BackendTrainer = {
   updatedAt: string;
 };
 
+export type BackendTrainerProgram = {
+  _id: string;
+  trainerId: string;
+  title: string;
+  description?: string;
+  durationWeeks: number;
+  sessions: number;
+  price: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TrainerProgramPayload = {
+  title: string;
+  description?: string;
+  durationWeeks: number;
+  sessions: number;
+  price: number;
+  isActive?: boolean;
+};
+
 export type TrainerPayload = {
   firstName: string;
   lastName: string;
@@ -78,6 +100,31 @@ export const fetchPublicTrainers = async () => {
 export const fetchPublicTrainer = async (trainerId: string) => {
   const response = await apiClient.get<{ trainer: BackendTrainer }>(API_ENDPOINTS.trainers.publicDetail(trainerId));
   return response.data?.trainer;
+};
+
+export const fetchPublicTrainerPrograms = async (trainerId: string) => {
+  const response = await apiClient.get<{ programs: BackendTrainerProgram[] }>(API_ENDPOINTS.trainers.publicPrograms(trainerId));
+  return response.data?.programs || [];
+};
+
+export const fetchMyTrainerPrograms = async () => {
+  const response = await apiClient.get<{ programs: BackendTrainerProgram[] }>(API_ENDPOINTS.trainers.myPrograms);
+  return response.data?.programs || [];
+};
+
+export const createTrainerProgram = async (payload: TrainerProgramPayload) => {
+  const response = await apiClient.post<{ program: BackendTrainerProgram }>(API_ENDPOINTS.trainers.programs, payload);
+  return response.data?.program;
+};
+
+export const updateTrainerProgram = async (programId: string, payload: Partial<TrainerProgramPayload>) => {
+  const response = await apiClient.put<{ program: BackendTrainerProgram }>(API_ENDPOINTS.trainers.programDetail(programId), payload);
+  return response.data?.program;
+};
+
+export const deleteTrainerProgram = async (programId: string) => {
+  const response = await apiClient.delete<{ programId: string }>(API_ENDPOINTS.trainers.programDetail(programId));
+  return response.data;
 };
 
 export const fetchTrainerApplications = async () => {

@@ -6,22 +6,27 @@ import { useParams } from "next/navigation";
 import { Award, Check, MapPin, Star } from "lucide-react";
 import {
   BackendTrainer,
+  BackendTrainerProgram,
   fetchPublicTrainer,
+  fetchPublicTrainerPrograms,
   normalizeTrainerPhotoUrl,
 } from "@/features/trainers";
 
 const getTrainerName = (trainer: BackendTrainer) =>
   `${trainer.userId.firstName || ""} ${trainer.userId.lastName || ""}`.trim() || "FitFIXto Trainer";
 
-const getTrainerPhoto = (trainer: BackendTrainer) =>
-  normalizeTrainerPhotoUrl(trainer.userId.profilePicture);
+const getTrainerPhoto = (trainer: BackendTrainer) => normalizeTrainerPhotoUrl(trainer.userId.profilePicture);
 
 const formatLocation = (location?: string) => location || "Nepal";
+
+type TrainerDetailTab = "about" | "programs" | "availability" | "reviews";
 
 export default function TrainerDetailsPage() {
   const params = useParams<{ trainerId: string }>();
   const trainerId = params.trainerId;
   const [trainer, setTrainer] = useState<BackendTrainer | null>(null);
+  const [programs, setPrograms] = useState<BackendTrainerProgram[]>([]);
+  const [activeTab, setActiveTab] = useState<TrainerDetailTab>("about");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -33,13 +38,18 @@ export default function TrainerDetailsPage() {
       setError("");
 
       try {
-        const nextTrainer = await fetchPublicTrainer(trainerId);
+        const [nextTrainer, nextPrograms] = await Promise.all([
+          fetchPublicTrainer(trainerId),
+          fetchPublicTrainerPrograms(trainerId),
+        ]);
+
         if (!nextTrainer) {
           throw new Error("Trainer not found.");
         }
 
         if (isActive) {
           setTrainer(nextTrainer);
+          setPrograms(nextPrograms.filter((program) => program.isActive));
         }
       } catch (err) {
         if (isActive) {
@@ -133,50 +143,106 @@ export default function TrainerDetailsPage() {
           </header>
 
           <nav className="trainer-detail-tabs" aria-label="Trainer detail sections">
-            <button type="button" className="active">About</button>
-            <button type="button">Programs</button>
-            <button type="button">Availability</button>
-            <button type="button">Reviews</button>
+            <button type="button" className={activeTab === "about" ? "active" : ""} onClick={() => setActiveTab("about")}>
+              About
+            </button>
+            <button type="button" className={activeTab === "programs" ? "active" : ""} onClick={() => setActiveTab("programs")}>
+              Programs
+            </button>
+            <button type="button" className={activeTab === "availability" ? "active" : ""} onClick={() => setActiveTab("availability")}>
+              Availability
+            </button>
+            <button type="button" className={activeTab === "reviews" ? "active" : ""} onClick={() => setActiveTab("reviews")}>
+              Reviews
+            </button>
           </nav>
 
-          <section className="trainer-detail-section">
-            <p>{trainer.userId.bio || "No trainer bio added yet."}</p>
-          </section>
+          {activeTab === "about" ? (
+            <>
+              <section className="trainer-detail-section">
+                <p>{trainer.userId.bio || "No trainer bio added yet."}</p>
+              </section>
 
-          <section className="trainer-detail-section">
-            <h2>Certifications</h2>
-            {trainer.certifications.length ? (
-              <ul className="trainer-detail-check-list">
-                {trainer.certifications.map((certification) => (
-                  <li key={certification}>
-                    <Check aria-hidden="true" />
-                    {certification}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No certifications added yet.</p>
-            )}
-          </section>
+              <section className="trainer-detail-section">
+                <h2>Certifications</h2>
+                {trainer.certifications.length ? (
+                  <ul className="trainer-detail-check-list">
+                    {trainer.certifications.map((certification) => (
+                      <li key={certification}>
+                        <Check aria-hidden="true" />
+                        {certification}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No certifications added yet.</p>
+                )}
+              </section>
 
-          <section className="trainer-detail-section">
-            <h2>Specializations</h2>
-            <div className="trainer-detail-specialties">
-              {trainer.specialties.length ? (
-                trainer.specialties.map((specialty) => (
-                  <article key={specialty}>
-                    <Award aria-hidden="true" />
-                    <strong>{specialty}</strong>
+              <section className="trainer-detail-section">
+                <h2>Specializations</h2>
+                <div className="trainer-detail-specialties">
+                  {trainer.specialties.length ? (
+                    trainer.specialties.map((specialty) => (
+                      <article key={specialty}>
+                        <Award aria-hidden="true" />
+                        <strong>{specialty}</strong>
+                      </article>
+                    ))
+                  ) : (
+                    <article>
+                      <Award aria-hidden="true" />
+                      <strong>Personal Training</strong>
+                    </article>
+                  )}
+                </div>
+              </section>
+            </>
+          ) : null}
+
+          {activeTab === "programs" ? (
+            <section className="trainer-program-list" aria-label={`${trainerName} programs`}>
+              {programs.length ? (
+                programs.map((program) => (
+                  <article className="trainer-program-card" key={program._id}>
+                    <div>
+                      <h2>{program.title}</h2>
+                      <p>
+                        {program.durationWeeks} weeks · {program.sessions} sessions
+                      </p>
+                      {program.description ? <span>{program.description}</span> : null}
+                    </div>
+                    <div>
+                      <strong>Npr {Math.round(program.price).toLocaleString()}</strong>
+                      <button type="button">Select Program</button>
+                    </div>
                   </article>
                 ))
               ) : (
-                <article>
+                <section className="trainer-detail-empty-state">
                   <Award aria-hidden="true" />
-                  <strong>Personal Training</strong>
-                </article>
+                  <strong>No programs available</strong>
+                  <span>Programs added by this trainer will appear here.</span>
+                </section>
               )}
-            </div>
-          </section>
+            </section>
+          ) : null}
+
+          {activeTab === "availability" ? (
+            <section className="trainer-detail-empty-state">
+              <Award aria-hidden="true" />
+              <strong>No availability added yet</strong>
+              <span>Trainer availability will appear here when scheduling is connected.</span>
+            </section>
+          ) : null}
+
+          {activeTab === "reviews" ? (
+            <section className="trainer-detail-empty-state">
+              <Star aria-hidden="true" />
+              <strong>No reviews yet</strong>
+              <span>Customer reviews will appear after completed sessions.</span>
+            </section>
+          ) : null}
         </section>
       </section>
     </main>
