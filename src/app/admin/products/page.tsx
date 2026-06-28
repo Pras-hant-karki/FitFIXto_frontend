@@ -10,6 +10,9 @@ import {
   fetchProducts,
   formatCategory,
   getProductImage,
+  getCategoryOption,
+  getDefaultSubcategory,
+  productCategoryTree,
   updateProduct,
   uploadProductImages,
 } from "@/features/products";
@@ -27,6 +30,7 @@ type ProductFormState = {
   price: string;
   stock: string;
   category: ProductPayload["category"];
+  subcategory: string;
   brand: string;
   imageUrl: string;
   sku: string;
@@ -47,7 +51,8 @@ const emptyForm: ProductFormState = {
   dimensionHeight: "",
   price: "",
   stock: "",
-  category: "gym_equipment",
+  category: "strength_equipment",
+  subcategory: "Dumbbells",
   brand: "",
   imageUrl: "",
   sku: "",
@@ -55,12 +60,6 @@ const emptyForm: ProductFormState = {
   isFeatured: false,
   verifiedBadge: false,
 };
-
-const categoryOptions: Array<{ label: string; value: ProductPayload["category"] }> = [
-  { label: "Gym Equipment", value: "gym_equipment" },
-  { label: "Supplements", value: "supplements" },
-  { label: "Accessories", value: "accessories" },
-];
 
 const toFormState = (product: BackendProduct): ProductFormState => ({
   name: product.name,
@@ -74,7 +73,8 @@ const toFormState = (product: BackendProduct): ProductFormState => ({
   dimensionHeight: product.dimensions?.height !== undefined ? String(product.dimensions.height) : "",
   price: String(product.price),
   stock: String(product.stock),
-  category: product.category as ProductPayload["category"],
+  category: product.category === "gym_equipment" ? "strength_equipment" : product.category,
+  subcategory: product.subcategory || getDefaultSubcategory(product.category),
   brand: product.brand || "",
   imageUrl: product.images[0] || "",
   sku: product.sku || "",
@@ -101,6 +101,7 @@ const toPayload = (form: ProductFormState): ProductPayload => ({
   price: Number(form.price),
   stock: Number(form.stock),
   category: form.category,
+  subcategory: form.subcategory.trim() || undefined,
   brand: form.brand.trim() || undefined,
   images: form.imageUrl.trim() ? [form.imageUrl.trim()] : [],
   sku: form.sku.trim() || undefined,
@@ -117,6 +118,8 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [form, setForm] = useState<ProductFormState>(emptyForm);
+  const [customCategories, setCustomCategories] = useState<Array<{ label: string; value: string }>>([]);
+  const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>({});
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<BackendProduct | null>(null);
@@ -128,6 +131,30 @@ export default function AdminProductsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const featuredCount = useMemo(() => products.filter((product) => product.isFeatured).length, [products]);
+  const categoryOptions = useMemo(() => {
+    const options = new Map<string, { label: string; value: string }>();
+
+    productCategoryTree.forEach((category) => options.set(category.value, { label: category.label, value: category.value }));
+    products.forEach((product) => {
+      if (!product.category) return;
+      options.set(product.category, { label: formatCategory(product.category), value: product.category });
+    });
+    customCategories.forEach((category) => options.set(category.value, category));
+
+    return Array.from(options.values());
+  }, [customCategories, products]);
+
+  const subcategoryOptions = useMemo(() => {
+    const options = new Set<string>();
+    getCategoryOption(form.category)?.subcategories.forEach((subcategory) => options.add(subcategory));
+    products
+      .filter((product) => product.category === form.category && product.subcategory)
+      .forEach((product) => options.add(product.subcategory as string));
+    (customSubcategories[form.category] || []).forEach((subcategory) => options.add(subcategory));
+
+    return Array.from(options);
+  }, [customSubcategories, form.category, products]);
+
   const selectedFileLabel = selectedImageFiles.length
     ? selectedImageFiles.map((file) => file.name).join(", ")
     : "No file chosen";
@@ -187,6 +214,39 @@ export default function AdminProductsPage() {
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     await loadProducts(searchQuery);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setForm((current) => ({ ...current, category, subcategory: getDefaultSubcategory(category) }));
+  };
+
+  const handleAddCategory = () => {
+    const label = window.prompt("Enter new category name");
+    const trimmedLabel = label?.trim();
+
+    if (!trimmedLabel) return;
+
+    const value = trimmedLabel.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+    if (!value) return;
+
+    setCustomCategories((current) =>
+      current.some((category) => category.value === value) ? current : [...current, { label: trimmedLabel, value }]
+    );
+    setForm((current) => ({ ...current, category: value, subcategory: "" }));
+  };
+
+  const handleAddSubcategory = () => {
+    const label = window.prompt("Enter new subcategory name");
+    const trimmedLabel = label?.trim();
+
+    if (!trimmedLabel) return;
+
+    setCustomSubcategories((current) => {
+      const existing = current[form.category] || [];
+      return existing.includes(trimmedLabel) ? current : { ...current, [form.category]: [...existing, trimmedLabel] };
+    });
+    setForm((current) => ({ ...current, subcategory: trimmedLabel }));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -334,18 +394,18 @@ export default function AdminProductsPage() {
             </label>
             <label>
               Category
-              <select
-                value={form.category}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, category: event.target.value as ProductPayload["category"] }))
-                }
-              >
-                {categoryOptions.map((option) => (
-                  <option value={option.value} key={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <span className="admin-product-select-row">
+                <button type="button" onClick={handleAddCategory} aria-label="Add product category">
+                  <Plus aria-hidden="true" />
+                </button>
+                <select value={form.category} onChange={(event) => handleCategoryChange(event.target.value)}>
+                  {categoryOptions.map((option) => (
+                    <option value={option.value} key={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </label>
             <label>
               Price
@@ -370,11 +430,20 @@ export default function AdminProductsPage() {
               />
             </label>
             <label>
-              SKU
-              <input
-                value={form.sku}
-                onChange={(event) => setForm((current) => ({ ...current, sku: event.target.value }))}
-              />
+              Subcategory
+              <span className="admin-product-select-row">
+                <button type="button" onClick={handleAddSubcategory} aria-label="Add product subcategory">
+                  <Plus aria-hidden="true" />
+                </button>
+                <select value={form.subcategory} onChange={(event) => setForm((current) => ({ ...current, subcategory: event.target.value }))}>
+                  <option value="">Select subcategory</option>
+                  {subcategoryOptions.map((subcategory) => (
+                    <option value={subcategory} key={subcategory}>
+                      {subcategory}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </label>
             <div className="admin-product-media-row">
               <div className="admin-upload-field">
@@ -481,6 +550,13 @@ export default function AdminProductsPage() {
                     />
                   </span>
                 </label>
+                <label>
+                  SKU
+                  <input
+                    value={form.sku}
+                    onChange={(event) => setForm((current) => ({ ...current, sku: event.target.value }))}
+                  />
+                </label>
               </div>
 
             </div>
@@ -568,7 +644,7 @@ export default function AdminProductsPage() {
                     <span>{product.verifiedBadge ? "Verified" : product.isActive ? "New" : "Inactive"}</span>
                   </div>
                 </div>
-                <span>{formatCategory(product.category)}</span>
+                <span>{[formatCategory(product.category), product.subcategory].filter(Boolean).join(" / ")}</span>
                 <span>{product.brand || "FitFIXto"}</span>
                 <strong>Npr {product.price}</strong>
                 <span className={product.stock <= 10 ? "admin-low-stock" : undefined}>

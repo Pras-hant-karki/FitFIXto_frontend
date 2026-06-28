@@ -166,7 +166,7 @@ const toProductResult = (product: BackendProduct): SearchResult => ({
   id: product._id,
   type: "product",
   title: product.name,
-  subtitle: `${product.brand || "FitFIXto"} - ${formatCategory(product.category)}`,
+  subtitle: [product.brand || "FitFIXto", formatCategory(product.category), product.subcategory].filter(Boolean).join(" - "),
   detail: product.description,
   price: formatNpr(product.price),
   image: getProductImage(product),

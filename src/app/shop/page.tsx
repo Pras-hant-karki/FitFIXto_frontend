@@ -3,13 +3,15 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Heart, Search, Star } from "lucide-react";
+import { CheckCircle2, ChevronRight, Heart, Search, Star } from "lucide-react";
 import {
   BackendProduct,
   fetchProducts,
   formatCategory,
+  getCategoryOption,
   getOriginalPrice,
   getProductImage,
+  productCategoryTree,
 } from "@/features/products";
 import { AddToCartButton } from "@/features/cart";
 import { useAuth, useWishlist } from "@/contexts";
@@ -244,7 +246,7 @@ const ProductCard: React.FC<{
 
       <div className="p-4">
         <div className="text-xs text-gray-500 mb-1">
-          {formatCategory(product.category)} - {product.brand || "FitFIXto"}
+          {[formatCategory(product.category), product.subcategory, product.brand || "FitFIXto"].filter(Boolean).join(" - ")}
         </div>
         {compareMode ? (
           <strong className="block font-semibold text-gray-900 mb-2 leading-tight">{product.name}</strong>
@@ -311,12 +313,14 @@ const ShopContent: React.FC = () => {
   const [error, setError] = useState("");
 
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
+  const selectedSubcategories = useMemo(() => parseListParam(searchParams.get("subcategory")), [searchParamString]);
   const selectedBrands = useMemo(() => parseListParam(searchParams.get("brand")), [searchParamString]);
   const isComparePickMode = searchParams.get("compare") === "1";
   const compareSlotCount = parseCompareSlotCount(searchParams.get("slots"));
   const selectedCompareIds = useMemo(() => parseListParam(searchParams.get("ids")).slice(0, compareSlotCount), [searchParamString, compareSlotCount]);
   const searchQuery = searchParams.get("search") || "";
   const [searchInput, setSearchInput] = useState(searchQuery);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
   const minPrice = Number.isFinite(parsedMinPrice) ? parsedMinPrice : 0;
   const selectedMaxPrice = searchParams.get("maxPrice");
@@ -348,7 +352,24 @@ const ShopContent: React.FC = () => {
   const parsedMaxPrice = Number(selectedMaxPrice);
   const priceRange: [number, number] = [minPrice, selectedMaxPrice && Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : maxPrice];
 
-  const categories = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.category))).filter(Boolean), [facetProducts]);
+  const categories = useMemo(() => {
+    const optionMap = new Map<string, { label: string; value: string; subcategories: string[] }>();
+
+    productCategoryTree.forEach((category) => optionMap.set(category.value, category));
+    facetProducts.forEach((product) => {
+      if (!product.category) return;
+      const existing = optionMap.get(product.category);
+      const subcategories = new Set(existing?.subcategories || []);
+      if (product.subcategory) subcategories.add(product.subcategory);
+      optionMap.set(product.category, {
+        label: formatCategory(product.category),
+        value: product.category,
+        subcategories: Array.from(subcategories),
+      });
+    });
+
+    return Array.from(optionMap.values());
+  }, [facetProducts]);
   const brands = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.brand).filter(Boolean))) as string[], [facetProducts]);
 
   const updateUrl = useCallback((updates: Record<string, string | null>, mode: "push" | "replace" = "push") => {
@@ -386,10 +407,31 @@ const ShopContent: React.FC = () => {
     return () => window.clearTimeout(timeoutId);
   }, [searchInput, searchQuery, updateUrl]);
 
-  const toggleFilter = (key: "category" | "brand", value: string) => {
-    const current = key === "category" ? selectedCategories : selectedBrands;
+  const toggleFilter = (key: "category" | "subcategory" | "brand", value: string) => {
+    const current = key === "category" ? selectedCategories : key === "subcategory" ? selectedSubcategories : selectedBrands;
     const updated = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
-    updateUrl({ [key]: updated.length ? updated.join(",") : null, page: null });
+    const nextUpdates: Record<string, string | null> = { [key]: updated.length ? updated.join(",") : null, page: null };
+
+    if (key === "category") {
+      setExpandedCategories((currentExpanded) => new Set(currentExpanded).add(value));
+      const subcategoriesForCategory = getCategoryOption(value)?.subcategories || [];
+      const nextSubcategories = selectedSubcategories.filter((subcategory) => !subcategoriesForCategory.includes(subcategory));
+      nextUpdates.subcategory = nextSubcategories.length ? nextSubcategories.join(",") : null;
+    }
+
+    updateUrl(nextUpdates);
+  };
+
+  const toggleCategoryBranch = (category: string) => {
+    setExpandedCategories((current) => {
+      const next = new Set(current);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
   };
 
   const updatePriceRange = (range: [number, number]) => {
@@ -436,6 +478,7 @@ const ShopContent: React.FC = () => {
         };
 
         if (selectedCategories.length) params.category = selectedCategories.join(",");
+        if (selectedSubcategories.length) params.subcategory = selectedSubcategories.join(",");
         if (selectedBrands.length) params.brand = selectedBrands.join(",");
         if (searchQuery.trim()) params.search = searchQuery.trim();
         if (priceRange[0] > 0) params.minPrice = priceRange[0];
@@ -453,7 +496,7 @@ const ShopContent: React.FC = () => {
     };
 
     loadProducts();
-  }, [searchParamString, selectedCategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1], currentPage]);
+  }, [searchParamString, selectedCategories, selectedSubcategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1], currentPage]);
 
   const totalProducts = pagination?.total ?? products.length;
   const totalPages = pagination?.totalPages ?? 1;
@@ -516,9 +559,44 @@ const ShopContent: React.FC = () => {
                 <h3 className="font-bold text-gray-900 mb-4">Category</h3>
                 <div className="space-y-3">
                   {categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <FilterCheckbox key={cat} label={formatCategory(cat)} checked={selectedCategories.includes(cat)} onChange={() => toggleFilter("category", cat)} />
-                    ))
+                    categories.map((category) => {
+                      const isExpanded =
+                        expandedCategories.has(category.value) ||
+                        selectedCategories.includes(category.value) ||
+                        category.subcategories.some((subcategory) => selectedSubcategories.includes(subcategory));
+
+                      return (
+                        <div className="shop-category-branch" key={category.value}>
+                          <div className="shop-category-row">
+                            <button
+                              type="button"
+                              className={isExpanded ? "expanded" : undefined}
+                              onClick={() => toggleCategoryBranch(category.value)}
+                              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${category.label}`}
+                            >
+                              <ChevronRight aria-hidden="true" />
+                            </button>
+                            <FilterCheckbox
+                              label={category.label}
+                              checked={selectedCategories.includes(category.value)}
+                              onChange={() => toggleFilter("category", category.value)}
+                            />
+                          </div>
+                          {isExpanded && category.subcategories.length ? (
+                            <div className="shop-subcategory-list">
+                              {category.subcategories.map((subcategory) => (
+                                <FilterCheckbox
+                                  key={`${category.value}-${subcategory}`}
+                                  label={subcategory}
+                                  checked={selectedSubcategories.includes(subcategory)}
+                                  onChange={() => toggleFilter("subcategory", subcategory)}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
                   ) : (
                     <p className="text-sm text-gray-500">No categories yet.</p>
                   )}

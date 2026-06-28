@@ -3641,6 +3641,53 @@ a {
   text-decoration: underline;
 }
 
+.shop-category-branch {
+  display: grid;
+  gap: 8px;
+}
+
+.shop-category-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shop-category-row > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.shop-category-row > button:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.shop-category-row > button svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.15s ease;
+}
+
+.shop-category-row > button.expanded svg {
+  transform: rotate(90deg);
+}
+
+.shop-subcategory-list {
+  display: grid;
+  gap: 8px;
+  margin-left: 30px;
+  padding-left: 12px;
+  border-left: 1px solid #e5e7eb;
+}
+
 .shop-compare-product-card {
   border-color: #e5e5e8;
   cursor: pointer;
@@ -4754,6 +4801,35 @@ a {
 .admin-product-weight-field {
   position: relative;
   display: block;
+}
+
+.admin-product-select-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-product-select-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid #e5e5e8;
+  border-radius: 5px;
+  background: #f0f0f3;
+  color: #030213;
+  cursor: pointer;
+}
+
+.admin-product-select-row button:hover {
+  border-color: #030213;
+}
+
+.admin-product-select-row svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
 }
 
 .admin-product-weight-field input {
@@ -8870,12 +8946,12 @@ a {
     overflow-x: auto;
   }
 
-  .shop-compare-picker-bar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+.shop-compare-picker-bar {
+  align-items: flex-start;
+  flex-direction: column;
+}
 
-  .public-gyms-page {
+.public-gyms-page {
     width: min(100% - 28px, 1180px);
     padding-top: 28px;
   }

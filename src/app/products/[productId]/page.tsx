@@ -121,6 +121,7 @@ export default function ProductDetailsPage() {
   const specs = product
     ? [
         { label: "Category", value: formatCategory(product.category) },
+        { label: "Subcategory", value: product.subcategory || "Not assigned" },
         { label: "Brand", value: product.brand || "FitFIXto" },
         { label: "SKU", value: product.sku || "Not assigned" },
         { label: "Weight", value: product.weight ? `${product.weight} kg` : "Not specified" },
@@ -128,7 +129,7 @@ export default function ProductDetailsPage() {
           label: "Dimensions",
           value:
             dimensions?.length || dimensions?.width || dimensions?.height
-              ? `${dimensions.length || "-"} x ${dimensions.width || "-"} x ${dimensions.height || "-"}`
+              ? `${dimensions.length || "-"}" x ${dimensions.width || "-"}" x ${dimensions.height || "-"}"`
               : "Not specified",
         },
       ]
@@ -186,7 +187,7 @@ export default function ProductDetailsPage() {
             ) : null}
             {product.isFeatured ? <span>Featured</span> : null}
           </div>
-          <p>{formatCategory(product.category)}</p>
+          <p>{[formatCategory(product.category), product.subcategory].filter(Boolean).join(" - ")}</p>
           <h1>{product.name}</h1>
           <div className="product-detail-rating">
             <Star aria-hidden="true" />

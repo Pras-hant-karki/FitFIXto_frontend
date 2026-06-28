@@ -75,7 +75,7 @@ export function FeaturedEquipment() {
                   </div>
                   <div className="product-body">
                     <p>
-                      {formatCategory(product.category)} - {product.brand || "FitFIXto"}
+                      {[formatCategory(product.category), product.subcategory, product.brand || "FitFIXto"].filter(Boolean).join(" - ")}
                     </p>
                     <h3>{product.name}</h3>
                     <div className="rating-line">

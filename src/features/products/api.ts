@@ -1,5 +1,6 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
+import { getCategoryLabel } from "./categories";
 
 export interface BackendProduct {
   _id: string;
@@ -11,6 +12,7 @@ export interface BackendProduct {
   price: number;
   stock: number;
   category: string;
+  subcategory?: string;
   brand?: string;
   images: string[];
   tags?: string[];
@@ -44,13 +46,7 @@ export interface ProductListResponse {
   };
 }
 
-export const categoryLabels: Record<string, string> = {
-  gym_equipment: "Gym Equipment",
-  supplements: "Supplements",
-  accessories: "Accessories",
-};
-
-export const formatCategory = (category: string) => categoryLabels[category] || category;
+export const formatCategory = (category: string) => getCategoryLabel(category);
 
 export const getProductImage = (product: BackendProduct) => product.images[0] || "";
 
@@ -89,7 +85,8 @@ export type ProductPayload = {
   warrantyMonths?: number;
   price: number;
   stock: number;
-  category: "gym_equipment" | "supplements" | "accessories";
+  category: string;
+  subcategory?: string;
   brand?: string;
   images: string[];
   tags?: string[];
