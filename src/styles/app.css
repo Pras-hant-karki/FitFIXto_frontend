@@ -1201,6 +1201,105 @@ a {
   line-height: 1.5;
 }
 
+.trainer-availability-section {
+  display: grid;
+  gap: 18px;
+}
+
+.trainer-availability-table {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--background);
+  padding: 16px 22px;
+}
+
+.trainer-availability-row {
+  display: grid;
+  grid-template-columns: 120px repeat(7, minmax(70px, 1fr));
+  min-width: 760px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.trainer-availability-row:last-child {
+  border-bottom: 0;
+}
+
+.trainer-availability-row > strong,
+.trainer-availability-row > span {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.trainer-availability-head > strong {
+  min-height: 34px;
+  color: var(--foreground);
+  font-weight: 900;
+}
+
+.trainer-availability-row button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: #e7e7ea;
+  color: #030213;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.trainer-availability-row button.selected {
+  background: #030213;
+  color: #ffffff;
+}
+
+.trainer-availability-row em {
+  color: #c5c6cc;
+  font-style: normal;
+}
+
+.trainer-availability-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--background);
+  padding: 16px;
+}
+
+.trainer-availability-actions span {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.trainer-availability-actions button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 5px;
+  background: #030213;
+  color: #ffffff;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.trainer-availability-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 @media (max-width: 1180px) {
   .trainer-detail-page {
     width: min(100% - 40px, 960px);
@@ -1250,6 +1349,10 @@ a {
   .trainer-program-card div:last-child {
     justify-items: start;
   }
+
+  .trainer-availability-table {
+    overflow-x: auto;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1274,6 +1377,11 @@ a {
 
   .trainer-detail-specialties {
     grid-template-columns: 1fr;
+  }
+
+  .trainer-availability-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

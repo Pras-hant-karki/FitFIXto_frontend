@@ -48,6 +48,24 @@ export type TrainerProgramPayload = {
   isActive?: boolean;
 };
 
+export type TrainerAvailabilityDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
+export type BackendTrainerAvailability = {
+  _id: string;
+  trainerId: string;
+  dayOfWeek: TrainerAvailabilityDay;
+  timeLabel: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TrainerAvailabilityPayload = {
+  dayOfWeek: TrainerAvailabilityDay;
+  timeLabel: string;
+  isActive?: boolean;
+};
+
 export type TrainerPayload = {
   firstName: string;
   lastName: string;
@@ -107,9 +125,19 @@ export const fetchPublicTrainerPrograms = async (trainerId: string) => {
   return response.data?.programs || [];
 };
 
+export const fetchPublicTrainerAvailability = async (trainerId: string) => {
+  const response = await apiClient.get<{ availability: BackendTrainerAvailability[] }>(API_ENDPOINTS.trainers.publicAvailability(trainerId));
+  return response.data?.availability || [];
+};
+
 export const fetchMyTrainerPrograms = async () => {
   const response = await apiClient.get<{ programs: BackendTrainerProgram[] }>(API_ENDPOINTS.trainers.myPrograms);
   return response.data?.programs || [];
+};
+
+export const fetchMyTrainerAvailability = async () => {
+  const response = await apiClient.get<{ availability: BackendTrainerAvailability[] }>(API_ENDPOINTS.trainers.myAvailability);
+  return response.data?.availability || [];
 };
 
 export const createTrainerProgram = async (payload: TrainerProgramPayload) => {
@@ -124,6 +152,21 @@ export const updateTrainerProgram = async (programId: string, payload: Partial<T
 
 export const deleteTrainerProgram = async (programId: string) => {
   const response = await apiClient.delete<{ programId: string }>(API_ENDPOINTS.trainers.programDetail(programId));
+  return response.data;
+};
+
+export const createTrainerAvailability = async (payload: TrainerAvailabilityPayload) => {
+  const response = await apiClient.post<{ availability: BackendTrainerAvailability }>(API_ENDPOINTS.trainers.availability, payload);
+  return response.data?.availability;
+};
+
+export const updateTrainerAvailability = async (slotId: string, payload: Partial<TrainerAvailabilityPayload>) => {
+  const response = await apiClient.put<{ availability: BackendTrainerAvailability }>(API_ENDPOINTS.trainers.availabilityDetail(slotId), payload);
+  return response.data?.availability;
+};
+
+export const deleteTrainerAvailability = async (slotId: string) => {
+  const response = await apiClient.delete<{ slotId: string }>(API_ENDPOINTS.trainers.availabilityDetail(slotId));
   return response.data;
 };
 
