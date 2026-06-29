@@ -2,19 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { Box, RotateCcw, Settings, Star, CalendarDays, RefreshCw, UserRound } from "lucide-react";
-import { useAuth, useCart } from "@/contexts";
+import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { useCart } from "@/contexts";
+import { CustomerDashboardShell } from "@/components/shared/customer";
 import { BackendOrder, BackendOrderItem, fetchMyOrders } from "@/features/orders";
-
-const dashboardNav = [
-  { label: "Orders", Icon: Box, active: true },
-  { label: "Bookings", Icon: CalendarDays },
-  { label: "To Review", Icon: Star },
-  { label: "Returns", Icon: RotateCcw },
-  { label: "Profile", Icon: UserRound, href: "/user/profile" },
-  { label: "Settings", Icon: Settings },
-];
 
 const formatOrderId = (id: string) => `ORD-${id.slice(-4).toUpperCase()}`;
 
@@ -31,11 +23,6 @@ const formatStatus = (status: string) => {
   return status.replace(/_/g, " ");
 };
 
-const getUserName = (email?: string) => {
-  if (!email) return "customer";
-  return email.split("@")[0] || "customer";
-};
-
 const getOrderProductId = (item: BackendOrderItem) => {
   if (typeof item.productId === "string") return item.productId;
   return item.productId?._id || "";
@@ -43,7 +30,6 @@ const getOrderProductId = (item: BackendOrderItem) => {
 
 export default function UserDashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const { addToCart } = useCart();
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,8 +38,6 @@ export default function UserDashboardPage() {
   const [isReordering, setIsReordering] = useState(false);
   const [error, setError] = useState("");
   const [reorderError, setReorderError] = useState("");
-
-  const username = useMemo(() => getUserName(user?.email), [user?.email]);
 
   useEffect(() => {
     let isActive = true;
@@ -137,35 +121,8 @@ export default function UserDashboardPage() {
   };
 
   return (
-    <section className="customer-dashboard-page">
-      <header className="customer-dashboard-header">
-        <h1>Welcome back, {username}.</h1>
-        <p>Manage orders, bookings and your account.</p>
-      </header>
-
-      <div className="customer-dashboard-layout">
-        <nav className="customer-dashboard-nav" aria-label="Customer dashboard navigation">
-          {dashboardNav.map(({ label, Icon, active, href }) => {
-            const content = (
-              <>
-                <Icon aria-hidden="true" />
-                <span>{label}</span>
-              </>
-            );
-
-            return href ? (
-              <Link href={href} className={active ? "active" : undefined} key={label}>
-                {content}
-              </Link>
-            ) : (
-              <button type="button" className={active ? "active" : undefined} key={label} disabled={!active}>
-                {content}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="customer-orders-panel">
+    <CustomerDashboardShell>
+      <div className="customer-orders-panel">
           <div className="customer-orders-heading">
             <h2>Your Orders</h2>
             <button type="button" className="customer-reorder-button" onClick={handleReorder} disabled={isLoading || isReordering || orders.length === 0}>
@@ -228,8 +185,7 @@ export default function UserDashboardPage() {
               ))}
             </div>
           )}
-        </div>
       </div>
-    </section>
+    </CustomerDashboardShell>
   );
 }
