@@ -113,3 +113,12 @@ export const cancelOrder = async (orderId: string, reason: string) => {
   });
   return response.data?.order;
 };
+
+export type AdminOrderStatusUpdate = "confirmed" | "shipped" | "delivered";
+
+export const updateAdminOrderStatus = async (orderId: string, status: AdminOrderStatusUpdate) => {
+  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.updateStatus(orderId), {
+    status,
+  });
+  return response.data?.order;
+};

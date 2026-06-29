@@ -4867,6 +4867,11 @@ a {
   color: #075df2;
 }
 
+.admin-status-shipped {
+  background: #e8e7ff;
+  color: #4338ca;
+}
+
 .admin-status-delivered {
   background: #dff7ef;
   color: #008f5a;
@@ -5619,7 +5624,7 @@ a {
 .admin-orders-admin-head,
 .admin-orders-admin-row {
   display: grid;
-  grid-template-columns: minmax(110px, 0.9fr) minmax(180px, 1.3fr) minmax(120px, 0.85fr) minmax(70px, 0.5fr) minmax(110px, 0.8fr) minmax(120px, 0.9fr) minmax(80px, 0.6fr);
+  grid-template-columns: minmax(110px, 0.9fr) minmax(180px, 1.3fr) minmax(120px, 0.85fr) minmax(70px, 0.5fr) minmax(110px, 0.8fr) minmax(120px, 0.9fr) minmax(180px, 1.1fr);
   gap: 16px;
   align-items: center;
 }
@@ -5690,6 +5695,33 @@ a {
   height: 14px;
 }
 
+.admin-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-order-actions select,
+.admin-order-detail-status select {
+  min-height: 32px;
+  border: 1px solid #e5e5e8;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #050507;
+  padding: 0 28px 0 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  outline: none;
+}
+
+.admin-order-actions select:disabled,
+.admin-order-detail-status select:disabled {
+  cursor: not-allowed;
+  color: #9b9ca5;
+  background: #f4f4f6;
+}
+
 .admin-orders-empty {
   padding: 34px 16px;
   color: #747584;
@@ -5753,6 +5785,25 @@ a {
 
 .admin-order-detail-total strong {
   font-size: 18px;
+}
+
+.admin-order-detail-status {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.admin-order-detail-status span {
+  color: #747584;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-order-detail-status select {
+  width: 100%;
+  min-height: 42px;
+  font-size: 14px;
 }
 
 .admin-trainers-page {
@@ -8947,6 +8998,15 @@ a {
   .admin-order-view-button {
     grid-row: 1;
     grid-column: 3 / 4;
+  }
+
+  .admin-order-actions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+
+  .admin-order-actions select {
+    flex: 1 1 180px;
   }
 
   .admin-products-row {
