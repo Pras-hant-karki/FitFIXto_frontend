@@ -54,6 +54,14 @@ export const API_ENDPOINTS = {
     remove: '/wishlist',
   },
 
+  // Reviews
+  reviews: {
+    list: '/reviews',
+    my: '/reviews/my',
+    create: '/reviews',
+    detail: (id: string) => `/reviews/${id}`,
+  },
+
   // Orders
   orders: {
     myOrders: '/orders/my-orders',

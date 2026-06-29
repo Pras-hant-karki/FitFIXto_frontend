@@ -14,6 +14,7 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { BackendReview, fetchReviews } from "@/features/reviews";
 
 const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
 
@@ -79,6 +80,7 @@ export default function ProductDetailsPage() {
   const pathname = usePathname();
   const productId = params.productId;
   const [product, setProduct] = useState<BackendProduct | null>(null);
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<BackendProduct[]>([]);
   const [activeImage, setActiveImage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -107,7 +109,9 @@ export default function ProductDetailsPage() {
           sortBy: "createdAt",
           order: "desc",
         });
+        const reviewData = await fetchReviews({ productId: nextProduct._id, limit: 5 });
         setRelatedProducts((related?.products || []).filter((item) => item._id !== nextProduct._id).slice(0, 3));
+        setReviews(reviewData?.reviews || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load product.");
       } finally {
@@ -251,6 +255,46 @@ export default function ProductDetailsPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="product-detail-reviews">
+        <div>
+          <h2>Customer Reviews</h2>
+          <span>
+            {product.averageRating.toFixed(1)} average from {product.ratingCount} review{product.ratingCount === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {reviews.length ? (
+          <div className="product-detail-review-list">
+            {reviews.map((review) => {
+              const reviewer =
+                typeof review.userId === "string"
+                  ? "Customer"
+                  : `${review.userId.firstName} ${review.userId.lastName}`.trim() || review.userId.email.split("@")[0];
+
+              return (
+                <article className="product-detail-review-card" key={review._id}>
+                  <div>
+                    <strong>{reviewer}</strong>
+                    <span>{new Intl.DateTimeFormat("en-CA").format(new Date(review.createdAt))}</span>
+                  </div>
+                  <div className="product-detail-review-stars" aria-label={`${review.rating} out of 5 stars`}>
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <Star className={rating <= review.rating ? "active" : undefined} aria-hidden="true" key={rating} />
+                    ))}
+                  </div>
+                  {review.comment ? <p>{review.comment}</p> : null}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="product-detail-empty">
+            <strong>No reviews yet.</strong>
+            <span>Reviews from delivered customer orders will appear here.</span>
+          </div>
+        )}
       </section>
 
       <section className="product-detail-related">
