@@ -58,8 +58,10 @@ export const API_ENDPOINTS = {
   reviews: {
     list: '/reviews',
     my: '/reviews/my',
+    admin: '/reviews/admin',
     create: '/reviews',
     detail: (id: string) => `/reviews/${id}`,
+    moderate: (id: string) => `/reviews/admin/${id}/moderation`,
   },
 
   // Orders

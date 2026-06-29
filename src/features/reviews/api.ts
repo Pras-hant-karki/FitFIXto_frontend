@@ -18,6 +18,7 @@ export interface BackendReview {
   title?: string;
   comment?: string;
   isActive: boolean;
+  moderationStatus?: "approved" | "removed";
   createdAt: string;
   updatedAt: string;
 }
@@ -52,5 +53,17 @@ export const createReview = async (payload: {
   title?: string;
 }) => {
   const response = await apiClient.post<{ review: BackendReview }>(API_ENDPOINTS.reviews.create, payload);
+  return response.data?.review;
+};
+
+export const fetchAdminReviews = async (params?: Record<string, string | number>) => {
+  const response = await apiClient.get<ReviewListResponse>(API_ENDPOINTS.reviews.admin, { params });
+  return response.data;
+};
+
+export const moderateReview = async (reviewId: string, status: "approved" | "removed") => {
+  const response = await apiClient.patch<{ review: BackendReview }>(API_ENDPOINTS.reviews.moderate(reviewId), {
+    status,
+  });
   return response.data?.review;
 };
