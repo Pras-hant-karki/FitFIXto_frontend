@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Heart, Star } from "lucide-react";
 import { AddToCartButton } from "@/features/cart";
+import { useAuth, useWishlist } from "@/contexts";
 import {
   BackendProduct,
   fetchProduct,
@@ -74,12 +75,17 @@ const ProductDetailsSkeleton = () => (
 
 export default function ProductDetailsPage() {
   const params = useParams<{ productId: string }>();
+  const router = useRouter();
+  const pathname = usePathname();
   const productId = params.productId;
   const [product, setProduct] = useState<BackendProduct | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<BackendProduct[]>([]);
   const [activeImage, setActiveImage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const { wishlistProductIds, toggleWishlistItem } = useWishlist();
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -97,7 +103,6 @@ export default function ProductDetailsPage() {
 
         const related = await fetchProducts({
           category: nextProduct.category,
-          isActive: true,
           limit: 4,
           sortBy: "createdAt",
           order: "desc",
@@ -118,6 +123,24 @@ export default function ProductDetailsPage() {
   const galleryImages = useMemo(() => product?.images.filter(Boolean) || [], [product]);
   const originalPrice = product ? getOriginalPrice(product) : null;
   const dimensions = product?.dimensions;
+  const isWishlisted = product ? wishlistProductIds.has(product._id) : false;
+  const isOutOfStock = product ? product.stock <= 0 : false;
+  const handleWishlistToggle = async () => {
+    if (!product) return;
+
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    setIsUpdatingWishlist(true);
+
+    try {
+      await toggleWishlistItem(product._id);
+    } finally {
+      setIsUpdatingWishlist(false);
+    }
+  };
   const specs = product
     ? [
         { label: "Category", value: formatCategory(product.category) },
@@ -202,10 +225,17 @@ export default function ProductDetailsPage() {
             {product.stock > 0 ? `${product.stock} pc in stock` : "Out of stock"}
           </div>
           <p className="product-detail-description">{product.description}</p>
-          <div className="product-detail-actions">
-            <AddToCartButton productId={product._id} stock={product.stock} />
-            <button type="button">
+          <div className={`product-detail-actions${isOutOfStock ? " wishlist-only" : ""}`}>
+            {isOutOfStock ? null : <AddToCartButton productId={product._id} stock={product.stock} />}
+            <button
+              type="button"
+              className={isWishlisted ? "active" : undefined}
+              onClick={handleWishlistToggle}
+              disabled={isUpdatingWishlist}
+              aria-pressed={isWishlisted}
+            >
               <Heart aria-hidden="true" />
+              {isOutOfStock ? <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span> : null}
             </button>
           </div>
         </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Heart } from "lucide-react";
 import {
   BackendProduct,
   fetchProducts,
@@ -9,6 +11,7 @@ import {
   getProductImage,
 } from "@/features/products";
 import { AddToCartButton } from "@/features/cart";
+import { useAuth, useWishlist } from "@/contexts";
 
 const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
 
@@ -16,6 +19,24 @@ export function FeaturedEquipment() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingWishlistId, setUpdatingWishlistId] = useState("");
+  const { isAuthenticated } = useAuth();
+  const { wishlistProductIds, toggleWishlistItem } = useWishlist();
+
+  const handleWishlistToggle = async (productId: string) => {
+    if (!isAuthenticated) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setUpdatingWishlistId(productId);
+
+    try {
+      await toggleWishlistItem(productId);
+    } finally {
+      setUpdatingWishlistId("");
+    }
+  };
 
   useEffect(() => {
     const loadFeaturedProducts = async () => {
@@ -23,7 +44,7 @@ export function FeaturedEquipment() {
       setError("");
 
       try {
-        const data = await fetchProducts({ isFeatured: true, isActive: true, limit: 4 });
+        const data = await fetchProducts({ isFeatured: true, limit: 4 });
         setProducts(data?.products || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load featured equipment.");
@@ -56,30 +77,42 @@ export function FeaturedEquipment() {
             {products.map((product) => {
               const discount = product.discountPercentage || 0;
               const originalPrice = getOriginalPrice(product);
+              const isWishlisted = wishlistProductIds.has(product._id);
+              const isUpdatingWishlist = updatingWishlistId === product._id;
+              const isOutOfStock = product.stock <= 0;
 
               return (
                 <article className="product-card" key={product._id}>
                   <div className="product-media">
-                    {getProductImage(product) ? (
-                      <img src={getProductImage(product)} alt={product.name} />
-                    ) : (
-                      <div className="product-no-image">No image</div>
-                    )}
+                    <Link href={`/products/${product._id}`} className="product-media-link">
+                      {getProductImage(product) ? (
+                        <img src={getProductImage(product)} alt={product.name} />
+                      ) : (
+                        <div className="product-no-image">No image</div>
+                      )}
+                    </Link>
                     <div className="product-badges">
                       {product.verifiedBadge ? <span className="badge-dark">Verified</span> : null}
                       {discount > 0 ? <span className="badge-sale">-{discount}%</span> : null}
                     </div>
-                    <button className="wishlist-button" type="button" aria-label={`Add ${product.name} to wishlist`}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8Z" />
-                      </svg>
+                    <button
+                      className={`wishlist-button${isWishlisted ? " active" : ""}`}
+                      type="button"
+                      onClick={() => handleWishlistToggle(product._id)}
+                      disabled={isUpdatingWishlist}
+                      aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+                      aria-pressed={isWishlisted}
+                    >
+                      <Heart aria-hidden="true" />
                     </button>
                   </div>
                   <div className="product-body">
                     <p>
                       {[formatCategory(product.category), product.subcategory, product.brand || "FitFIXto"].filter(Boolean).join(" - ")}
                     </p>
-                    <h3>{product.name}</h3>
+                    <Link href={`/products/${product._id}`} className="product-title-link">
+                      <h3>{product.name}</h3>
+                    </Link>
                     <div className="rating-line">
                       <span aria-hidden="true">&#9733;</span>
                       <strong>{product.averageRating.toFixed(1)}</strong>
@@ -89,7 +122,20 @@ export function FeaturedEquipment() {
                       <strong>{formatMoney(product.price)}</strong>
                       {originalPrice ? <del>{formatMoney(originalPrice)}</del> : null}
                     </div>
-                    <AddToCartButton productId={product._id} stock={product.stock} className="cart-button" />
+                    {isOutOfStock ? <p className="stock-note out-stock">Out of stock</p> : null}
+                    {isOutOfStock ? (
+                      <button
+                        type="button"
+                        className="cart-button wishlist-action-button"
+                        onClick={() => handleWishlistToggle(product._id)}
+                        disabled={isUpdatingWishlist}
+                      >
+                        <Heart aria-hidden="true" />
+                        <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+                      </button>
+                    ) : (
+                      <AddToCartButton productId={product._id} stock={product.stock} className="cart-button" />
+                    )}
                   </div>
                 </article>
               );

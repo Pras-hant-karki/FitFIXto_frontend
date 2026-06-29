@@ -159,6 +159,7 @@ const ProductCard: React.FC<{
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
   const isWishlisted = wishlistProductIds.has(product._id);
+  const isOutOfStock = product.stock <= 0;
 
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
@@ -264,12 +265,28 @@ const ProductCard: React.FC<{
           <span className="text-xl font-bold text-gray-900">Npr {product.price}</span>
           {originalPrice ? <span className="text-sm text-gray-400 line-through">Npr {originalPrice}</span> : null}
         </div>
-        <AddToCartButton
-          productId={product._id}
-          stock={product.stock}
-          stopPropagation={compareMode}
-          className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
-        />
+        {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
+        {isOutOfStock ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              if (compareMode) event.stopPropagation();
+              handleWishlistToggle();
+            }}
+            disabled={isUpdatingWishlist}
+            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium disabled:opacity-60"
+          >
+            <Heart className={`w-4 h-4 ${isWishlisted ? "fill-white text-white" : ""}`} />
+            <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+          </button>
+        ) : (
+          <AddToCartButton
+            productId={product._id}
+            stock={product.stock}
+            stopPropagation={compareMode}
+            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
+          />
+        )}
       </div>
     </div>
   );
