@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CreditCard, WalletCards } from "lucide-react";
+import { Check, CreditCard, ShieldCheck, WalletCards } from "lucide-react";
 import { useCart } from "@/contexts";
 import { BackendCart, fetchCart } from "@/features/cart";
 import {
@@ -303,6 +303,16 @@ export default function CheckoutPage() {
                   <span>{option.label}</span>
                 </button>
               ))}
+            </div>
+            <div className="checkout-refund-guarantee">
+              <ShieldCheck aria-hidden="true" />
+              <div>
+                <strong>Refund guarantee</strong>
+                <p>
+                  If a delivered supplement or fitness product is damaged, counterfeit, or not as described, contact support within 7 days
+                  with your order details. FitFIXto will review the case and arrange a replacement or refund when eligible.
+                </p>
+              </div>
             </div>
             <div className="checkout-panel-actions">
               <button type="button" onClick={() => setStep(2)}>

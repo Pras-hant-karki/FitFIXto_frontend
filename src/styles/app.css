@@ -555,6 +555,7 @@ a {
 .product-detail-gallery,
 .product-detail-info,
 .product-detail-specs,
+.product-detail-authenticity,
 .product-detail-reviews,
 .product-detail-related {
   display: grid;
@@ -673,6 +674,7 @@ a {
 .product-detail-rating strong,
 .product-detail-price strong,
 .product-detail-specs h2,
+.product-detail-authenticity h2,
 .product-detail-reviews h2,
 .product-detail-related h2,
 .product-detail-specs strong,
@@ -776,6 +778,7 @@ a {
 }
 
 .product-detail-specs h2,
+.product-detail-authenticity h2,
 .product-detail-reviews h2,
 .product-detail-related h2 {
   margin: 0;
@@ -814,6 +817,66 @@ a {
 .product-detail-related-card strong,
 .product-detail-related-card b {
   font-weight: 900;
+}
+
+.product-detail-authenticity {
+  border: 1px solid #e5e5e8;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 22px;
+}
+
+.product-detail-authenticity > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.product-detail-authenticity > div:first-child svg {
+  width: 28px;
+  height: 28px;
+  color: #009b6a;
+}
+
+.product-detail-authenticity > div:first-child p {
+  margin: 6px 0 0;
+  color: #747584;
+}
+
+.product-authenticity-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.product-authenticity-grid article {
+  display: grid;
+  gap: 7px;
+  min-height: 150px;
+  border: 1px solid #e5e5e8;
+  border-radius: 8px;
+  background: #fbfbfc;
+  padding: 16px;
+}
+
+.product-authenticity-grid span {
+  color: #747584;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.product-authenticity-grid strong {
+  color: #050507;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.product-authenticity-grid p {
+  margin: 0;
+  color: #747584;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .product-detail-related > div:first-child {
@@ -2787,6 +2850,38 @@ a {
 
 .checkout-choice-list em.khalti {
   background: #5b2c91;
+}
+
+.checkout-refund-guarantee {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+  border: 1px solid #c9f0df;
+  border-radius: 8px;
+  background: #effbf6;
+  padding: 14px;
+}
+
+.checkout-refund-guarantee svg {
+  width: 24px;
+  height: 24px;
+  color: #009b6a;
+}
+
+.checkout-refund-guarantee strong {
+  display: block;
+  color: #050505;
+  font-size: 14px;
+  font-weight: 950;
+  text-align: left;
+}
+
+.checkout-refund-guarantee p {
+  margin: 5px 0 0;
+  color: #5f6070;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .checkout-panel-actions {
@@ -9163,6 +9258,10 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .product-authenticity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .product-detail-specs article {
     border-bottom: 1px solid #e5e5e8;
   }
@@ -9713,6 +9812,10 @@ a {
   }
 
   .product-detail-specs > div {
+    grid-template-columns: 1fr;
+  }
+
+  .product-authenticity-grid {
     grid-template-columns: 1fr;
   }
 

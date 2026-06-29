@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Heart, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Heart, ShieldCheck, Star } from "lucide-react";
 import { AddToCartButton } from "@/features/cart";
 import { useAuth, useWishlist } from "@/contexts";
 import {
@@ -254,6 +254,44 @@ export default function ProductDetailsPage() {
               <strong>{spec.value}</strong>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="product-detail-authenticity">
+        <div>
+          <ShieldCheck aria-hidden="true" />
+          <div>
+            <h2>Authenticity & Supplier Information</h2>
+            <p>Product trust details are shown from admin-verified product records.</p>
+          </div>
+        </div>
+        <div className="product-authenticity-grid">
+          <article>
+            <span>Verification status</span>
+            <strong>{product.verifiedBadge ? "FitFIXto verified product" : "Verification not marked yet"}</strong>
+            <p>
+              {product.verifiedBadge
+                ? "This product has been marked verified by the FitFIXto admin team."
+                : "This product is available, but the admin has not marked it as verified yet."}
+            </p>
+          </article>
+          <article>
+            <span>Supplier / import details</span>
+            <strong>{product.importedFrom ? "Supplier details available" : "Not provided"}</strong>
+            <p>{product.importedFrom || "Supplier and import information has not been added for this product."}</p>
+          </article>
+          <article>
+            <span>Warranty</span>
+            <strong>{product.warrantyMonths !== undefined ? `${product.warrantyMonths} months` : "Not specified"}</strong>
+            <p>Warranty support depends on product condition, order record, and supplier policy.</p>
+          </article>
+          <article>
+            <span>Verified-purchase reviews</span>
+            <strong>
+              {product.ratingCount} review{product.ratingCount === 1 ? "" : "s"}
+            </strong>
+            <p>Only customers with delivered orders can submit product reviews.</p>
+          </article>
         </div>
       </section>
 
