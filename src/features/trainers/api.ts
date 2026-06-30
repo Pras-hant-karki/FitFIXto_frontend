@@ -20,7 +20,6 @@ export type BackendTrainer = {
   experienceYears: number;
   specialties: string[];
   certifications: string[];
-  certificationFiles: string[];
   isFeatured: boolean;
   isSuspended: boolean;
   createdAt: string;
@@ -100,6 +99,7 @@ export type BackendTrainerApplication = {
   experienceYears: number;
   specialties: string[];
   certifications: string[];
+  certificationFiles: string[];
   status: TrainerApplicationStatus;
   createdTrainerId?: string;
   createdAt: string;

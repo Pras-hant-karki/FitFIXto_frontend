@@ -2060,6 +2060,82 @@ a {
   background: #b80000;
 }
 
+.trainer-application-page {
+  width: min(1120px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 54px 0 80px;
+}
+
+.trainer-application-heading { max-width: 760px; margin-bottom: 28px; }
+.trainer-application-heading > span { color: #d80000; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.trainer-application-heading h1 { margin: 8px 0 10px; font-size: 36px; line-height: 1.15; }
+.trainer-application-heading p { margin: 0; color: #696b78; font-size: 16px; line-height: 1.55; }
+
+.trainer-application-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 24px;
+  padding: 30px;
+  border: 1px solid #dedfe5;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.trainer-application-form label { display: grid; min-width: 0; gap: 8px; }
+.trainer-application-form label > span,
+.trainer-application-upload-title { color: #111116; font-size: 14px; font-weight: 800; }
+
+.trainer-application-form input,
+.trainer-application-form textarea {
+  width: 100%; min-width: 0; border: 1px solid #d9dae1; border-radius: 6px;
+  background: #f5f5f7; color: #111116; font: inherit; outline: none;
+}
+.trainer-application-form input { min-height: 50px; padding: 0 15px; }
+.trainer-application-form textarea { min-height: 140px; padding: 14px 15px; resize: vertical; }
+.trainer-application-form input:focus,
+.trainer-application-form textarea:focus { border-color: #050416; box-shadow: 0 0 0 2px rgb(5 4 22 / 10%); }
+.trainer-application-wide { grid-column: 1 / -1; }
+
+.trainer-application-upload {
+  display: grid; grid-template-columns: minmax(190px, 280px) minmax(0, 1fr); align-items: center;
+  gap: 10px 24px; padding: 20px; border: 1px dashed #b9bbc6; border-radius: 7px; background: #fafafa;
+}
+.trainer-application-upload-title { display: flex; grid-row: span 2; align-items: center; gap: 10px; }
+.trainer-application-upload-title svg,
+.trainer-file-picker svg { width: 20px; height: 20px; }
+.trainer-file-picker {
+  display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 10px;
+  border: 0; border-radius: 6px; background: #050416; color: #fff; font-weight: 800; cursor: pointer;
+}
+.trainer-file-picker:hover { background: #1b1a2c; }
+.trainer-application-upload small { overflow: hidden; color: #737584; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.trainer-renewal-notice { padding: 16px 18px; border-left: 4px solid #d80000; background: #fff3f3; color: #525461; font-size: 14px; line-height: 1.5; }
+.trainer-application-submit { min-height: 52px; border: 0; border-radius: 6px; background: #d80000; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; }
+.trainer-application-submit:hover:not(:disabled) { background: #b50000; }
+.trainer-application-submit:disabled { cursor: wait; opacity: 0.6; }
+
+.trainer-application-success {
+  display: grid; max-width: 680px; margin: 60px auto; justify-items: center; gap: 16px; padding: 50px;
+  border: 1px solid #dedfe5; border-radius: 8px; text-align: center;
+}
+.trainer-application-success svg { width: 44px; height: 44px; color: #009e68; }
+.trainer-application-success h1,
+.trainer-application-success p { margin: 0; }
+.trainer-application-success p { color: #696b78; line-height: 1.55; }
+
+.admin-trainer-application-files { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 0 18px 16px; font-size: 12px; }
+.admin-trainer-application-files strong { width: 100%; }
+.admin-trainer-application-files a { color: #075fca; text-decoration: underline; }
+
+@media (max-width: 720px) {
+  .trainer-application-page { width: min(100% - 24px, 1120px); padding-top: 32px; }
+  .trainer-application-heading h1 { font-size: 30px; }
+  .trainer-application-form { grid-template-columns: 1fr; padding: 20px; }
+  .trainer-application-wide { grid-column: auto; }
+  .trainer-application-upload { grid-template-columns: 1fr; }
+  .trainer-application-upload-title { grid-row: auto; }
+}
+
 .testimonial-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
