@@ -8486,6 +8486,12 @@ a {
   font-size: 17px;
 }
 
+.global-search-shell {
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+
 .global-search-field {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
@@ -8516,6 +8522,63 @@ a {
 
 .global-search-field input::placeholder {
   color: #7f808f;
+}
+
+.search-suggestion-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #dedee3;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(3, 2, 19, 0.12);
+}
+
+.search-suggestion-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 54px;
+  border: 0;
+  border-bottom: 1px solid #eeeeef;
+  background: transparent;
+  color: #030213;
+  padding: 0 18px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.search-suggestion-list button:last-child {
+  border-bottom: 0;
+}
+
+.search-suggestion-list button:hover,
+.search-suggestion-list button:focus-visible {
+  background: #f5f5f7;
+  outline: none;
+}
+
+.search-suggestion-list span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-suggestion-list small {
+  flex: 0 0 auto;
+  color: #737486;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .search-empty-card {
@@ -8762,6 +8825,7 @@ a {
 }
 
 .dark .global-search-field,
+.dark .search-suggestion-list,
 .dark .search-empty-card,
 .dark .search-filter-tabs button,
 .dark .search-result-card {
@@ -8778,9 +8842,20 @@ a {
 .dark .search-header h1,
 .dark .search-empty-card strong,
 .dark .search-match-count strong,
+.dark .search-suggestion-list button,
+.dark .search-suggestion-list span,
 .dark .search-result-copy strong,
 .dark .search-result-card > b {
   color: #ffffff;
+}
+
+.dark .search-suggestion-list button {
+  border-bottom-color: #25272d;
+}
+
+.dark .search-suggestion-list button:hover,
+.dark .search-suggestion-list button:focus-visible {
+  background: #181b22;
 }
 
 .dark .search-filter-tabs button.active {

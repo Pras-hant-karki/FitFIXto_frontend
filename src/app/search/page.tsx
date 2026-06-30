@@ -32,6 +32,16 @@ type SearchResult = {
   typeRank?: number;
 };
 
+type SearchSuggestion = {
+  id: string;
+  label: string;
+  type: Exclude<SearchType, "all">;
+  hint: string;
+  href: string;
+  rank: number;
+  typeRank: number;
+};
+
 const serviceResults: SearchResult[] = [
   {
     id: "full-gym-setup",
@@ -130,6 +140,56 @@ const sortResults = (resultsToSort: SearchResult[]) =>
     return first.title.localeCompare(second.title);
   });
 
+const getSuggestionTerms = (result: SearchResult) => [
+  { value: result.title, baseRank: 0, hint: result.type === "trainer" ? "Trainer name" : "Name" },
+  { value: result.subtitle, baseRank: 3, hint: result.type === "trainer" ? "Location or experience" : "Category or brand" },
+  { value: result.detail, baseRank: 6, hint: result.type === "trainer" ? "Specialty or certification" : "Details" },
+  { value: result.price, baseRank: 9, hint: "Price" },
+];
+
+const buildSuggestions = (items: SearchResult[], query: string) => {
+  if (!query.trim()) return [];
+
+  const suggestions = new Map<string, SearchSuggestion>();
+
+  items.forEach((item) => {
+    getSuggestionTerms(item).forEach((term) => {
+      if (!term.value) return;
+
+      const rank = getFieldRank(term.value, query, term.baseRank);
+      if (!Number.isFinite(rank)) return;
+
+      const key = `${item.type}-${term.value.toLowerCase()}`;
+      const suggestion: SearchSuggestion = {
+        id: `${item.type}-${item.id}-${term.baseRank}`,
+        label: term.value,
+        type: item.type,
+        hint: term.hint,
+        href: item.href,
+        rank,
+        typeRank: getTypeRank(item),
+      };
+
+      const existing = suggestions.get(key);
+      if (!existing || suggestion.rank < existing.rank) {
+        suggestions.set(key, suggestion);
+      }
+    });
+  });
+
+  return [...suggestions.values()]
+    .sort((first, second) => {
+      const rankDifference = first.rank - second.rank;
+      if (rankDifference !== 0) return rankDifference;
+
+      const typeDifference = first.typeRank - second.typeRank;
+      if (typeDifference !== 0) return typeDifference;
+
+      return first.label.localeCompare(second.label);
+    })
+    .slice(0, 7);
+};
+
 const highlightMatch = (value: string, query: string): ReactNode => {
   if (!query) return value;
 
@@ -193,6 +253,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<SearchType>("all");
+  const [suggestionItems, setSuggestionItems] = useState<SearchResult[]>(serviceResults);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -200,6 +261,37 @@ export default function SearchPage() {
   useEffect(() => {
     const initialQuery = new URLSearchParams(window.location.search).get("q") || "";
     setQuery(initialQuery);
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const loadSuggestionItems = async () => {
+      try {
+        const [productResponse, trainers] = await Promise.all([
+          fetchProducts({ limit: 50 }),
+          fetchPublicTrainers(),
+        ]);
+
+        if (!isCurrent) return;
+
+        setSuggestionItems([
+          ...(productResponse?.products || []).map(toProductResult),
+          ...trainers.map(toTrainerResult),
+          ...serviceResults,
+        ]);
+      } catch {
+        if (isCurrent) {
+          setSuggestionItems(serviceResults);
+        }
+      }
+    };
+
+    loadSuggestionItems();
+
+    return () => {
+      isCurrent = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -306,6 +398,15 @@ export default function SearchPage() {
   );
 
   const visibleResults = activeFilter === "all" ? results : results.filter((result) => result.type === activeFilter);
+  const suggestions = useMemo(
+    () => buildSuggestions(suggestionItems, query.trim()),
+    [suggestionItems, query],
+  );
+
+  const applySuggestion = (suggestion: SearchSuggestion) => {
+    setQuery(suggestion.label);
+    setActiveFilter("all");
+  };
 
   return (
     <section className="search-page">
@@ -314,16 +415,37 @@ export default function SearchPage() {
         <p>Find equipment, supplements, trainers and services - all in one place.</p>
       </header>
 
-      <label className="global-search-field">
-        <Search aria-hidden="true" />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Try 'dumbbell', 'whey', 'Aria', 'sauna'..."
-          autoFocus
-        />
-      </label>
+      <div className="global-search-shell">
+        <label className="global-search-field">
+          <Search aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Try 'dumbbell', 'whey', 'Aria', 'sauna'..."
+            autoComplete="off"
+            autoFocus
+          />
+        </label>
+
+        {query.trim() && suggestions.length ? (
+          <div className="search-suggestion-list" role="listbox" aria-label="Search suggestions">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion.id}
+                type="button"
+                role="option"
+                onClick={() => applySuggestion(suggestion)}
+              >
+                <span>{highlightMatch(suggestion.label, query.trim())}</span>
+                <small>
+                  {suggestion.type} - {suggestion.hint}
+                </small>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {!debouncedQuery ? (
         <div className="search-empty-card">
