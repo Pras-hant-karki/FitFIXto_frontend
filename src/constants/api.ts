@@ -95,6 +95,7 @@ export const API_ENDPOINTS = {
     availability: '/trainers/availability',
     availabilityDetail: (id: string) => `/trainers/availability/${id}`,
     applications: '/trainers/applications',
+    uploadApplicationFiles: '/trainers/applications/upload-files',
     approveApplication: (id: string) => `/trainers/applications/${id}/approve`,
     rejectApplication: (id: string) => `/trainers/applications/${id}/reject`,
     uploadPhoto: '/trainers/upload-photo',

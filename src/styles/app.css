@@ -6376,17 +6376,30 @@ a {
 .admin-order-customer {
   display: grid;
   gap: 3px;
+  min-width: 0;
 }
 
 .admin-order-customer strong {
+  overflow: hidden;
   color: #050507;
   font-size: 14px;
   font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-order-customer span,
 .admin-orders-admin-row > span {
   color: #747584;
+}
+
+.admin-order-customer span {
+  overflow: hidden;
+  max-width: 210px;
+  font-size: 12px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-orders-admin-row > strong {

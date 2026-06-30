@@ -20,6 +20,7 @@ export type BackendTrainer = {
   experienceYears: number;
   specialties: string[];
   certifications: string[];
+  certificationFiles: string[];
   isFeatured: boolean;
   isSuspended: boolean;
   createdAt: string;
@@ -173,6 +174,45 @@ export const deleteTrainerAvailability = async (slotId: string) => {
 export const fetchTrainerApplications = async () => {
   const response = await apiClient.get<{ applications: BackendTrainerApplication[] }>(API_ENDPOINTS.trainers.applications);
   return response.data?.applications || [];
+};
+
+export type TrainerApplicationPayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  location: string;
+  sessionRate: number;
+  experienceYears: number;
+  specialties: string[];
+  certifications: string[];
+  certificationFiles: string[];
+  bio: string;
+  profilePicture?: string;
+};
+
+export const submitTrainerApplication = async (payload: TrainerApplicationPayload) => {
+  const response = await apiClient.post<{ application: BackendTrainerApplication }>(API_ENDPOINTS.trainers.applications, payload);
+  return response.data?.application;
+};
+
+export const uploadTrainerApplicationFiles = async (photo: File | null, certificates: File[]) => {
+  const formData = new FormData();
+  if (photo) formData.append("photo", photo);
+  certificates.forEach((file) => formData.append("certificates", file));
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.trainers.uploadApplicationFiles}`, {
+    method: "POST",
+    body: formData,
+  });
+  const result = await response.json();
+
+  if (!response.ok) throw new Error(result.message || "Unable to upload application files.");
+
+  return {
+    photo: result.data?.photo as string | null,
+    certificates: (result.data?.certificates || []) as string[],
+  };
 };
 
 export const createTrainer = async (payload: TrainerPayload & { password: string }) => {

@@ -70,6 +70,15 @@ const formatDate = (date: string) =>
     day: "2-digit",
   }).format(new Date(date));
 
+const formatCustomerEmail = (email: string) => {
+  if (email.length <= 22) return email;
+
+  const [localPart] = email.split("@");
+  if (!localPart) return email;
+
+  return `${localPart.slice(0, 24)}@...........`;
+};
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [selectedTab, setSelectedTab] = useState<OrderTab>("all");
@@ -220,7 +229,7 @@ export default function AdminOrdersPage() {
                   <strong>{formatOrderId(order._id, index)}</strong>
                   <div className="admin-order-customer">
                     <strong>{customer.name}</strong>
-                    <span>{customer.email}</span>
+                    <span title={customer.email}>{formatCustomerEmail(customer.email)}</span>
                   </div>
                   <span>{formatDate(order.createdAt)}</span>
                   <span>{itemCount}</span>
