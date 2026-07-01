@@ -21,6 +21,7 @@ export interface Bundle {
   _id: string;
   title: string;
   description?: string;
+  image?: string;
   productIds: DiscountProduct[];
   discountPercentage: number;
   isActive: boolean;
@@ -66,6 +67,7 @@ export const saveRefundGuarantee = async (text: string): Promise<void> => {
 export const createBundle = async (payload: {
   title: string;
   description?: string;
+  image?: string;
   productIds: string[];
   discountPercentage: number;
   isActive?: boolean;
@@ -79,6 +81,7 @@ export const updateBundle = async (
   payload: Partial<{
     title: string;
     description: string;
+    image: string;
     productIds: string[];
     discountPercentage: number;
     isActive: boolean;

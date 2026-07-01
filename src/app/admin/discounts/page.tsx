@@ -14,7 +14,7 @@ import {
   saveRefundGuarantee,
   updateBundle,
 } from "@/features/discounts";
-import { BackendProduct, fetchProducts, resolveProductImageUrl } from "@/features/products";
+import { BackendProduct, fetchProducts, resolveProductImageUrl, uploadProductImages } from "@/features/products";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ function ProductPicker({
       </button>
 
       {open && (
-        <div className="dsc-picker-panel" style={panelStyle}>
+        <div className="dsc-picker-panel" style={panelStyle} onWheel={(e) => e.stopPropagation()}>
           <div className="dsc-picker-search">
             <Search size={13} />
             <input
@@ -283,6 +283,7 @@ function FlashSaleCard({
 interface BundleForm {
   title: string;
   description: string;
+  image: string;
   discountPercentage: string;
   productIds: string[];
   isActive: boolean;
@@ -291,6 +292,7 @@ interface BundleForm {
 const emptyBundleForm: BundleForm = {
   title: "",
   description: "",
+  image: "",
   discountPercentage: "",
   productIds: [],
   isActive: true,
@@ -302,6 +304,7 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
   const [editing, setEditing] = useState<Bundle | null>(null);
   const [form, setForm] = useState<BundleForm>(emptyBundleForm);
   const [saving, setSaving] = useState(false);
+  const [imgUploading, setImgUploading] = useState(false);
   const [formErr, setFormErr] = useState("");
 
   useEffect(() => { setBundles(data.bundles ?? []); }, [data.bundles]);
@@ -312,6 +315,7 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
     setForm({
       title: b.title,
       description: b.description ?? "",
+      image: b.image ? resolveProductImageUrl(b.image) : "",
       discountPercentage: String(b.discountPercentage),
       productIds: b.productIds.map((p) => p._id),
       isActive: b.isActive,
@@ -320,6 +324,17 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
     setFormOpen(true);
   };
   const closeForm = () => { setFormOpen(false); setEditing(null); };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImgUploading(true);
+    try {
+      const urls = await uploadProductImages([file]);
+      if (urls[0]) setForm((f) => ({ ...f, image: urls[0] }));
+    } catch { setFormErr("Image upload failed."); }
+    finally { setImgUploading(false); e.target.value = ""; }
+  };
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -330,6 +345,7 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
       const payload = {
         title: form.title.trim(),
         description: form.description.trim() || undefined,
+        image: form.image || undefined,
         discountPercentage: Number(form.discountPercentage),
         productIds: form.productIds,
         isActive: form.isActive,
@@ -372,14 +388,14 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
         <div className="dsc-card-body">
           <div className="dsc-bundle-grid">
             {bundles.map((b) => {
-              const thumbs = b.productIds.slice(0, 3);
               const names = b.productIds.map((p) => p.name).join(" + ");
+              const thumb = b.image
+                ? resolveProductImageUrl(b.image)
+                : productThumb(b.productIds[0]);
               return (
                 <div key={b._id} className={`dsc-bundle${!b.isActive ? " dsc-bundle--inactive" : ""}`}>
-                  <div className="dsc-bundle-thumbs">
-                    {thumbs.map((p) => (
-                      <img key={p._id} src={productThumb(p)} alt={p.name} />
-                    ))}
+                  <div className="dsc-bundle-thumb-single">
+                    <img src={thumb} alt={b.title} />
                   </div>
                   <div className="dsc-bundle-info">
                     <div className="dsc-bundle-row">
@@ -420,6 +436,25 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
                 <label>Description</label>
                 <textarea rows={2} placeholder="Optional description" value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="dsc-field">
+                <label>Bundle Image <span className="dsc-sublabel-note">(marketing photo for this bundle)</span></label>
+                <div className="dsc-bundle-img-upload">
+                  {form.image ? (
+                    <div className="dsc-bundle-img-preview">
+                      <img src={form.image} alt="Bundle preview" />
+                      <button type="button" className="dsc-bundle-img-remove" onClick={() => setForm((f) => ({ ...f, image: "" }))}>
+                        <X size={12} /> Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`dsc-bundle-img-drop${imgUploading ? " uploading" : ""}`}>
+                      <input type="file" accept="image/*" onChange={handleImageUpload} disabled={imgUploading} />
+                      <Package size={20} />
+                      <span>{imgUploading ? "Uploading…" : "Click to upload image"}</span>
+                    </label>
+                  )}
+                </div>
               </div>
               <div className="dsc-row">
                 <div className="dsc-field dsc-field--sm">

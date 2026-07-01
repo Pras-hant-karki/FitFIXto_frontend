@@ -51,10 +51,9 @@ export const formatCategory = (category: string) => getCategoryLabel(category);
 export const resolveProductImageUrl = (img: string): string => {
   if (!img) return "";
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  const backendBase = API_BASE_URL.replace("/api/v1", "");
-  if (img.startsWith("/assets/")) return `${backendBase}/uploads/${img.slice("/assets/".length)}`;
-  if (img.startsWith("/uploads/")) return `${backendBase}${img}`;
-  return `${backendBase}/uploads/${img}`;
+  // /assets/ and /uploads/ are both valid relative paths served by Next.js public dir
+  if (img.startsWith("/assets/") || img.startsWith("/uploads/")) return img;
+  return `/assets/${img}`;
 };
 
 export const getProductImage = (product: BackendProduct): string =>
@@ -137,15 +136,11 @@ type UploadedProductImage = {
 };
 
 const toFrontendAssetUrl = (image: UploadedProductImage) => {
-  const backendBase = API_BASE_URL.replace("/api/v1", "");
-  if (image.filename) {
-    return `${backendBase}/uploads/${image.filename}`;
-  }
-  const uploadsIndex = image.path.indexOf("/uploads/");
-  if (uploadsIndex >= 0) {
-    return `${backendBase}${image.path.slice(uploadsIndex)}`;
-  }
-  return image.url || image.path;
+  // Files land in fitfixto_frontend/public/assets/ — serve via Next.js at /assets/
+  if (image.filename) return `/assets/${image.filename}`;
+  const pathStr = (image.path || "").replace(/\\/g, "/");
+  const last = pathStr.split("/").filter(Boolean).pop();
+  return last ? `/assets/${last}` : image.url || "";
 };
 
 export const uploadProductImages = async (files: File[]) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle, Clock, User, X, XCircle } from "lucide-react";
+import Link from "next/link";
 import { CustomerDashboardShell } from "@/components/shared/customer";
 import {
   BackendBooking,
@@ -10,8 +11,16 @@ import {
   cancelClientBooking,
   fetchMyClientBookings,
 } from "@/features/bookings";
+import { BackendServiceBooking, ServiceBookingStatus, cancelMyServiceBooking, fetchMyServiceBookings } from "@/features/serviceBookings";
 
-const STATUS_LABELS: Record<BookingStatus, string> = {
+const TRAINER_STATUS_LABELS: Record<BookingStatus, string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  cancelled: "Cancelled",
+  completed: "Completed",
+};
+
+const SVC_STATUS_LABELS: Record<ServiceBookingStatus, string> = {
   pending: "Pending",
   confirmed: "Confirmed",
   cancelled: "Cancelled",
@@ -19,186 +28,261 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
 };
 
 const formatDate = (d: string) =>
-  new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(
-    new Date(d)
-  );
+  new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
 
 const getTrainer = (booking: BackendBooking): PopulatedTrainer | null => {
   if (typeof booking.trainerId === "string") return null;
   return booking.trainerId as PopulatedTrainer;
 };
 
-type FilterType = "all" | BookingStatus;
+const getServiceName = (b: BackendServiceBooking) =>
+  typeof b.serviceId === "string" ? "Service" : b.serviceId.name;
+
+type MainTab = "trainer" | "service";
 
 export default function UserBookingsPage() {
+  const [tab, setTab] = useState<MainTab>("trainer");
+
+  // Trainer bookings
   const [bookings, setBookings] = useState<BackendBooking[]>([]);
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [processingId, setProcessingId] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [trainerFilter, setTrainerFilter] = useState<"all" | BookingStatus>("all");
+  const [trainerLoading, setTrainerLoading] = useState(true);
+  const [trainerProcessingId, setTrainerProcessingId] = useState("");
+  const [trainerError, setTrainerError] = useState("");
+
+  // Service bookings
+  const [svcBookings, setSvcBookings] = useState<BackendServiceBooking[]>([]);
+  const [svcFilter, setSvcFilter] = useState<"all" | ServiceBookingStatus>("all");
+  const [svcLoading, setSvcLoading] = useState(true);
+  const [svcProcessingId, setSvcProcessingId] = useState("");
+  const [svcError, setSvcError] = useState("");
+  const [svcMessage, setSvcMessage] = useState("");
 
   useEffect(() => {
-    let isActive = true;
-    const load = async () => {
-      setIsLoading(true);
-      setError("");
-      try {
-        const data = await fetchMyClientBookings();
-        if (isActive) setBookings(data);
-      } catch (err) {
-        if (isActive) setError(err instanceof Error ? err.message : "Unable to load bookings.");
-      } finally {
-        if (isActive) setIsLoading(false);
-      }
-    };
-    load();
-    return () => { isActive = false; };
+    let active = true;
+    setTrainerLoading(true);
+    fetchMyClientBookings()
+      .then((d) => { if (active) setBookings(d); })
+      .catch((e) => { if (active) setTrainerError(e instanceof Error ? e.message : "Unable to load."); })
+      .finally(() => { if (active) setTrainerLoading(false); });
+    return () => { active = false; };
   }, []);
 
-  const handleCancel = async (bookingId: string) => {
+  useEffect(() => {
+    let active = true;
+    setSvcLoading(true);
+    fetchMyServiceBookings()
+      .then((d) => { if (active) setSvcBookings(d); })
+      .catch(() => {})
+      .finally(() => { if (active) setSvcLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const handleCancelTrainer = async (id: string) => {
     if (!window.confirm("Cancel this booking?")) return;
-    setProcessingId(bookingId);
-    setError("");
-    setMessage("");
+    setTrainerProcessingId(id);
     try {
-      const updated = await cancelClientBooking(bookingId);
-      if (updated) {
-        setBookings((cur) => cur.map((b) => (b._id === bookingId ? updated : b)));
-      }
-      setMessage("Booking cancelled.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to cancel booking.");
-    } finally {
-      setProcessingId("");
-    }
+      const updated = await cancelClientBooking(id);
+      if (updated) setBookings((cur) => cur.map((b) => (b._id === id ? updated : b)));
+    } catch (e) {
+      setTrainerError(e instanceof Error ? e.message : "Unable to cancel.");
+    } finally { setTrainerProcessingId(""); }
   };
 
-  const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+  const handleCancelService = async (id: string) => {
+    if (!window.confirm("Cancel this service booking?")) return;
+    setSvcProcessingId(id);
+    setSvcError(""); setSvcMessage("");
+    try {
+      await cancelMyServiceBooking(id);
+      setSvcBookings((cur) => cur.map((b) => b._id === id ? { ...b, status: "cancelled" as ServiceBookingStatus } : b));
+      setSvcMessage("Booking cancelled.");
+    } catch (e) {
+      setSvcError(e instanceof Error ? e.message : "Unable to cancel.");
+    } finally { setSvcProcessingId(""); }
+  };
 
-  const counts = bookings.reduce(
-    (acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc; },
-    {} as Record<string, number>
-  );
+  const filteredTrainer = trainerFilter === "all" ? bookings : bookings.filter((b) => b.status === trainerFilter);
+  const filteredSvc = svcFilter === "all" ? svcBookings : svcBookings.filter((b) => b.status === svcFilter);
 
   return (
     <CustomerDashboardShell>
       <div className="customer-orders-panel">
         <div className="customer-orders-heading">
-          <h2>Bookings</h2>
-          <span style={{ color: "var(--muted)", fontSize: 14 }}>
-            {bookings.length} booking{bookings.length === 1 ? "" : "s"}
-          </span>
-        </div>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 0, marginBottom: 18 }}>
-          Your personal training sessions with our trainers.
-        </p>
-
-        {/* Filter tabs */}
-        <div className="trainer-booking-filters">
-          {(["all", "pending", "confirmed", "completed", "cancelled"] as const).map((f) => (
-            <button
-              type="button"
-              key={f}
-              className={`trainer-booking-filter-btn${filter === f ? " active" : ""}`}
-              onClick={() => setFilter(f)}
-            >
-              {f === "all" ? "All" : STATUS_LABELS[f]}
-              {f !== "all" && counts[f] ? (
-                <span className="trainer-booking-filter-count">{counts[f]}</span>
-              ) : null}
-            </button>
-          ))}
+          <h2>My Bookings</h2>
         </div>
 
-        {message ? <p className="customer-review-message" style={{ marginBottom: 12 }}>{message}</p> : null}
-        {error ? <p className="auth-message error" style={{ marginBottom: 12 }}>{error}</p> : null}
+        {/* Main tabs */}
+        <div className="bookings-main-tabs">
+          <button
+            type="button"
+            className={`bookings-main-tab${tab === "trainer" ? " active" : ""}`}
+            onClick={() => setTab("trainer")}
+          >
+            Training Sessions
+            <span className="bookings-tab-count">{bookings.length}</span>
+          </button>
+          <button
+            type="button"
+            className={`bookings-main-tab${tab === "service" ? " active" : ""}`}
+            onClick={() => setTab("service")}
+          >
+            Service Bookings
+            <span className="bookings-tab-count">{svcBookings.length}</span>
+          </button>
+        </div>
 
-        {isLoading ? (
-          <div className="customer-orders-empty">Loading your bookings...</div>
-        ) : filtered.length === 0 ? (
-          <div className="customer-orders-empty">
-            {filter === "all" ? (
-              <>
-                <CalendarDays aria-hidden="true" style={{ width: 38, height: 38, opacity: 0.35, display: "block", margin: "0 auto 10px" }} />
-                No bookings yet. Visit a trainer's profile to book a session.
-              </>
+        {/* ── Trainer bookings ── */}
+        {tab === "trainer" && (
+          <>
+            <p style={{ color: "var(--muted)", fontSize: 14, margin: "0 0 14px" }}>
+              Your personal training sessions.
+            </p>
+            <div className="trainer-booking-filters">
+              {(["all", "pending", "confirmed", "completed", "cancelled"] as const).map((f) => (
+                <button key={f} type="button"
+                  className={`trainer-booking-filter-btn${trainerFilter === f ? " active" : ""}`}
+                  onClick={() => setTrainerFilter(f)}>
+                  {f === "all" ? "All" : TRAINER_STATUS_LABELS[f as BookingStatus]}
+                </button>
+              ))}
+            </div>
+            {trainerError && <p className="auth-message error">{trainerError}</p>}
+            {trainerLoading ? (
+              <div className="customer-orders-empty">Loading…</div>
+            ) : filteredTrainer.length === 0 ? (
+              <div className="customer-orders-empty">
+                <CalendarDays style={{ width: 38, height: 38, opacity: 0.35, display: "block", margin: "0 auto 10px" }} />
+                {trainerFilter === "all" ? "No training bookings yet." : `No ${TRAINER_STATUS_LABELS[trainerFilter as BookingStatus]?.toLowerCase()} bookings.`}
+              </div>
             ) : (
-              `No ${STATUS_LABELS[filter as BookingStatus]?.toLowerCase()} bookings.`
-            )}
-          </div>
-        ) : (
-          <div className="trainer-booking-list">
-            {filtered.map((booking) => {
-              const trainer = getTrainer(booking);
-              const trainerUser = trainer?.userId;
-              const canCancel = booking.status === "pending" || booking.status === "confirmed";
-              const isProcessing = processingId === booking._id;
-
-              return (
-                <article className="trainer-booking-card" key={booking._id}>
-                  <div className="trainer-booking-client">
-                    <div className="trainer-booking-avatar">
-                      {trainerUser?.profilePicture ? (
-                        <img src={trainerUser.profilePicture} alt={trainerUser.firstName} />
-                      ) : (
-                        <User aria-hidden="true" />
+              <div className="trainer-booking-list">
+                {filteredTrainer.map((booking) => {
+                  const trainer = getTrainer(booking);
+                  const trainerUser = trainer?.userId;
+                  const canCancel = booking.status === "pending" || booking.status === "confirmed";
+                  const isProcessing = trainerProcessingId === booking._id;
+                  return (
+                    <article className="trainer-booking-card" key={booking._id}>
+                      <div className="trainer-booking-client">
+                        <div className="trainer-booking-avatar">
+                          {trainerUser?.profilePicture ? (
+                            <img src={trainerUser.profilePicture} alt={trainerUser.firstName} />
+                          ) : <User />}
+                        </div>
+                        <div>
+                          <strong>{trainerUser ? `${trainerUser.firstName} ${trainerUser.lastName}` : "Trainer"}</strong>
+                          <span>{trainerUser?.email || ""}</span>
+                          {trainer?.location ? <span>{trainer.location}</span> : null}
+                        </div>
+                      </div>
+                      <div className="trainer-booking-details">
+                        <div className="trainer-booking-slot">
+                          <strong>{formatDate(booking.slotDate)}</strong>
+                          <span>{booking.timeLabel}</span>
+                        </div>
+                        <span className={`trainer-booking-status trainer-booking-status-${booking.status}`}>
+                          {booking.status === "pending" && <Clock />}
+                          {(booking.status === "confirmed" || booking.status === "completed") && <CheckCircle />}
+                          {booking.status === "cancelled" && <XCircle />}
+                          {TRAINER_STATUS_LABELS[booking.status]}
+                        </span>
+                      </div>
+                      {booking.notes ? <p className="trainer-booking-notes"><strong>Your note:</strong> {booking.notes}</p> : null}
+                      {booking.trainerNotes ? <p className="trainer-booking-notes trainer-booking-trainer-response"><strong>Trainer's note:</strong> {booking.trainerNotes}</p> : null}
+                      {canCancel && (
+                        <div className="trainer-booking-action-buttons">
+                          <button type="button" className="trainer-booking-decline" disabled={isProcessing} onClick={() => handleCancelTrainer(booking._id)}>
+                            <X /> {isProcessing ? "…" : "Cancel Booking"}
+                          </button>
+                        </div>
                       )}
-                    </div>
-                    <div>
-                      <strong>
-                        {trainerUser
-                          ? `${trainerUser.firstName} ${trainerUser.lastName}`
-                          : "Trainer"}
-                      </strong>
-                      <span>{trainerUser?.email || ""}</span>
-                      {trainer?.location ? <span>{trainer.location}</span> : null}
-                    </div>
-                  </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
-                  <div className="trainer-booking-details">
-                    <div className="trainer-booking-slot">
-                      <strong>{formatDate(booking.slotDate)}</strong>
-                      <span>{booking.timeLabel}</span>
-                    </div>
-                    <span className={`trainer-booking-status trainer-booking-status-${booking.status}`}>
-                      {booking.status === "pending" ? <Clock aria-hidden="true" /> : null}
-                      {booking.status === "confirmed" ? <CheckCircle aria-hidden="true" /> : null}
-                      {booking.status === "completed" ? <CheckCircle aria-hidden="true" /> : null}
-                      {booking.status === "cancelled" ? <XCircle aria-hidden="true" /> : null}
-                      {STATUS_LABELS[booking.status]}
-                    </span>
-                  </div>
-
-                  {booking.notes ? (
-                    <p className="trainer-booking-notes">
-                      <strong>Your note:</strong> {booking.notes}
-                    </p>
-                  ) : null}
-
-                  {booking.trainerNotes ? (
-                    <p className="trainer-booking-notes trainer-booking-trainer-response">
-                      <strong>Trainer's note:</strong> {booking.trainerNotes}
-                    </p>
-                  ) : null}
-
-                  {canCancel ? (
-                    <div className="trainer-booking-action-buttons">
-                      <button
-                        type="button"
-                        className="trainer-booking-decline"
-                        disabled={isProcessing}
-                        onClick={() => handleCancel(booking._id)}
-                      >
-                        <X aria-hidden="true" />
-                        {isProcessing ? "..." : "Cancel Booking"}
-                      </button>
-                    </div>
-                  ) : null}
-                </article>
-              );
-            })}
-          </div>
+        {/* ── Service bookings ── */}
+        {tab === "service" && (
+          <>
+            <p style={{ color: "var(--muted)", fontSize: 14, margin: "0 0 14px" }}>
+              Your gym installation and maintenance service bookings.
+            </p>
+            <div className="trainer-booking-filters">
+              {(["all", "pending", "confirmed", "completed", "cancelled"] as const).map((f) => (
+                <button key={f} type="button"
+                  className={`trainer-booking-filter-btn${svcFilter === f ? " active" : ""}`}
+                  onClick={() => setSvcFilter(f as "all" | ServiceBookingStatus)}>
+                  {f === "all" ? "All" : SVC_STATUS_LABELS[f as ServiceBookingStatus]}
+                </button>
+              ))}
+            </div>
+            {svcMessage && <p className="customer-review-message">{svcMessage}</p>}
+            {svcError && <p className="auth-message error">{svcError}</p>}
+            {svcLoading ? (
+              <div className="customer-orders-empty">Loading…</div>
+            ) : filteredSvc.length === 0 ? (
+              <div className="customer-orders-empty">
+                <CalendarDays style={{ width: 38, height: 38, opacity: 0.35, display: "block", margin: "0 auto 10px" }} />
+                {svcFilter === "all"
+                  ? <><span>No service bookings yet.</span><br /><Link href="/services" style={{ color: "var(--foreground)", fontWeight: 600 }}>Browse Services</Link></>
+                  : `No ${SVC_STATUS_LABELS[svcFilter as ServiceBookingStatus]?.toLowerCase()} bookings.`}
+              </div>
+            ) : (
+              <div className="trainer-booking-list">
+                {filteredSvc.map((b) => {
+                  const canCancel = b.status === "pending" || b.status === "confirmed";
+                  const isProcessing = svcProcessingId === b._id;
+                  return (
+                    <article className="trainer-booking-card" key={b._id}>
+                      <div className="trainer-booking-client">
+                        <div className="trainer-booking-avatar svc-booking-avatar">
+                          <CalendarDays />
+                        </div>
+                        <div>
+                          <strong>{getServiceName(b)}</strong>
+                          <span>Booked for {formatDate(b.scheduledDate)}</span>
+                          <span>Npr {b.amount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="trainer-booking-details">
+                        <div className="trainer-booking-slot">
+                          <strong>Date</strong>
+                          <span>{formatDate(b.scheduledDate)}</span>
+                        </div>
+                        <span className={`trainer-booking-status trainer-booking-status-${b.status}`}>
+                          {b.status === "pending" && <Clock />}
+                          {(b.status === "confirmed" || b.status === "completed") && <CheckCircle />}
+                          {b.status === "cancelled" && <XCircle />}
+                          {SVC_STATUS_LABELS[b.status]}
+                        </span>
+                      </div>
+                      {b.notes && <p className="trainer-booking-notes"><strong>Your note:</strong> {b.notes}</p>}
+                      {b.adminNotes && <p className="trainer-booking-notes trainer-booking-trainer-response"><strong>Admin note:</strong> {b.adminNotes}</p>}
+                      {b.status === "completed" && (
+                        <div className="trainer-booking-action-buttons">
+                          <Link href={`/user/to-review?type=service&id=${b._id}&serviceId=${typeof b.serviceId === "string" ? b.serviceId : b.serviceId._id}`}
+                            className="trainer-booking-confirm">
+                            Leave a Review
+                          </Link>
+                        </div>
+                      )}
+                      {canCancel && (
+                        <div className="trainer-booking-action-buttons">
+                          <button type="button" className="trainer-booking-decline" disabled={isProcessing} onClick={() => handleCancelService(b._id)}>
+                            <X /> {isProcessing ? "…" : "Cancel Booking"}
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </CustomerDashboardShell>

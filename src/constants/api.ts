@@ -139,6 +139,15 @@ export const API_ENDPOINTS = {
     uploadImage: '/services/upload-image',
   },
 
+  // Service bookings
+  serviceBookings: {
+    create: '/service-bookings',
+    my: '/service-bookings/my',
+    adminAll: '/service-bookings',
+    updateStatus: (id: string) => `/service-bookings/${id}/status`,
+    cancel: (id: string) => `/service-bookings/${id}/cancel`,
+  },
+
   // Bookings (trainer-client sessions)
   bookings: {
     create: '/bookings',

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Edit2, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, CheckCircle, Clock, Edit2, Plus, Search, Trash2, X, XCircle } from "lucide-react";
 import {
   BackendService,
   ServicePayload,
@@ -11,6 +11,7 @@ import {
   updateService,
   uploadServiceImage,
 } from "@/features/services";
+import { BackendServiceBooking, ServiceBookingStatus, fetchAllServiceBookings, updateServiceBookingStatus } from "@/features/serviceBookings";
 
 type ServiceForm = {
   name: string;
@@ -55,7 +56,16 @@ const toPayload = (f: ServiceForm): ServicePayload => ({
   isActive: f.isActive,
 });
 
+const SVC_STATUS_LABELS: Record<ServiceBookingStatus, string> = {
+  pending: "Pending", confirmed: "Confirmed", completed: "Completed", cancelled: "Cancelled",
+};
+const formatDate = (d: string) =>
+  new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
+
 export default function AdminServicesPage() {
+  const [tab, setTab] = useState<"services" | "bookings">("services");
+
+  // Services tab
   const [services, setServices] = useState<BackendService[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -68,6 +78,13 @@ export default function AdminServicesPage() {
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Bookings tab
+  const [svcBookings, setSvcBookings] = useState<BackendServiceBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<"all" | ServiceBookingStatus>("all");
+  const [updatingBookingId, setUpdatingBookingId] = useState("");
+  const [bookingMsg, setBookingMsg] = useState("");
 
   const filtered = search.trim()
     ? services.filter(
@@ -91,6 +108,22 @@ export default function AdminServicesPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const loadBookings = async () => {
+    setBookingsLoading(true);
+    try { setSvcBookings(await fetchAllServiceBookings()); } catch {} finally { setBookingsLoading(false); }
+  };
+  useEffect(() => { if (tab === "bookings") loadBookings(); }, [tab]);
+
+  const handleBookingStatusChange = async (id: string, status: ServiceBookingStatus) => {
+    setUpdatingBookingId(id);
+    setBookingMsg("");
+    try {
+      const updated = await updateServiceBookingStatus(id, status);
+      setSvcBookings((cur) => cur.map((b) => b._id === id ? updated : b));
+      setBookingMsg(`Status updated to ${SVC_STATUS_LABELS[status]}.`);
+    } catch {} finally { setUpdatingBookingId(""); }
+  };
 
   const openCreate = () => {
     setEditingService(null);
@@ -186,19 +219,127 @@ export default function AdminServicesPage() {
     }
   };
 
+  const filteredBookings = bookingStatusFilter === "all"
+    ? svcBookings
+    : svcBookings.filter((b) => b.status === bookingStatusFilter);
+
+  const getClientName = (b: BackendServiceBooking) =>
+    typeof b.clientId === "string" ? b.contactName : `${b.clientId.firstName} ${b.clientId.lastName}`;
+  const getClientEmail = (b: BackendServiceBooking) =>
+    typeof b.clientId === "string" ? b.contactEmail : b.clientId.email;
+  const getServiceName = (b: BackendServiceBooking) =>
+    typeof b.serviceId === "string" ? "Service" : b.serviceId.name;
+
   return (
     <section className="admin-products-page">
       <header className="admin-products-header">
         <div>
           <h1>Services</h1>
-          <p>{services.length} service{services.length === 1 ? "" : "s"} customers can purchase.</p>
+          <p>
+            {tab === "services"
+              ? `${services.length} service${services.length === 1 ? "" : "s"} customers can purchase.`
+              : `${svcBookings.length} service booking${svcBookings.length === 1 ? "" : "s"}.`}
+          </p>
         </div>
-        <button type="button" className="admin-create-button" onClick={openCreate}>
-          <Plus aria-hidden="true" />
-          Create Service
-        </button>
+        {tab === "services" && (
+          <button type="button" className="admin-create-button" onClick={openCreate}>
+            <Plus aria-hidden="true" />
+            Create Service
+          </button>
+        )}
       </header>
 
+      {/* Tab toggle */}
+      <div className="bookings-main-tabs" style={{ marginBottom: 24 }}>
+        <button
+          type="button"
+          className={`bookings-main-tab${tab === "services" ? " active" : ""}`}
+          onClick={() => setTab("services")}
+        >
+          Services
+          <span className="bookings-tab-count">{services.length}</span>
+        </button>
+        <button
+          type="button"
+          className={`bookings-main-tab${tab === "bookings" ? " active" : ""}`}
+          onClick={() => setTab("bookings")}
+        >
+          Bookings
+          <span className="bookings-tab-count">{svcBookings.length}</span>
+        </button>
+      </div>
+
+      {/* ── Bookings tab ── */}
+      {tab === "bookings" && (
+        <div>
+          <div className="trainer-booking-filters" style={{ marginBottom: 16 }}>
+            {(["all", "pending", "confirmed", "completed", "cancelled"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`trainer-booking-filter-btn${bookingStatusFilter === f ? " active" : ""}`}
+                onClick={() => setBookingStatusFilter(f as "all" | ServiceBookingStatus)}
+              >
+                {f === "all" ? "All" : SVC_STATUS_LABELS[f as ServiceBookingStatus]}
+              </button>
+            ))}
+          </div>
+          {bookingMsg && <p className="admin-products-message success">{bookingMsg}</p>}
+          {bookingsLoading ? (
+            <div className="admin-products-empty">Loading bookings…</div>
+          ) : filteredBookings.length === 0 ? (
+            <div className="admin-products-empty">
+              {bookingStatusFilter === "all" ? "No service bookings yet." : `No ${SVC_STATUS_LABELS[bookingStatusFilter as ServiceBookingStatus]?.toLowerCase()} bookings.`}
+            </div>
+          ) : (
+            <div className="trainer-booking-list">
+              {filteredBookings.map((b) => {
+                const isUpdating = updatingBookingId === b._id;
+                return (
+                  <article className="trainer-booking-card svc-admin-booking-card" key={b._id}>
+                    <div className="svc-admin-booking-top">
+                      <div className="svc-admin-booking-info">
+                        <strong className="svc-admin-booking-service">{getServiceName(b)}</strong>
+                        <span>{getClientName(b)} · {getClientEmail(b)}</span>
+                        {b.contactPhone && <span>{b.contactPhone}</span>}
+                        <span>Scheduled: {formatDate(b.scheduledDate)}</span>
+                        <span>Amount: Npr {b.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="svc-admin-booking-status-col">
+                        <span className={`trainer-booking-status trainer-booking-status-${b.status}`}>
+                          {b.status === "pending" && <Clock size={14} />}
+                          {(b.status === "confirmed" || b.status === "completed") && <CheckCircle size={14} />}
+                          {b.status === "cancelled" && <XCircle size={14} />}
+                          {SVC_STATUS_LABELS[b.status]}
+                        </span>
+                        {b.status !== "cancelled" && (
+                          <select
+                            className="svc-admin-status-select"
+                            value={b.status}
+                            disabled={isUpdating}
+                            onChange={(e) => handleBookingStatusChange(b._id, e.target.value as ServiceBookingStatus)}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancel</option>
+                          </select>
+                        )}
+                      </div>
+                    </div>
+                    {b.notes && <p className="trainer-booking-notes"><strong>Client note:</strong> {b.notes}</p>}
+                    {b.adminNotes && <p className="trainer-booking-notes trainer-booking-trainer-response"><strong>Admin note:</strong> {b.adminNotes}</p>}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Services tab ── */}
+      {tab === "services" && (
+        <>
       <form
         className="admin-product-search"
         onSubmit={(e) => e.preventDefault()}
@@ -418,6 +559,8 @@ export default function AdminServicesPage() {
           )}
         </div>
       </div>
+        </>
+      )}
     </section>
   );
 }
