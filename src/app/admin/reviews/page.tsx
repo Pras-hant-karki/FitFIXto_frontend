@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, Search, Star, Trash2 } from "lucide-react";
-import { BackendReview, fetchAdminReviews, moderateReview } from "@/features/reviews";
+import { BackendReview, featureReview, fetchAdminReviews, moderateReview } from "@/features/reviews";
 import { BackendProduct, getProductImage } from "@/features/products";
 
 type ReviewTab = "all" | "approved" | "removed";
@@ -61,6 +61,7 @@ export default function AdminReviewsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [updatingReviewId, setUpdatingReviewId] = useState("");
+  const [featuringReviewId, setFeaturingReviewId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -117,6 +118,24 @@ export default function AdminReviewsPage() {
       setError(err instanceof Error ? err.message : "Unable to moderate review.");
     } finally {
       setUpdatingReviewId("");
+    }
+  };
+
+  const handleFeature = async (review: BackendReview) => {
+    setMessage("");
+    setError("");
+    setFeaturingReviewId(review._id);
+    const next = !review.isFeatured;
+    try {
+      const updated = await featureReview(review._id, next);
+      if (updated) {
+        setReviews((current) => current.map((r) => (r._id === updated._id ? updated : r)));
+      }
+      setMessage(next ? "Review featured on homepage." : "Review removed from homepage.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update feature status.");
+    } finally {
+      setFeaturingReviewId("");
     }
   };
 
@@ -206,6 +225,16 @@ export default function AdminReviewsPage() {
 
                 <div className="admin-review-actions">
                   <span className={`admin-review-status ${status}`}>{status}</span>
+                  <button
+                    type="button"
+                    className={review.isFeatured ? "admin-review-feature-btn featured" : "admin-review-feature-btn"}
+                    title={review.isFeatured ? "Remove from homepage" : "Feature on homepage"}
+                    disabled={featuringReviewId === review._id}
+                    onClick={() => handleFeature(review)}
+                  >
+                    <Star aria-hidden="true" className={review.isFeatured ? "filled" : undefined} />
+                    {review.isFeatured ? "Featured" : "Feature"}
+                  </button>
                   <button
                     type="button"
                     disabled={updatingReviewId === review._id || status === "approved"}

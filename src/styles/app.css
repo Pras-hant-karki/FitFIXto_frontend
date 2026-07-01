@@ -2221,9 +2221,16 @@ a {
 
 .stars {
   margin-bottom: 14px;
-  color: #ffb000;
   font-size: 17px;
   letter-spacing: 1px;
+}
+
+.stars .star {
+  color: #ddd;
+}
+
+.stars .star.active {
+  color: #ffb000;
 }
 
 .testimonial-card p {
@@ -6393,6 +6400,34 @@ a {
 .admin-review-status.removed {
   background: #f0f0f3;
   color: #747584;
+}
+
+.admin-review-feature-btn {
+  color: #747584;
+  border-color: #e5e5e8;
+}
+
+.admin-review-feature-btn.featured {
+  color: #c89b00;
+  border-color: #f5dc6a;
+  background: #fffbea;
+}
+
+.admin-review-feature-btn svg {
+  width: 15px;
+  height: 15px;
+  transition: fill 0.15s;
+}
+
+.admin-review-feature-btn.featured svg,
+.admin-review-feature-btn svg.filled {
+  fill: #c89b00;
+  stroke: #c89b00;
+}
+
+.dark .admin-review-feature-btn.featured {
+  background: rgba(200, 155, 0, 0.15);
+  border-color: rgba(200, 155, 0, 0.4);
 }
 
 .admin-orders-header h1 {
@@ -11900,6 +11935,62 @@ a {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SERVICES PAGE (public)
+   ═══════════════════════════════════════════════════════════ */
+
+.services-page {
+  min-height: 60vh;
+}
+
+.services-hero {
+  position: relative;
+  background: #111;
+  background-image: url("/assets/ctabanner.png");
+  background-size: cover;
+  background-position: center;
+  padding: 72px 24px;
+}
+
+.services-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.services-hero-inner {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.services-hero-inner h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 12px;
+  line-height: 1.1;
+}
+
+.services-hero-inner p {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.services-main {
+  padding: 64px 0;
+}
+
+.services-loading,
+.services-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 /* ═══════════════════════════════════════════════════════════

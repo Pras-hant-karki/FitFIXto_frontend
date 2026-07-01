@@ -19,6 +19,7 @@ export interface BackendReview {
   comment?: string;
   isActive: boolean;
   moderationStatus?: "approved" | "removed";
+  isFeatured?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +39,11 @@ export interface ReviewListResponse {
 export const fetchReviews = async (params?: Record<string, string | number>) => {
   const response = await apiClient.get<ReviewListResponse>(API_ENDPOINTS.reviews.list, { params });
   return response.data;
+};
+
+export const fetchFeaturedReviews = async (): Promise<BackendReview[]> => {
+  const response = await apiClient.get<{ reviews: BackendReview[] }>(API_ENDPOINTS.reviews.featured);
+  return response.data?.reviews || [];
 };
 
 export const fetchMyReviews = async () => {
@@ -65,5 +71,13 @@ export const moderateReview = async (reviewId: string, status: "approved" | "rem
   const response = await apiClient.patch<{ review: BackendReview }>(API_ENDPOINTS.reviews.moderate(reviewId), {
     status,
   });
+  return response.data?.review;
+};
+
+export const featureReview = async (reviewId: string, isFeatured: boolean) => {
+  const response = await apiClient.patch<{ review: BackendReview }>(
+    API_ENDPOINTS.reviews.feature(reviewId),
+    { isFeatured }
+  );
   return response.data?.review;
 };
