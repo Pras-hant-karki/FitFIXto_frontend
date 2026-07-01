@@ -33,6 +33,15 @@ export interface BackendBooking {
   trainerId: string | PopulatedTrainer;
   slotDate: string;
   timeLabel: string;
+  sessionType: "single" | "five_pack" | "ten_pack";
+  sessionCount: number;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  paymentMethod: "esewa" | "khalti" | "card" | "cash";
+  subtotal: number;
+  serviceFee: number;
+  totalAmount: number;
   status: BookingStatus;
   notes?: string;
   trainerNotes?: string;
@@ -50,6 +59,11 @@ export const createBooking = async (payload: {
   trainerId: string;
   slotDate: string;
   timeLabel: string;
+  sessionType: "single" | "five_pack" | "ten_pack";
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  paymentMethod: "esewa" | "khalti" | "card" | "cash";
   notes?: string;
 }) => {
   const response = await apiClient.post<{ booking: BackendBooking }>(

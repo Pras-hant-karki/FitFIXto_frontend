@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Award, Check, MapPin, Star } from "lucide-react";
 import {
   BackendTrainer,
@@ -34,6 +34,21 @@ const dayOptions: Array<{ key: TrainerAvailabilityDay; label: string }> = [
 
 const dayOrder = new Map(dayOptions.map((day, index) => [day.key, index]));
 
+const formatAvailabilityTime = (value: string) =>
+  value
+    .replace(/:00/g, "")
+    .replace(/\s*(AM|PM)/gi, (_, period: string) => ` ${period.toLowerCase()}`)
+    .replace(/\s*[–—-]\s*/g, " - ")
+    .trim();
+
+const timeToMinutes = (value: string) => {
+  const match = value.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === "PM") hour += 12;
+  return hour * 60 + Number(match[2] || 0);
+};
+
 type TrainerDetailTab = "about" | "programs" | "availability" | "reviews";
 
 export default function TrainerDetailsPage() {
@@ -44,6 +59,7 @@ export default function TrainerDetailsPage() {
   const [availability, setAvailability] = useState<BackendTrainerAvailability[]>([]);
   const [selectedAvailabilityId, setSelectedAvailabilityId] = useState("");
   const [activeTab, setActiveTab] = useState<TrainerDetailTab>("about");
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -100,7 +116,10 @@ export default function TrainerDetailsPage() {
   const trainerPhoto = trainer ? getTrainerPhoto(trainer) : "";
   const trainerName = trainer ? getTrainerName(trainer) : "";
   const specialtyLine = useMemo(() => trainer?.specialties.join(" · ") || "Personal Training", [trainer?.specialties]);
-  const availabilityTimes = useMemo(() => Array.from(new Set(availability.map((slot) => slot.timeLabel))).sort(), [availability]);
+  const availabilityTimes = useMemo(
+    () => Array.from(new Set(availability.map((slot) => slot.timeLabel))).sort((a, b) => timeToMinutes(a) - timeToMinutes(b)),
+    [availability]
+  );
   const selectedAvailability = availability.find((slot) => slot._id === selectedAvailabilityId);
 
   if (isLoading) {
@@ -273,7 +292,7 @@ export default function TrainerDetailsPage() {
                     </div>
                     {availabilityTimes.map((timeLabel) => (
                       <div className="trainer-availability-row" key={timeLabel} role="row">
-                        <span role="cell">{timeLabel}</span>
+                        <span className="trainer-availability-time" role="cell">{formatAvailabilityTime(timeLabel)}</span>
                         {dayOptions.map((day) => {
                           const slot = availability.find((item) => item.dayOfWeek === day.key && item.timeLabel === timeLabel);
 
@@ -303,7 +322,16 @@ export default function TrainerDetailsPage() {
                         ? `${dayOptions.find((day) => day.key === selectedAvailability.dayOfWeek)?.label} · ${selectedAvailability.timeLabel}`
                         : "Choose a day and time to continue."}
                     </span>
-                    <button type="button" disabled={!selectedAvailability}>
+                    <button
+                      type="button"
+                      disabled={!selectedAvailability}
+                      onClick={() => {
+                        if (!selectedAvailability) return;
+                        router.push(
+                          `/trainers/${trainerId}/book?day=${selectedAvailability.dayOfWeek}&time=${encodeURIComponent(selectedAvailability.timeLabel)}`
+                        );
+                      }}
+                    >
                       Proceed to Booking
                     </button>
                   </div>

@@ -26,20 +26,20 @@ const DAYS: { key: DayKey; label: string; short: string }[] = [
 ];
 
 const TIME_SLOTS = [
-  "6:00 AM – 7:00 AM",
-  "7:00 AM – 8:00 AM",
-  "8:00 AM – 9:00 AM",
-  "9:00 AM – 10:00 AM",
-  "10:00 AM – 11:00 AM",
-  "11:00 AM – 12:00 PM",
-  "12:00 PM – 1:00 PM",
-  "1:00 PM – 2:00 PM",
-  "2:00 PM – 3:00 PM",
-  "3:00 PM – 4:00 PM",
-  "4:00 PM – 5:00 PM",
-  "5:00 PM – 6:00 PM",
-  "6:00 PM – 7:00 PM",
-  "7:00 PM – 8:00 PM",
+  "6 AM – 7 AM",
+  "7 AM – 8 AM",
+  "8 AM – 9 AM",
+  "9 AM – 10 AM",
+  "10 AM – 11 AM",
+  "11 AM – 12 PM",
+  "12 PM – 1 PM",
+  "1 PM – 2 PM",
+  "2 PM – 3 PM",
+  "3 PM – 4 PM",
+  "4 PM – 5 PM",
+  "5 PM – 6 PM",
+  "6 PM – 7 PM",
+  "7 PM – 8 PM",
 ];
 
 const JS_DAY_TO_KEY: Record<number, DayKey> = {
