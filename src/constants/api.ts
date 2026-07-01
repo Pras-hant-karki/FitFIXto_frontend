@@ -117,6 +117,17 @@ export const API_ENDPOINTS = {
     uploadImages: '/partner-gyms/upload-images',
   },
 
+  // Discounts & Promotions
+  discounts: {
+    public: '/discounts/public',
+    admin: '/discounts',
+    flashSale: '/discounts/flash-sale',
+    bestPrice: '/discounts/best-price',
+    refundGuarantee: '/discounts/refund-guarantee',
+    bundles: '/discounts/bundles',
+    bundleDetail: (id: string) => `/discounts/bundles/${id}`,
+  },
+
   // Services
   services: {
     list: '/services',
