@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts";
 
 const customerNav = [
   { label: "Orders", Icon: Box, href: "/user/dashboard" },
-  { label: "Bookings", Icon: CalendarDays },
+  { label: "Bookings", Icon: CalendarDays, href: "/user/bookings" },
   { label: "To Review", Icon: Star, href: "/user/to-review" },
   { label: "Returns", Icon: RotateCcw },
   { label: "Profile", Icon: UserRound, href: "/user/profile" },

@@ -117,6 +117,16 @@ export const API_ENDPOINTS = {
     uploadImages: '/partner-gyms/upload-images',
   },
 
+  // Bookings (trainer-client sessions)
+  bookings: {
+    create: '/bookings',
+    myClient: '/bookings/my',
+    myTrainer: '/bookings/trainer',
+    myClients: '/bookings/trainer/clients',
+    updateStatus: (id: string) => `/bookings/${id}/status`,
+    cancel: (id: string) => `/bookings/${id}/cancel`,
+  },
+
 } as const;
 
 export const API_HEADERS = {

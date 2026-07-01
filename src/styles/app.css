@@ -10418,3 +10418,1178 @@ a {
     font-size: 18px;
   }
 }
+
+/* ============================================================
+   TRAINER DASHBOARD — settings
+   ============================================================ */
+
+.trainer-settings-section {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px 24px;
+  background: var(--background);
+}
+
+.trainer-settings-heading {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+.trainer-settings-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 1.5px solid #be123c;
+  border-radius: 6px;
+  background: transparent;
+  color: #be123c;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.trainer-settings-logout:hover {
+  background: #be123c;
+  color: #fff;
+}
+
+/* ============================================================
+   TRAINER DASHBOARD — bookings (trainer side) + user/bookings
+   ============================================================ */
+
+.trainer-booking-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.trainer-booking-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  background: var(--background);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.trainer-booking-filter-btn:hover {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.trainer-booking-filter-btn.active {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.trainer-booking-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.trainer-booking-list {
+  display: grid;
+  gap: 14px;
+}
+
+.trainer-booking-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  background: var(--background);
+}
+
+.trainer-booking-client {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trainer-booking-avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.trainer-booking-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trainer-booking-avatar svg {
+  width: 22px;
+  height: 22px;
+}
+
+.trainer-booking-client > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.trainer-booking-client strong {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trainer-booking-client span {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trainer-booking-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trainer-booking-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trainer-booking-slot strong {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--foreground);
+}
+
+.trainer-booking-slot span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.trainer-booking-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.trainer-booking-status svg {
+  width: 13px;
+  height: 13px;
+}
+
+.trainer-booking-status-pending {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.trainer-booking-status-confirmed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.trainer-booking-status-completed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.trainer-booking-status-cancelled {
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.trainer-booking-notes {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 7px;
+  background: var(--panel);
+  font-size: 13px;
+  color: var(--foreground);
+  line-height: 1.5;
+}
+
+.trainer-booking-notes strong {
+  font-weight: 900;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+.trainer-booking-trainer-response {
+  border-left: 3px solid var(--accent);
+}
+
+.trainer-booking-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.trainer-booking-trainer-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.trainer-booking-trainer-note input {
+  height: 38px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--foreground);
+  background: var(--background);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.trainer-booking-trainer-note input:focus {
+  border-color: var(--foreground);
+}
+
+.trainer-booking-action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.trainer-booking-confirm,
+.trainer-booking-decline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.trainer-booking-confirm:disabled,
+.trainer-booking-decline:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.trainer-booking-confirm {
+  background: #16a34a;
+  color: #fff;
+}
+
+.trainer-booking-confirm:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.trainer-booking-decline {
+  background: #be123c;
+  color: #fff;
+}
+
+.trainer-booking-decline:hover:not(:disabled) {
+  background: #9f1239;
+}
+
+.trainer-booking-confirm svg,
+.trainer-booking-decline svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================================
+   TRAINER DASHBOARD — clients
+   ============================================================ */
+
+.trainer-clients-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 0 14px;
+  margin-bottom: 18px;
+  background: var(--background);
+  transition: border-color 0.15s;
+}
+
+.trainer-clients-search:focus-within {
+  border-color: var(--foreground);
+}
+
+.trainer-clients-search svg {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  color: var(--muted);
+}
+
+.trainer-clients-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--foreground);
+  outline: none;
+}
+
+.trainer-clients-table-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.trainer-clients-table {
+  display: grid;
+  min-width: 0;
+}
+
+.trainer-clients-head,
+.trainer-clients-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) 1fr 1fr 1fr 80px;
+  gap: 0;
+  align-items: center;
+}
+
+.trainer-clients-head {
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.trainer-clients-row {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+.trainer-clients-row:last-child {
+  border-bottom: 0;
+}
+
+.trainer-clients-row > span,
+.trainer-clients-row > strong {
+  color: var(--foreground);
+  font-size: 13px;
+}
+
+.trainer-client-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-client-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.trainer-client-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trainer-client-avatar svg {
+  width: 18px;
+  height: 18px;
+}
+
+.trainer-client-name > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.trainer-client-name strong {
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trainer-client-name span {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trainer-client-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.trainer-client-status.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.trainer-client-status.inactive {
+  background: var(--panel);
+  color: var(--muted);
+}
+
+/* ============================================================
+   TRAINER DASHBOARD — programs
+   ============================================================ */
+
+.trainer-programs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 52px 24px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.trainer-programs-empty svg {
+  width: 40px;
+  height: 40px;
+  opacity: 0.35;
+}
+
+.trainer-programs-empty strong {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--foreground);
+}
+
+.trainer-programs-empty span {
+  font-size: 14px;
+  max-width: 320px;
+}
+
+.trainer-program-list-page {
+  display: grid;
+  gap: 12px;
+}
+
+.trainer-program-list-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  background: var(--background);
+}
+
+.trainer-program-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+}
+
+.trainer-program-list-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trainer-program-list-meta strong {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--foreground);
+}
+
+.trainer-program-list-info > p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.trainer-program-list-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+.trainer-program-list-stats strong {
+  font-weight: 900;
+  color: var(--foreground);
+}
+
+.trainer-program-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.trainer-program-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.trainer-program-badge.inactive {
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.trainer-program-list-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.trainer-program-edit-btn,
+.trainer-program-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.trainer-program-edit-btn:hover {
+  border-color: var(--foreground);
+}
+
+.trainer-program-delete-btn {
+  border-color: var(--line);
+  color: #be123c;
+}
+
+.trainer-program-delete-btn:hover {
+  border-color: #be123c;
+  background: #fff1f2;
+}
+
+.trainer-program-edit-btn svg,
+.trainer-program-delete-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* trainer modal */
+.trainer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.trainer-modal {
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  border-radius: 16px;
+  background: var(--background);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+}
+
+.trainer-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 20px 24px 0;
+}
+
+.trainer-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--foreground);
+}
+
+.trainer-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.trainer-modal-close:hover {
+  background: var(--line);
+}
+
+.trainer-modal-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.trainer-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px 24px;
+}
+
+.trainer-modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--foreground);
+}
+
+.trainer-modal-form input,
+.trainer-modal-form textarea {
+  height: 40px;
+  border: 1.5px solid var(--line);
+  border-radius: 7px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--foreground);
+  background: var(--background);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.trainer-modal-form textarea {
+  height: 88px;
+  resize: vertical;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.trainer-modal-form input:focus,
+.trainer-modal-form textarea:focus {
+  border-color: var(--foreground);
+}
+
+.trainer-modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.trainer-modal-checkbox {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 14px !important;
+  cursor: pointer;
+}
+
+.trainer-modal-checkbox input {
+  width: 16px;
+  height: 16px !important;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.trainer-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.trainer-modal-cancel-btn {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 7px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.trainer-modal-cancel-btn:hover {
+  border-color: var(--foreground);
+}
+
+.trainer-modal-submit-btn {
+  min-height: 40px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 7px;
+  background: #030213;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.trainer-modal-submit-btn:disabled,
+.trainer-modal-cancel-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   TRAINER DASHBOARD — slots / availability calendar
+   ============================================================ */
+
+.trainer-slots-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1.5px solid #be123c;
+  border-radius: 5px;
+  background: transparent;
+  color: #be123c;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.trainer-slots-clear-btn:hover:not(:disabled) {
+  background: #be123c;
+  color: #fff;
+}
+
+.trainer-slots-clear-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.trainer-slots-clear-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.trainer-slots-grid-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.trainer-slots-grid {
+  display: grid;
+  grid-template-columns: 160px repeat(7, minmax(54px, 1fr));
+  min-width: 600px;
+}
+
+.trainer-slots-time-col {
+  padding: 10px 14px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.trainer-slots-day-head {
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--foreground);
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  letter-spacing: 0.02em;
+}
+
+.trainer-slots-day-head:last-child {
+  border-right: 0;
+}
+
+.trainer-slots-time-label {
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  white-space: nowrap;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  min-height: 40px;
+  background: var(--background);
+}
+
+.trainer-slots-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--background);
+  color: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.trainer-slots-cell:last-of-type {
+  border-right: 0;
+}
+
+.trainer-slots-cell:hover:not(:disabled) {
+  background: var(--panel);
+}
+
+.trainer-slots-cell.active {
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.trainer-slots-cell:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* calendar preview */
+.trainer-slots-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trainer-slots-cal-nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.trainer-slots-cal-nav button:hover:not(:disabled) {
+  border-color: var(--foreground);
+}
+
+.trainer-slots-cal-nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.trainer-slots-cal-nav button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.trainer-slots-cal-nav span {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--foreground);
+  min-width: 130px;
+  text-align: center;
+}
+
+.trainer-slots-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.trainer-cal-head {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trainer-cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--foreground);
+  position: relative;
+  cursor: default;
+}
+
+.trainer-cal-cell.empty {
+  visibility: hidden;
+}
+
+.trainer-cal-cell.past {
+  color: var(--muted);
+  opacity: 0.45;
+}
+
+.trainer-cal-cell.today {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 900;
+}
+
+.trainer-cal-cell.available:not(.today) {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.trainer-cal-cell i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.trainer-cal-cell.today i {
+  background: rgba(255,255,255,0.7);
+}
+
+.trainer-cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.trainer-cal-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trainer-cal-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.trainer-cal-dot.available {
+  background: #dcfce7;
+  border: 1px solid #16a34a;
+}
+
+.trainer-cal-dot.today {
+  background: var(--accent);
+}
+
+/* ============================================================
+   DARK MODE — trainer dashboard
+   ============================================================ */
+
+.dark .trainer-booking-status-pending {
+  background: #422006;
+  color: #fde68a;
+}
+
+.dark .trainer-booking-status-confirmed {
+  background: #052e16;
+  color: #86efac;
+}
+
+.dark .trainer-booking-status-completed {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+.dark .trainer-booking-status-cancelled {
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.dark .trainer-program-badge.active {
+  background: #052e16;
+  color: #86efac;
+}
+
+.dark .trainer-client-status.active {
+  background: #052e16;
+  color: #86efac;
+}
+
+.dark .trainer-slots-cell.active {
+  background: #052e16;
+  color: #86efac;
+}
+
+.dark .trainer-cal-cell.available:not(.today) {
+  background: #052e16;
+  color: #86efac;
+}
+
+.dark .trainer-cal-dot.available {
+  background: #052e16;
+  border-color: #16a34a;
+}
+
+.dark .trainer-program-delete-btn:hover {
+  background: #2c0811;
+  border-color: #be123c;
+  color: #fda4af;
+}
+
+.dark .trainer-modal-submit-btn {
+  background: #e5e7eb;
+  color: #030213;
+}
+
+/* ============================================================
+   RESPONSIVE — trainer dashboard (≤ 640px)
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .trainer-clients-head,
+  .trainer-clients-row {
+    grid-template-columns: minmax(130px, 1fr) 1fr 60px;
+  }
+
+  .trainer-clients-head span:nth-child(2),
+  .trainer-clients-head span:nth-child(4),
+  .trainer-clients-row > span:nth-child(2),
+  .trainer-clients-row > span:nth-child(4) {
+    display: none;
+  }
+
+  .trainer-program-list-card {
+    flex-direction: column;
+  }
+
+  .trainer-program-list-actions {
+    width: 100%;
+  }
+
+  .trainer-program-edit-btn,
+  .trainer-program-delete-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .trainer-modal-row {
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-booking-details {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -129,7 +129,11 @@ export function Navbar() {
             <div className="account-dropdown" role="menu">
               {isAuthenticated ? (
                 <>
-                  <Link href="/user/dashboard" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                  <Link
+                    href={user?.role === "trainer" ? "/trainer/dashboard" : "/user/dashboard"}
+                    role="menuitem"
+                    onClick={() => setIsAccountMenuOpen(false)}
+                  >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M3 13h8V3H3zM13 21h8V11h-8zM13 9h8V3h-8zM3 21h8v-6H3z" />
                     </svg>
