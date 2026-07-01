@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { CSSProperties, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, Edit2, Package, Plus, Search, Shield, Trash2, X, Zap } from "lucide-react";
 import {
   Bundle,
@@ -14,16 +14,13 @@ import {
   saveRefundGuarantee,
   updateBundle,
 } from "@/features/discounts";
-import { BackendProduct, fetchProducts } from "@/features/products";
-import { API_BASE_URL } from "@/constants/api";
+import { BackendProduct, fetchProducts, resolveProductImageUrl } from "@/features/products";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
 function productThumb(p: BackendProduct | DiscountProduct) {
   const img = (p as BackendProduct).images?.[0] ?? (p as DiscountProduct).images?.[0] ?? "";
-  if (!img) return "/placeholder.png";
-  if (img.startsWith("http") || img.startsWith("/")) return img;
-  return `${API_BASE_URL.replace("/api/v1", "")}/uploads/${img}`;
+  return resolveProductImageUrl(img) || "/placeholder.png";
 }
 
 const idOf = (p: DiscountProduct | string) => (typeof p === "string" ? p : p._id);
@@ -43,15 +40,31 @@ function ProductPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  const calcStyle = useCallback(() => {
+    if (!toggleRef.current) return;
+    const rect = toggleRef.current.getBoundingClientRect();
+    setPanelStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width });
+  }, []);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    if (!open) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    const reCalc = () => calcStyle();
+    document.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("scroll", reCalc, true);
+    window.addEventListener("resize", reCalc);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("scroll", reCalc, true);
+      window.removeEventListener("resize", reCalc);
+    };
+  }, [open, calcStyle]);
 
   const toggle = (id: string) =>
     onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
@@ -75,18 +88,19 @@ function ProductPicker({
   }
 
   return (
-    <div className="dsc-picker" ref={ref}>
+    <div className="dsc-picker" ref={containerRef}>
       <button
+        ref={toggleRef}
         type="button"
         className={`dsc-picker-toggle${open ? " open" : ""}${selected.length > 0 ? " has-value" : ""}`}
-        onClick={() => { setOpen((v) => !v); setSearch(""); }}
+        onClick={() => { if (open) { setOpen(false); } else { calcStyle(); setSearch(""); setOpen(true); } }}
       >
         <span>{btnLabel}</span>
         <ChevronDown size={14} className={open ? "rotated" : ""} />
       </button>
 
       {open && (
-        <div className="dsc-picker-panel">
+        <div className="dsc-picker-panel" style={panelStyle}>
           <div className="dsc-picker-search">
             <Search size={13} />
             <input
@@ -565,7 +579,7 @@ export default function AdminDiscountsPage() {
     try {
       const [discountsResult, productsResult] = await Promise.allSettled([
         fetchAdminDiscounts(),
-        fetchProducts({ limit: 200 }),
+        fetchProducts({ limit: 100 }),
       ]);
       if (discountsResult.status === "rejected") throw discountsResult.reason;
       setData(discountsResult.value);

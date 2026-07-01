@@ -48,7 +48,17 @@ export interface ProductListResponse {
 
 export const formatCategory = (category: string) => getCategoryLabel(category);
 
-export const getProductImage = (product: BackendProduct) => product.images[0] || "";
+export const resolveProductImageUrl = (img: string): string => {
+  if (!img) return "";
+  if (img.startsWith("http://") || img.startsWith("https://")) return img;
+  const backendBase = API_BASE_URL.replace("/api/v1", "");
+  if (img.startsWith("/assets/")) return `${backendBase}/uploads/${img.slice("/assets/".length)}`;
+  if (img.startsWith("/uploads/")) return `${backendBase}${img}`;
+  return `${backendBase}/uploads/${img}`;
+};
+
+export const getProductImage = (product: BackendProduct): string =>
+  resolveProductImageUrl(product.images[0] || "");
 
 export const getOriginalPrice = (product: BackendProduct) => {
   const discount = product.discountPercentage || 0;
@@ -127,15 +137,14 @@ type UploadedProductImage = {
 };
 
 const toFrontendAssetUrl = (image: UploadedProductImage) => {
+  const backendBase = API_BASE_URL.replace("/api/v1", "");
   if (image.filename) {
-    return `/assets/${image.filename}`;
+    return `${backendBase}/uploads/${image.filename}`;
   }
-
   const uploadsIndex = image.path.indexOf("/uploads/");
   if (uploadsIndex >= 0) {
-    return `/assets/${image.path.slice(uploadsIndex + "/uploads/".length)}`;
+    return `${backendBase}${image.path.slice(uploadsIndex)}`;
   }
-
   return image.url || image.path;
 };
 

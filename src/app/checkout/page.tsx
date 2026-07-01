@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, CreditCard, ShieldCheck, WalletCards } from "lucide-react";
 import { useCart } from "@/contexts";
 import { BackendCart, fetchCart } from "@/features/cart";
-import { fetchPublicDiscounts } from "@/features/discounts";
+import { DiscountData, fetchPublicDiscounts } from "@/features/discounts";
 import {
   CartOrderSummary,
   createDeliveryAddress,
@@ -57,6 +57,7 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("esewa");
   const [refundText, setRefundText] = useState("10-day money-back guarantee. If you're not fully satisfied, return any item within 10 days for a full refund. Refund process might take 3-6 business days");
+  const [publicDiscounts, setPublicDiscounts] = useState<DiscountData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -73,7 +74,7 @@ export default function CheckoutPage() {
           .map((id) => id.trim())
           .filter(Boolean) ?? [];
         const [nextCart, addresses] = await Promise.all([fetchCart(), fetchDeliveryAddresses()]);
-        fetchPublicDiscounts().then((d) => { if (d.refundGuarantee) setRefundText(d.refundGuarantee); }).catch(() => {});
+        fetchPublicDiscounts().then((d) => { if (d.refundGuarantee) setRefundText(d.refundGuarantee); setPublicDiscounts(d); }).catch(() => {});
         const defaultAddress = addresses.find((address) => address.isDefault) || addresses[0];
 
         setSelectedProductIds(selectedIds);
@@ -190,6 +191,7 @@ export default function CheckoutPage() {
       selectedProductIds={selectedProductIds}
       shipping={selectedShipping.price}
       formatMoney={formatMoney}
+      publicDiscounts={publicDiscounts}
     />
   );
 

@@ -12272,11 +12272,7 @@ a {
 }
 
 .dsc-picker-panel {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 200;
+  z-index: 9999;
   background: var(--background);
   border: 1.5px solid var(--line);
   border-radius: 10px;

@@ -13,6 +13,7 @@ import {
   getProductImage,
   productCategoryTree,
 } from "@/features/products";
+import { DiscountData, DiscountProduct, fetchPublicDiscounts } from "@/features/discounts";
 import { AddToCartButton } from "@/features/cart";
 import { useAuth, useWishlist } from "@/contexts";
 
@@ -152,9 +153,14 @@ const ProductCard: React.FC<{
   isSelectedForCompare?: boolean;
   isCompareSelectionDisabled?: boolean;
   onCompareSelect?: (productId: string) => void;
-}> = ({ product, compareMode = false, isSelectedForCompare = false, isCompareSelectionDisabled = false, onCompareSelect }) => {
+  isFlashSale?: boolean;
+  flashSalePercent?: number;
+  isBestPrice?: boolean;
+}> = ({ product, compareMode = false, isSelectedForCompare = false, isCompareSelectionDisabled = false, onCompareSelect, isFlashSale = false, flashSalePercent = 0, isBestPrice = false }) => {
   const discount = product.discountPercentage || 0;
   const originalPrice = getOriginalPrice(product);
+  const effectivePrice = isFlashSale && flashSalePercent > 0 ? Math.round(product.price * (1 - flashSalePercent / 100)) : product.price;
+  const showOriginalPrice = isFlashSale && flashSalePercent > 0 ? product.price : originalPrice;
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
@@ -222,13 +228,22 @@ const ProductCard: React.FC<{
             )}
           </Link>
         )}
-        {product.verifiedBadge && (
-          <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
-            <CheckCircle2 className="w-3 h-3" />
-            <span>VERIFIED</span>
-          </div>
-        )}
-        {discount > 0 ? <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div> : null}
+        <div className="absolute top-3 left-3 flex flex-col gap-1">
+          {product.verifiedBadge && (
+            <div className="flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>VERIFIED</span>
+            </div>
+          )}
+          {isFlashSale && flashSalePercent > 0 && (
+            <div className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+              SALE -{flashSalePercent}%
+            </div>
+          )}
+          {!isFlashSale && discount > 0 && (
+            <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div>
+          )}
+        </div>
         {compareMode ? (
           <span className="shop-compare-check">{isSelectedForCompare ? "Selected" : "Pick"}</span>
         ) : (
@@ -261,9 +276,10 @@ const ProductCard: React.FC<{
           <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
           <span className="text-sm text-gray-500">({product.ratingCount})</span>
         </div>
-        <div className="flex items-baseline space-x-2 mb-4">
-          <span className="text-xl font-bold text-gray-900">Npr {product.price}</span>
-          {originalPrice ? <span className="text-sm text-gray-400 line-through">Npr {originalPrice}</span> : null}
+        <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mb-4">
+          <span className="text-xl font-bold text-gray-900">Npr {effectivePrice}</span>
+          {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">Npr {showOriginalPrice}</span> : null}
+          {isBestPrice && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded">Best Price</span>}
         </div>
         {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
         {isOutOfStock ? (
@@ -328,6 +344,7 @@ const ShopContent: React.FC = () => {
   const [pagination, setPagination] = useState<ProductPagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [discounts, setDiscounts] = useState<DiscountData | null>(null);
 
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
   const selectedSubcategories = useMemo(() => parseListParam(searchParams.get("subcategory")), [searchParamString]);
@@ -350,12 +367,12 @@ const ShopContent: React.FC = () => {
 
   useEffect(() => {
     const loadFacets = async () => {
-      try {
-        const data = await fetchProducts({ limit: 100, sortBy: "createdAt", order: "desc" });
-        setFacetProducts(data?.products || []);
-      } catch {
-        setFacetProducts([]);
-      }
+      const [productsResult, discountsResult] = await Promise.allSettled([
+        fetchProducts({ limit: 100, sortBy: "createdAt", order: "desc" }),
+        fetchPublicDiscounts(),
+      ]);
+      setFacetProducts(productsResult.status === "fulfilled" ? productsResult.value?.products ?? [] : []);
+      if (discountsResult.status === "fulfilled") setDiscounts(discountsResult.value);
     };
 
     loadFacets();
@@ -388,6 +405,18 @@ const ShopContent: React.FC = () => {
     return Array.from(optionMap.values());
   }, [facetProducts]);
   const brands = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.brand).filter(Boolean))) as string[], [facetProducts]);
+
+  const flashSalePercent = discounts?.flashSale?.isActive ? discounts.flashSale.discountPercentage : 0;
+  const flashSaleActiveIds = useMemo<Set<string> | null>(() => {
+    const fs = discounts?.flashSale;
+    if (!fs?.isActive) return null;
+    const ids = (fs.productIds as Array<string | DiscountProduct>).map((p) => (typeof p === "string" ? p : p._id));
+    return ids.length > 0 ? new Set(ids) : null;
+  }, [discounts]);
+  const bestPriceIds = useMemo<Set<string>>(
+    () => new Set((discounts?.bestPriceProductIds ?? []).map((p) => p._id)),
+    [discounts]
+  );
 
   const updateUrl = useCallback((updates: Record<string, string | null>, mode: "push" | "replace" = "push") => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -654,6 +683,9 @@ const ShopContent: React.FC = () => {
                     isSelectedForCompare={selectedCompareIds.includes(product._id)}
                     isCompareSelectionDisabled={!selectedCompareIds.includes(product._id) && selectedCompareIds.length >= compareSlotCount}
                     onCompareSelect={toggleCompareProduct}
+                    isFlashSale={flashSalePercent > 0 && (flashSaleActiveIds === null || flashSaleActiveIds.has(product._id))}
+                    flashSalePercent={flashSalePercent}
+                    isBestPrice={bestPriceIds.has(product._id)}
                   />
                 ))}
               </div>
