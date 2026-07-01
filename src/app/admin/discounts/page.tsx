@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Edit2, Package, Plus, Search, Tag, Trash2, X, Zap } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { ChevronDown, Edit2, Package, Plus, Search, Shield, Trash2, X, Zap } from "lucide-react";
 import {
   Bundle,
   DiscountData,
@@ -19,108 +19,139 @@ import { API_BASE_URL } from "@/constants/api";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
-
-function productImg(p: BackendProduct | DiscountProduct) {
-  const img = (p as BackendProduct).images?.[0] ?? "";
-  return img ? `${API_BASE_URL.replace("/api/v1", "")}/uploads/${img}` : "/placeholder.png";
+function productThumb(p: BackendProduct | DiscountProduct) {
+  const img = (p as BackendProduct).images?.[0] ?? (p as DiscountProduct).images?.[0] ?? "";
+  if (!img) return "/placeholder.png";
+  if (img.startsWith("http") || img.startsWith("/")) return img;
+  return `${API_BASE_URL.replace("/api/v1", "")}/uploads/${img}`;
 }
 
-// ── Product Picker modal ───────────────────────────────────────────────────
+const idOf = (p: DiscountProduct | string) => (typeof p === "string" ? p : p._id);
 
-interface ProductPickerProps {
-  title: string;
+// ── Product dropdown picker ────────────────────────────────────────────────
+
+function ProductPicker({
+  all,
+  selected,
+  onChange,
+  placeholder = "None selected (applies to all products)",
+}: {
+  all: BackendProduct[];
   selected: string[];
-  onClose: () => void;
-  onConfirm: (ids: string[]) => void;
-}
-
-function ProductPicker({ title, selected: initialSelected, onClose, onConfirm }: ProductPickerProps) {
-  const [products, setProducts] = useState<BackendProduct[]>([]);
+  onChange: (ids: string[]) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [chosen, setChosen] = useState<Set<string>>(new Set(initialSelected));
-  const [loading, setLoading] = useState(true);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchProducts({ limit: 200 })
-      .then((r) => setProducts(r?.products ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = search
-    ? products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-    : products;
-
   const toggle = (id: string) =>
-    setChosen((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
+
+  const filtered = all.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const btnLabel =
+    selected.length === 0
+      ? placeholder
+      : `${selected.length} product${selected.length > 1 ? "s" : ""} selected`;
+
+  if (all.length === 0) {
+    return (
+      <p className="dsc-no-products">
+        No products yet.{" "}
+        <a href="/admin/products">Add products</a> first.
+      </p>
+    );
+  }
 
   return (
-    <div className="discount-picker-overlay" onClick={onClose}>
-      <div className="discount-picker-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="discount-picker-header">
-          <h3>{title}</h3>
-          <button type="button" className="discount-picker-close" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="discount-picker-search">
-          <Search size={15} />
-          <input
-            autoFocus
-            placeholder="Search products…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="discount-picker-list">
-          {loading && <p className="discount-picker-empty">Loading…</p>}
-          {!loading && filtered.length === 0 && (
-            <p className="discount-picker-empty">No products found.</p>
-          )}
-          {filtered.map((p) => (
-            <label key={p._id} className={`discount-picker-item${chosen.has(p._id) ? " chosen" : ""}`}>
-              <input
-                type="checkbox"
-                checked={chosen.has(p._id)}
-                onChange={() => toggle(p._id)}
-              />
-              <img src={productImg(p)} alt={p.name} className="discount-picker-thumb" />
-              <div className="discount-picker-info">
-                <span className="discount-picker-name">{p.name}</span>
-                <span className="discount-picker-price">{fmt(p.price)}</span>
-              </div>
-            </label>
-          ))}
-        </div>
-        <div className="discount-picker-footer">
-          <span className="discount-picker-count">{chosen.size} selected</span>
-          <div className="discount-picker-actions">
-            <button type="button" className="admin-btn admin-btn--ghost" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="admin-btn admin-btn--primary"
-              onClick={() => onConfirm(Array.from(chosen))}
-            >
-              Confirm Selection
-            </button>
+    <div className="dsc-picker" ref={ref}>
+      <button
+        type="button"
+        className={`dsc-picker-toggle${open ? " open" : ""}${selected.length > 0 ? " has-value" : ""}`}
+        onClick={() => { setOpen((v) => !v); setSearch(""); }}
+      >
+        <span>{btnLabel}</span>
+        <ChevronDown size={14} className={open ? "rotated" : ""} />
+      </button>
+
+      {open && (
+        <div className="dsc-picker-panel">
+          <div className="dsc-picker-search">
+            <Search size={13} />
+            <input
+              autoFocus
+              placeholder="Search products…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
+
+          <div className="dsc-picker-list">
+            {filtered.length === 0 ? (
+              <p className="dsc-picker-empty">No matching products.</p>
+            ) : (
+              filtered.map((p) => {
+                const on = selected.includes(p._id);
+                return (
+                  <label key={p._id} className={`dsc-picker-item${on ? " on" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => toggle(p._id)}
+                    />
+                    <span>{p.name}</span>
+                  </label>
+                );
+              })
+            )}
+          </div>
+
+          {selected.length > 0 && (
+            <button type="button" className="dsc-picker-clear" onClick={() => onChange([])}>
+              Clear selection
+            </button>
+          )}
         </div>
-      </div>
+      )}
+
+      {selected.length > 0 && (
+        <div className="dsc-picker-tags">
+          {selected.map((id) => {
+            const p = all.find((x) => x._id === id);
+            if (!p) return null;
+            return (
+              <span key={id} className="dsc-picker-tag">
+                {p.name}
+                <button
+                  type="button"
+                  aria-label={`Remove ${p.name}`}
+                  onClick={() => toggle(id)}
+                >
+                  <X size={10} />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Flash Sale section ─────────────────────────────────────────────────────
+// ── Flash Sale ─────────────────────────────────────────────────────────────
 
-function FlashSaleSection({
+function FlashSaleCard({
   data,
   allProducts,
   onSaved,
@@ -135,13 +166,10 @@ function FlashSaleSection({
   const [endsAt, setEndsAt] = useState(fs?.endsAt ? fs.endsAt.slice(0, 16) : "");
   const [isActive, setIsActive] = useState(fs?.isActive ?? false);
   const [selectedIds, setSelectedIds] = useState<string[]>(
-    (fs?.productIds ?? []).map((p) => (typeof p === "string" ? p : p._id))
+    (fs?.productIds ?? []).map(idOf)
   );
-  const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-
-  const selectedProducts = allProducts.filter((p) => selectedIds.includes(p._id));
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -150,68 +178,60 @@ function FlashSaleSection({
     try {
       await saveFlashSale({
         title: title.trim(),
-        discountPercentage: Number(pct),
+        discountPercentage: Number(pct) || 0,
         endsAt: endsAt ? new Date(endsAt).toISOString() : null,
         productIds: selectedIds,
         isActive,
       });
-      setMsg("Flash sale saved.");
+      setMsg("Saved.");
       onSaved();
     } catch {
-      setMsg("Failed to save. Try again.");
+      setMsg("Failed to save.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <section className="discount-card">
-      <div className="discount-card-header">
-        <div className="discount-card-icon">
-          <Zap size={18} />
+    <div className="dsc-card">
+      <div className="dsc-card-head">
+        <span className="dsc-icon dsc-icon--red"><Zap size={16} /></span>
+        <div className="dsc-card-titles">
+          <h2>Flash Sale</h2>
+          <p>Live now — highlighted on the homepage.</p>
         </div>
-        <div>
-          <h2 className="discount-card-title">Flash Sale</h2>
-          <p className="discount-card-subtitle">Time-limited discount applied to selected products</p>
-        </div>
-        <label className="discount-toggle">
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-          />
-          <span className="discount-toggle-track">
-            <span className="discount-toggle-thumb" />
-          </span>
-          <span className="discount-toggle-label">{isActive ? "Active" : "Inactive"}</span>
-        </label>
+        <button
+          type="button"
+          className={`dsc-active-badge${isActive ? " on" : ""}`}
+          onClick={() => setIsActive((v) => !v)}
+        >
+          {isActive ? "Active" : "Inactive"}
+        </button>
       </div>
 
-      <form onSubmit={handleSave} className="discount-card-body">
-        <div className="discount-form-row">
-          <div className="discount-form-field">
-            <label>Sale Title</label>
+      <form className="dsc-card-body" onSubmit={handleSave}>
+        <div className="dsc-row">
+          <div className="dsc-field dsc-field--grow">
+            <label>Title</label>
             <input
-              required
-              placeholder="e.g. Summer Flash Sale"
+              placeholder="e.g. Supplement Flash Sale"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
-          <div className="discount-form-field discount-form-field--sm">
+          <div className="dsc-field dsc-field--sm">
             <label>Discount %</label>
             <input
-              required
               type="number"
-              min={1}
+              min={0}
               max={99}
-              placeholder="e.g. 20"
+              placeholder="20"
               value={pct}
               onChange={(e) => setPct(e.target.value)}
             />
           </div>
-          <div className="discount-form-field">
-            <label>Ends At (optional)</label>
+          <div className="dsc-field">
+            <label>Ends at</label>
             <input
               type="datetime-local"
               value={endsAt}
@@ -220,64 +240,33 @@ function FlashSaleSection({
           </div>
         </div>
 
-        <div className="discount-products-field">
-          <div className="discount-products-header">
-            <label>Products on sale ({selectedIds.length})</label>
-            <button
-              type="button"
-              className="admin-btn admin-btn--ghost admin-btn--sm"
-              onClick={() => setShowPicker(true)}
-            >
-              <Plus size={14} />
-              Choose Products
-            </button>
-          </div>
-          {selectedProducts.length > 0 ? (
-            <div className="discount-product-chips">
-              {selectedProducts.map((p) => (
-                <span key={p._id} className="discount-product-chip">
-                  <img src={productImg(p)} alt="" />
-                  {p.name}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== p._id))}
-                  >
-                    <X size={11} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="discount-products-empty">No products selected — sale will not apply.</p>
-          )}
+        <div className="dsc-field">
+          <label className="dsc-sublabel">
+            Products on sale{" "}
+            <span className="dsc-sublabel-note">(none selected = all products)</span>
+          </label>
+          <ProductPicker
+            all={allProducts}
+            selected={selectedIds}
+            onChange={setSelectedIds}
+            placeholder="None selected — applies to all products"
+          />
         </div>
 
-        <div className="discount-card-footer">
-          {msg && <span className="discount-msg">{msg}</span>}
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
+        <div className="dsc-card-foot">
+          {msg && <span className="dsc-msg">{msg}</span>}
+          <button type="submit" className="dsc-btn dsc-btn--primary" disabled={saving}>
             {saving ? "Saving…" : "Save Flash Sale"}
           </button>
         </div>
       </form>
-
-      {showPicker && (
-        <ProductPicker
-          title="Select Flash Sale Products"
-          selected={selectedIds}
-          onClose={() => setShowPicker(false)}
-          onConfirm={(ids) => {
-            setSelectedIds(ids);
-            setShowPicker(false);
-          }}
-        />
-      )}
-    </section>
+    </div>
   );
 }
 
-// ── Bundle Offers section ──────────────────────────────────────────────────
+// ── Bundle Offers ──────────────────────────────────────────────────────────
 
-interface BundleFormState {
+interface BundleForm {
   title: string;
   description: string;
   discountPercentage: string;
@@ -285,7 +274,7 @@ interface BundleFormState {
   isActive: boolean;
 }
 
-const emptyBundle: BundleFormState = {
+const emptyBundleForm: BundleForm = {
   title: "",
   description: "",
   discountPercentage: "",
@@ -293,34 +282,17 @@ const emptyBundle: BundleFormState = {
   isActive: true,
 };
 
-function BundleSection({
-  data,
-  allProducts,
-  onSaved,
-}: {
-  data: DiscountData;
-  allProducts: BackendProduct[];
-  onSaved: () => void;
-}) {
+function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allProducts: BackendProduct[]; onSaved: () => void }) {
   const [bundles, setBundles] = useState<Bundle[]>(data.bundles ?? []);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Bundle | null>(null);
-  const [form, setForm] = useState<BundleFormState>(emptyBundle);
-  const [showPicker, setShowPicker] = useState(false);
+  const [form, setForm] = useState<BundleForm>(emptyBundleForm);
   const [saving, setSaving] = useState(false);
   const [formErr, setFormErr] = useState("");
 
-  useEffect(() => {
-    setBundles(data.bundles ?? []);
-  }, [data.bundles]);
+  useEffect(() => { setBundles(data.bundles ?? []); }, [data.bundles]);
 
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyBundle);
-    setFormErr("");
-    setIsFormOpen(true);
-  };
-
+  const openCreate = () => { setEditing(null); setForm(emptyBundleForm); setFormErr(""); setFormOpen(true); };
   const openEdit = (b: Bundle) => {
     setEditing(b);
     setForm({
@@ -331,20 +303,13 @@ function BundleSection({
       isActive: b.isActive,
     });
     setFormErr("");
-    setIsFormOpen(true);
+    setFormOpen(true);
   };
-
-  const closeForm = () => {
-    setIsFormOpen(false);
-    setEditing(null);
-  };
+  const closeForm = () => { setFormOpen(false); setEditing(null); };
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
-    if (form.productIds.length < 2) {
-      setFormErr("Select at least 2 products for a bundle.");
-      return;
-    }
+    if (form.productIds.length < 2) { setFormErr("Select at least 2 products."); return; }
     setSaving(true);
     setFormErr("");
     try {
@@ -357,336 +322,193 @@ function BundleSection({
       };
       if (editing) {
         const updated = await updateBundle(editing._id, payload);
-        if (updated) {
-          setBundles((prev) => prev.map((b) => (b._id === editing._id ? updated : b)));
-        }
+        if (updated) setBundles((prev) => prev.map((b) => b._id === editing._id ? updated : b));
       } else {
         const created = await createBundle(payload as Parameters<typeof createBundle>[0]);
         if (created) setBundles((prev) => [...prev, created]);
       }
       closeForm();
       onSaved();
-    } catch {
-      setFormErr("Failed to save. Try again.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setFormErr("Failed to save."); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this bundle offer?")) return;
-    try {
-      await deleteBundle(id);
-      setBundles((prev) => prev.filter((b) => b._id !== id));
-      onSaved();
-    } catch {}
+    if (!confirm("Delete this bundle?")) return;
+    try { await deleteBundle(id); setBundles((prev) => prev.filter((b) => b._id !== id)); onSaved(); } catch {}
   };
 
-  const formSelectedProducts = allProducts.filter((p) => form.productIds.includes(p._id));
-
   return (
-    <section className="discount-card">
-      <div className="discount-card-header">
-        <div className="discount-card-icon discount-card-icon--bundle">
-          <Package size={18} />
+    <div className="dsc-card">
+      <div className="dsc-card-head">
+        <span className="dsc-icon dsc-icon--blue"><Package size={16} /></span>
+        <div className="dsc-card-titles">
+          <h2>Bundle Offers</h2>
+          <p>
+            {bundles.length} bundle{bundles.length !== 1 ? "s" : ""} — discounts auto-apply at checkout.
+          </p>
         </div>
-        <div>
-          <h2 className="discount-card-title">Bundle Offers</h2>
-          <p className="discount-card-subtitle">Group products together with a combined discount</p>
-        </div>
-        <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={openCreate}>
-          <Plus size={14} />
-          New Bundle
+        <button type="button" className="dsc-btn dsc-btn--primary dsc-btn--sm" onClick={openCreate}>
+          <Plus size={13} />
+          Create Bundle
         </button>
       </div>
 
-      <div className="discount-card-body">
-        {bundles.length === 0 && (
-          <p className="discount-empty">No bundle offers yet. Create one above.</p>
-        )}
-        <div className="discount-bundle-list">
-          {bundles.map((b) => (
-            <div key={b._id} className={`discount-bundle-item${b.isActive ? "" : " inactive"}`}>
-              <div className="discount-bundle-info">
-                <div className="discount-bundle-top">
-                  <strong>{b.title}</strong>
-                  <span className="discount-bundle-pct">{b.discountPercentage}% off</span>
-                  {!b.isActive && <span className="discount-bundle-badge">Inactive</span>}
+      {bundles.length > 0 && (
+        <div className="dsc-card-body">
+          <div className="dsc-bundle-grid">
+            {bundles.map((b) => {
+              const thumbs = b.productIds.slice(0, 3);
+              const names = b.productIds.map((p) => p.name).join(" + ");
+              return (
+                <div key={b._id} className={`dsc-bundle${!b.isActive ? " dsc-bundle--inactive" : ""}`}>
+                  <div className="dsc-bundle-thumbs">
+                    {thumbs.map((p) => (
+                      <img key={p._id} src={productThumb(p)} alt={p.name} />
+                    ))}
+                  </div>
+                  <div className="dsc-bundle-info">
+                    <div className="dsc-bundle-row">
+                      <strong>{b.title}</strong>
+                      <span className="dsc-pct-badge">-{b.discountPercentage}%</span>
+                    </div>
+                    <p className="dsc-bundle-names">{names}</p>
+                    <div className="dsc-bundle-actions">
+                      <button type="button" onClick={() => openEdit(b)}>
+                        <Edit2 size={13} /> Edit
+                      </button>
+                      <button type="button" className="danger" onClick={() => handleDelete(b._id)}>
+                        <Trash2 size={13} /> Delete
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                {b.description && <p className="discount-bundle-desc">{b.description}</p>}
-                <div className="discount-bundle-products">
-                  {b.productIds.slice(0, 4).map((p) => (
-                    <img key={p._id} src={productImg(p)} alt={p.name} title={p.name} />
-                  ))}
-                  {b.productIds.length > 4 && (
-                    <span className="discount-bundle-more">+{b.productIds.length - 4}</span>
-                  )}
-                  <span className="discount-bundle-count">{b.productIds.length} products</span>
-                </div>
-              </div>
-              <div className="discount-bundle-actions">
-                <button
-                  type="button"
-                  className="admin-icon-btn"
-                  title="Edit"
-                  onClick={() => openEdit(b)}
-                >
-                  <Edit2 size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="admin-icon-btn admin-icon-btn--danger"
-                  title="Delete"
-                  onClick={() => handleDelete(b._id)}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {isFormOpen && (
-        <div className="discount-picker-overlay" onClick={closeForm}>
-          <div className="discount-picker-modal discount-bundle-form" onClick={(e) => e.stopPropagation()}>
-            <div className="discount-picker-header">
-              <h3>{editing ? "Edit Bundle" : "New Bundle Offer"}</h3>
-              <button type="button" className="discount-picker-close" onClick={closeForm}>
-                <X size={18} />
-              </button>
+      {formOpen && (
+        <div className="dsc-overlay" onClick={closeForm}>
+          <div className="dsc-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="dsc-modal-head">
+              <h3>{editing ? "Edit Bundle" : "New Bundle"}</h3>
+              <button type="button" className="dsc-modal-close" onClick={closeForm}><X size={16} /></button>
             </div>
-            <form onSubmit={handleSave} className="discount-bundle-form-body">
-              <div className="discount-form-field">
-                <label>Bundle Title *</label>
-                <input
-                  required
-                  placeholder="e.g. Starter Kit"
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                />
+            <form className="dsc-modal-body" onSubmit={handleSave}>
+              <div className="dsc-field">
+                <label>Title *</label>
+                <input required placeholder="e.g. Starter Home Gym Bundle" value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
               </div>
-              <div className="discount-form-field">
+              <div className="dsc-field">
                 <label>Description</label>
-                <textarea
-                  rows={2}
-                  placeholder="Brief description (optional)"
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                />
+                <textarea rows={2} placeholder="Optional description" value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
               </div>
-              <div className="discount-form-row">
-                <div className="discount-form-field discount-form-field--sm">
+              <div className="dsc-row">
+                <div className="dsc-field dsc-field--sm">
                   <label>Discount % *</label>
-                  <input
-                    required
-                    type="number"
-                    min={1}
-                    max={99}
-                    placeholder="e.g. 15"
-                    value={form.discountPercentage}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, discountPercentage: e.target.value }))
-                    }
-                  />
+                  <input required type="number" min={1} max={99} placeholder="15" value={form.discountPercentage}
+                    onChange={(e) => setForm((f) => ({ ...f, discountPercentage: e.target.value }))} />
                 </div>
-                <div className="discount-form-field discount-toggle-field">
+                <div className="dsc-field dsc-field--grow">
                   <label>Status</label>
-                  <label className="discount-toggle">
-                    <input
-                      type="checkbox"
-                      checked={form.isActive}
-                      onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                    />
-                    <span className="discount-toggle-track">
-                      <span className="discount-toggle-thumb" />
-                    </span>
-                    <span className="discount-toggle-label">
-                      {form.isActive ? "Active" : "Inactive"}
-                    </span>
+                  <label className="dsc-toggle">
+                    <input type="checkbox" checked={form.isActive}
+                      onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
+                    <span className="dsc-toggle-track"><span className="dsc-toggle-thumb" /></span>
+                    <span>{form.isActive ? "Active" : "Inactive"}</span>
                   </label>
                 </div>
               </div>
-              <div className="discount-products-field">
-                <div className="discount-products-header">
-                  <label>Products ({form.productIds.length} / min 2) *</label>
-                  <button
-                    type="button"
-                    className="admin-btn admin-btn--ghost admin-btn--sm"
-                    onClick={() => setShowPicker(true)}
-                  >
-                    <Plus size={13} />
-                    Choose
-                  </button>
-                </div>
-                {formSelectedProducts.length > 0 ? (
-                  <div className="discount-product-chips">
-                    {formSelectedProducts.map((p) => (
-                      <span key={p._id} className="discount-product-chip">
-                        <img src={productImg(p)} alt="" />
-                        {p.name}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setForm((f) => ({
-                              ...f,
-                              productIds: f.productIds.filter((id) => id !== p._id),
-                            }))
-                          }
-                        >
-                          <X size={11} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="discount-products-empty">No products selected yet.</p>
-                )}
+              <div className="dsc-field">
+                <label className="dsc-sublabel">
+                  Products *{" "}
+                  <span className="dsc-sublabel-note">({form.productIds.length} selected, min 2)</span>
+                </label>
+                <ProductPicker
+                  all={allProducts}
+                  selected={form.productIds}
+                  onChange={(ids) => setForm((f) => ({ ...f, productIds: ids }))}
+                  placeholder="Select at least 2 products…"
+                />
               </div>
-              {formErr && <p className="discount-form-err">{formErr}</p>}
-              <div className="discount-picker-footer">
-                <span />
-                <div className="discount-picker-actions">
-                  <button type="button" className="admin-btn admin-btn--ghost" onClick={closeForm}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-                    {saving ? "Saving…" : editing ? "Update Bundle" : "Create Bundle"}
-                  </button>
-                </div>
+              {formErr && <p className="dsc-err">{formErr}</p>}
+              <div className="dsc-modal-foot">
+                <button type="button" className="dsc-btn dsc-btn--ghost" onClick={closeForm}>Cancel</button>
+                <button type="submit" className="dsc-btn dsc-btn--primary" disabled={saving}>
+                  {saving ? "Saving…" : editing ? "Update Bundle" : "Create Bundle"}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {showPicker && (
-        <ProductPicker
-          title="Select Bundle Products"
-          selected={form.productIds}
-          onClose={() => setShowPicker(false)}
-          onConfirm={(ids) => {
-            setForm((f) => ({ ...f, productIds: ids }));
-            setShowPicker(false);
-          }}
-        />
-      )}
-    </section>
+    </div>
   );
 }
 
-// ── Best Price Labels section ──────────────────────────────────────────────
+// ── Best-Price Labels ──────────────────────────────────────────────────────
 
-function BestPriceSection({
-  data,
-  allProducts,
-  onSaved,
-}: {
-  data: DiscountData;
-  allProducts: BackendProduct[];
-  onSaved: () => void;
-}) {
+function BestPriceCard({ data, allProducts, onSaved }: { data: DiscountData; allProducts: BackendProduct[]; onSaved: () => void }) {
   const [selectedIds, setSelectedIds] = useState<string[]>(
-    (data.bestPriceProductIds ?? []).map((p) => (typeof p === "string" ? p : p._id))
+    (data.bestPriceProductIds ?? []).map(idOf)
   );
-  const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-
-  const selectedProducts = allProducts.filter((p) => selectedIds.includes(p._id));
 
   const handleSave = async () => {
     setSaving(true);
     setMsg("");
-    try {
-      await saveBestPrice(selectedIds);
-      setMsg("Best price labels saved.");
-      onSaved();
-    } catch {
-      setMsg("Failed to save. Try again.");
-    } finally {
-      setSaving(false);
-    }
+    try { await saveBestPrice(selectedIds); setMsg("Saved."); onSaved(); }
+    catch { setMsg("Failed to save."); }
+    finally { setSaving(false); }
   };
 
   return (
-    <section className="discount-card">
-      <div className="discount-card-header">
-        <div className="discount-card-icon discount-card-icon--best">
-          <Tag size={18} />
-        </div>
-        <div>
-          <h2 className="discount-card-title">Best-Price Labels</h2>
-          <p className="discount-card-subtitle">
-            Flag products that show a &ldquo;Best Price&rdquo; badge on the storefront
-          </p>
+    <div className="dsc-card">
+      <div className="dsc-card-head">
+        <span className="dsc-icon dsc-icon--gold">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+        </span>
+        <div className="dsc-card-titles">
+          <h2>Best-Price Labels</h2>
+          <p>{selectedIds.length} product{selectedIds.length !== 1 ? "s" : ""} flagged.</p>
         </div>
       </div>
-
-      <div className="discount-card-body">
-        <div className="discount-products-field">
-          <div className="discount-products-header">
-            <label>Labelled products ({selectedIds.length})</label>
-            <button
-              type="button"
-              className="admin-btn admin-btn--ghost admin-btn--sm"
-              onClick={() => setShowPicker(true)}
-            >
-              <Plus size={14} />
-              Choose Products
-            </button>
-          </div>
-          {selectedProducts.length > 0 ? (
-            <div className="discount-product-chips">
-              {selectedProducts.map((p) => (
-                <span key={p._id} className="discount-product-chip">
-                  <img src={productImg(p)} alt="" />
-                  {p.name}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== p._id))}
-                  >
-                    <X size={11} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="discount-products-empty">No products labelled yet.</p>
-          )}
+      <div className="dsc-card-body">
+        <div className="dsc-field">
+          <label className="dsc-sublabel">Flag products as best-price</label>
+          <ProductPicker
+            all={allProducts}
+            selected={selectedIds}
+            onChange={setSelectedIds}
+            placeholder="Select products to flag…"
+          />
         </div>
-        <div className="discount-card-footer">
-          {msg && <span className="discount-msg">{msg}</span>}
-          <button
-            type="button"
-            className="admin-btn admin-btn--primary"
-            onClick={handleSave}
-            disabled={saving}
-          >
+        <div className="dsc-card-foot">
+          {msg && <span className="dsc-msg">{msg}</span>}
+          <button type="button" className="dsc-btn dsc-btn--primary" onClick={handleSave} disabled={saving}>
             {saving ? "Saving…" : "Save Labels"}
           </button>
         </div>
       </div>
-
-      {showPicker && (
-        <ProductPicker
-          title="Select Best-Price Products"
-          selected={selectedIds}
-          onClose={() => setShowPicker(false)}
-          onConfirm={(ids) => {
-            setSelectedIds(ids);
-            setShowPicker(false);
-          }}
-        />
-      )}
-    </section>
+    </div>
   );
 }
 
-// ── Refund Guarantee section ───────────────────────────────────────────────
+// ── Refund Guarantee ───────────────────────────────────────────────────────
 
-function RefundSection({ data, onSaved }: { data: DiscountData; onSaved: () => void }) {
-  const [text, setText] = useState(data.refundGuarantee ?? "");
+const DEFAULT_REFUND_TEXT =
+  "10-day money-back guarantee. If you're not fully satisfied, return any item within 10 days for a full refund. Refund process might take 3-6 business days";
+
+function RefundCard({ data, onSaved }: { data: DiscountData; onSaved: () => void }) {
+  const [text, setText] = useState(data.refundGuarantee || DEFAULT_REFUND_TEXT);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -694,54 +516,42 @@ function RefundSection({ data, onSaved }: { data: DiscountData; onSaved: () => v
     e.preventDefault();
     setSaving(true);
     setMsg("");
-    try {
-      await saveRefundGuarantee(text.trim());
-      setMsg("Refund guarantee saved.");
-      onSaved();
-    } catch {
-      setMsg("Failed to save. Try again.");
-    } finally {
-      setSaving(false);
-    }
+    try { await saveRefundGuarantee(text.trim()); setMsg("Saved."); onSaved(); }
+    catch { setMsg("Failed to save."); }
+    finally { setSaving(false); }
   };
 
   return (
-    <section className="discount-card">
-      <div className="discount-card-header">
-        <div className="discount-card-icon discount-card-icon--refund">
-          <span className="discount-refund-icon">↩</span>
-        </div>
-        <div>
-          <h2 className="discount-card-title">Refund Guarantee</h2>
-          <p className="discount-card-subtitle">
-            Short message displayed on the storefront about your return/refund policy
-          </p>
+    <div className="dsc-card">
+      <div className="dsc-card-head">
+        <span className="dsc-icon dsc-icon--green"><Shield size={16} /></span>
+        <div className="dsc-card-titles">
+          <h2>Refund Guarantee</h2>
+          <p>Shown to customers during checkout.</p>
         </div>
       </div>
-      <form onSubmit={handleSave} className="discount-card-body">
-        <div className="discount-form-field">
-          <label>Guarantee Text</label>
+      <form className="dsc-card-body" onSubmit={handleSave}>
+        <div className="dsc-field">
           <textarea
-            rows={3}
+            rows={4}
             maxLength={500}
             placeholder="e.g. 30-day hassle-free returns on all products."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <span className="discount-char-count">{text.length}/500</span>
         </div>
-        <div className="discount-card-footer">
-          {msg && <span className="discount-msg">{msg}</span>}
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Save Guarantee"}
+        <div className="dsc-card-foot">
+          {msg && <span className="dsc-msg">{msg}</span>}
+          <button type="submit" className="dsc-btn dsc-btn--primary" disabled={saving}>
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </form>
-    </section>
+    </div>
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function AdminDiscountsPage() {
   const [data, setData] = useState<DiscountData | null>(null);
@@ -750,29 +560,32 @@ export default function AdminDiscountsPage() {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
     try {
-      const [discounts, products] = await Promise.all([
+      const [discountsResult, productsResult] = await Promise.allSettled([
         fetchAdminDiscounts(),
         fetchProducts({ limit: 200 }),
       ]);
-      setData(discounts);
-      setAllProducts(products?.products ?? []);
-    } catch {
-      setError("Failed to load discount settings.");
+      if (discountsResult.status === "rejected") throw discountsResult.reason;
+      setData(discountsResult.value);
+      if (productsResult.status === "fulfilled") {
+        setAllProducts(productsResult.value?.products ?? []);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load discount settings.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
       <div className="admin-page-loading">
         <div className="admin-spinner" />
-        <span>Loading discounts…</span>
+        <span>Loading…</span>
       </div>
     );
   }
@@ -781,29 +594,26 @@ export default function AdminDiscountsPage() {
     return (
       <div className="admin-page-error">
         <p>{error || "No data returned."}</p>
-        <button type="button" className="admin-btn admin-btn--ghost" onClick={load}>
-          Retry
-        </button>
+        <p className="dsc-error-hint">Make sure the backend server is running and restart it if you recently added new files.</p>
+        <button type="button" className="dsc-btn dsc-btn--ghost" onClick={load}>Retry</button>
       </div>
     );
   }
 
   return (
-    <div className="admin-discounts-page">
+    <div className="dsc-page">
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Discounts &amp; Promotions</h1>
-          <p className="admin-page-subtitle">
-            Manage flash sales, bundle offers, best-price labels and refund policy
-          </p>
+          <p className="admin-page-subtitle">Create and manage flash sales, bundles, best-price labels and the refund guarantee.</p>
         </div>
       </div>
 
-      <div className="discount-sections">
-        <FlashSaleSection data={data} allProducts={allProducts} onSaved={load} />
-        <BundleSection data={data} allProducts={allProducts} onSaved={load} />
-        <BestPriceSection data={data} allProducts={allProducts} onSaved={load} />
-        <RefundSection data={data} onSaved={load} />
+      <div className="dsc-sections">
+        <FlashSaleCard data={data} allProducts={allProducts} onSaved={load} />
+        <BundleCard data={data} allProducts={allProducts} onSaved={load} />
+        <BestPriceCard data={data} allProducts={allProducts} onSaved={load} />
+        <RefundCard data={data} onSaved={load} />
       </div>
     </div>
   );

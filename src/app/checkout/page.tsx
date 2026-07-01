@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, CreditCard, ShieldCheck, WalletCards } from "lucide-react";
 import { useCart } from "@/contexts";
 import { BackendCart, fetchCart } from "@/features/cart";
+import { fetchPublicDiscounts } from "@/features/discounts";
 import {
   CartOrderSummary,
   createDeliveryAddress,
@@ -55,6 +56,7 @@ export default function CheckoutPage() {
   const [shippingForm, setShippingForm] = useState(emptyShippingForm);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("esewa");
+  const [refundText, setRefundText] = useState("10-day money-back guarantee. If you're not fully satisfied, return any item within 10 days for a full refund. Refund process might take 3-6 business days");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -71,6 +73,7 @@ export default function CheckoutPage() {
           .map((id) => id.trim())
           .filter(Boolean) ?? [];
         const [nextCart, addresses] = await Promise.all([fetchCart(), fetchDeliveryAddresses()]);
+        fetchPublicDiscounts().then((d) => { if (d.refundGuarantee) setRefundText(d.refundGuarantee); }).catch(() => {});
         const defaultAddress = addresses.find((address) => address.isDefault) || addresses[0];
 
         setSelectedProductIds(selectedIds);
@@ -308,10 +311,7 @@ export default function CheckoutPage() {
               <ShieldCheck aria-hidden="true" />
               <div>
                 <strong>Refund guarantee</strong>
-                <p>
-                  If a delivered supplement or fitness product is damaged, counterfeit, or not as described, contact support within 7 days
-                  with your order details. FitFIXto will review the case and arrange a replacement or refund when eligible.
-                </p>
+                <p>{refundText}</p>
               </div>
             </div>
             <div className="checkout-panel-actions">
