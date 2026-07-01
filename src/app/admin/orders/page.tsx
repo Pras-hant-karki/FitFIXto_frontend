@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Search, X } from "lucide-react";
 import { AdminOrderStatusUpdate, BackendOrder, fetchAdminOrders, updateAdminOrderStatus } from "@/features/orders";
+import { useToast } from "@/contexts";
 
 type OrderTab = "all" | "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 
@@ -86,19 +87,17 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<BackendOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
-  const [error, setError] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadOrders = async () => {
       setIsLoading(true);
-      setError("");
 
       try {
         const nextOrders = await fetchAdminOrders();
         setOrders(nextOrders);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load orders.");
+        toast.error(err instanceof Error ? err.message : "Unable to load orders.");
       } finally {
         setIsLoading(false);
       }
@@ -146,8 +145,6 @@ export default function AdminOrdersPage() {
   }, [orders, searchQuery, selectedTab]);
 
   const handleStatusUpdate = async (order: BackendOrder, status: AdminOrderStatusUpdate) => {
-    setError("");
-    setStatusMessage("");
     setUpdatingOrderId(order._id);
 
     try {
@@ -158,9 +155,9 @@ export default function AdminOrdersPage() {
         setSelectedOrder((current) => (current?._id === updatedOrder._id ? updatedOrder : current));
       }
 
-      setStatusMessage(`Order ${formatOrderId(order._id, 0)} moved to ${getStatusLabel(status)}.`);
+      toast.success(`Order ${formatOrderId(order._id, 0)} moved to ${getStatusLabel(status)}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update order status.");
+      toast.error(err instanceof Error ? err.message : "Unable to update order status.");
     } finally {
       setUpdatingOrderId("");
     }
@@ -198,9 +195,6 @@ export default function AdminOrdersPage() {
           />
         </label>
       </div>
-
-      {error ? <p className="admin-products-message error">{error}</p> : null}
-      {statusMessage ? <p className="admin-products-message success">{statusMessage}</p> : null}
 
       <div className="admin-orders-table-card">
         <div className="admin-orders-admin-table">

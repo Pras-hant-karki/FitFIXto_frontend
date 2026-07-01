@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Search, Trash2, Ban } from "lucide-react";
 import { AdminUser, deleteAdminUser, fetchAdminUsers, updateAdminUserStatus } from "@/features/admin-users/api";
+import { useToast } from "@/contexts";
 
 const formatDate = (date: string) =>
   new Intl.DateTimeFormat("en-CA", {
@@ -15,8 +16,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast } = useToast();
 
   const suspendedCount = useMemo(() => users.filter((user) => !user.isActive).length, [users]);
 
@@ -32,12 +32,11 @@ export default function AdminUsersPage() {
 
   const loadUsers = async () => {
     setIsLoading(true);
-    setError("");
 
     try {
       setUsers(await fetchAdminUsers());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load users.");
+      toast.error(err instanceof Error ? err.message : "Unable to load users.");
     } finally {
       setIsLoading(false);
     }
@@ -48,9 +47,6 @@ export default function AdminUsersPage() {
   }, []);
 
   const handleStatusToggle = async (user: AdminUser) => {
-    setError("");
-    setMessage("");
-
     try {
       const updated = await updateAdminUserStatus(user._id, !user.isActive);
       if (updated) {
@@ -58,24 +54,21 @@ export default function AdminUsersPage() {
           current.map((item) => (item._id === user._id ? { ...item, isActive: updated.isActive } : item))
         );
       }
-      setMessage(user.isActive ? "User suspended successfully." : "User activated successfully.");
+      toast.success(user.isActive ? "User suspended successfully." : "User activated successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update user.");
+      toast.error(err instanceof Error ? err.message : "Unable to update user.");
     }
   };
 
   const handleDelete = async (user: AdminUser) => {
     if (!window.confirm(`Delete ${user.firstName} ${user.lastName}?`)) return;
 
-    setError("");
-    setMessage("");
-
     try {
       await deleteAdminUser(user._id);
       setUsers((current) => current.filter((item) => item._id !== user._id));
-      setMessage("User deleted successfully.");
+      toast.success("User deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete user.");
+      toast.error(err instanceof Error ? err.message : "Unable to delete user.");
     }
   };
 
@@ -97,9 +90,6 @@ export default function AdminUsersPage() {
           onChange={(event) => setSearchQuery(event.target.value)}
         />
       </label>
-
-      {message ? <p className="admin-products-message success">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
 
       <div className="admin-users-table-card">
         <div className="admin-users-table">

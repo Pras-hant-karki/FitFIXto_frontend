@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AuthField } from "@/components/shared";
 import { API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
+import { useToast } from "@/contexts";
 
 export default function ResetPasswordPage() {
   const [token, setToken] = useState("");
@@ -13,7 +14,8 @@ export default function ResetPasswordPage() {
     confirmPassword: "",
   });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,6 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setSuccess("");
 
     if (!token) {
       setError("Reset token is missing. Please request a new reset link.");
@@ -39,7 +40,8 @@ export default function ResetPasswordPage() {
         password: formData.password,
         confirmPassword: formData.confirmPassword,
       });
-      setSuccess("Password reset successfully. You can now sign in.");
+      toast.success("Password reset successfully. You can now sign in.");
+      setIsSuccess(true);
       setFormData({ password: "", confirmPassword: "" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to reset password. Please try again.");
@@ -72,7 +74,7 @@ export default function ResetPasswordPage() {
               ariaLabel="New password"
               autoComplete="new-password"
               required
-              disabled={isSubmitting || Boolean(success)}
+              disabled={isSubmitting || isSuccess}
             />
             <AuthField
               icon="lock"
@@ -84,11 +86,10 @@ export default function ResetPasswordPage() {
               ariaLabel="Confirm password"
               autoComplete="new-password"
               required
-              disabled={isSubmitting || Boolean(success)}
+              disabled={isSubmitting || isSuccess}
             />
             {error ? <p className="auth-message error">{error}</p> : null}
-            {success ? <p className="auth-message success">{success}</p> : null}
-            <button type="submit" disabled={isSubmitting || Boolean(success)}>
+            <button type="submit" disabled={isSubmitting || isSuccess}>
               {isSubmitting ? "Resetting..." : "Reset Password"}
             </button>
           </form>

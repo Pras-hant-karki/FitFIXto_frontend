@@ -15,7 +15,7 @@ import {
 } from "@/features/products";
 import { DiscountData, DiscountProduct, fetchPublicDiscounts } from "@/features/discounts";
 import { AddToCartButton } from "@/features/cart";
-import { useAuth, useWishlist } from "@/contexts";
+import { useAuth, useToast, useWishlist } from "@/contexts";
 
 const DEFAULT_MAX_PRICE = 3000;
 const PRODUCT_PAGE_SIZE = 6;
@@ -338,12 +338,12 @@ const ShopContent: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const searchParamString = searchParams.toString();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [facetProducts, setFacetProducts] = useState<BackendProduct[]>([]);
   const [pagination, setPagination] = useState<ProductPagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [discounts, setDiscounts] = useState<DiscountData | null>(null);
 
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
@@ -513,7 +513,6 @@ const ShopContent: React.FC = () => {
   useEffect(() => {
     const loadProducts = async () => {
       setIsLoading(true);
-      setError("");
 
       try {
         const params: Record<string, string | number | boolean> = {
@@ -534,7 +533,7 @@ const ShopContent: React.FC = () => {
         setProducts(data?.products || []);
         setPagination(data?.pagination || null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load products.");
+        toast.error(err instanceof Error ? err.message : "Unable to load products.");
         setPagination(null);
       } finally {
         setIsLoading(false);
@@ -587,16 +586,6 @@ const ShopContent: React.FC = () => {
             />
           </label>
         </div>
-
-        {error ? (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm font-semibold text-red-700">
-            <strong className="block text-base text-red-800">Unable to load products.</strong>
-            <span className="mt-1 block">{error}</span>
-            <button type="button" onClick={() => window.location.reload()} className="mt-3 rounded-md bg-red-700 px-4 py-2 text-white">
-              Try Again
-            </button>
-          </div>
-        ) : null}
 
         <div className="flex flex-col lg:flex-row gap-8">
           <aside className="w-full lg:w-64 flex-shrink-0">
@@ -703,7 +692,7 @@ const ShopContent: React.FC = () => {
               </div>
             )}
 
-            {!isLoading && !error && products.length > 0 && totalPages > 1 ? (
+            {!isLoading && products.length > 0 && totalPages > 1 ? (
               <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Shop pagination">
                 <button
                   type="button"

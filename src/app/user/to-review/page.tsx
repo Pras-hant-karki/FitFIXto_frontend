@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Star } from "lucide-react";
 import { CustomerDashboardShell } from "@/components/shared/customer";
+import { useToast } from "@/contexts";
 import { BackendOrder, BackendOrderItem, fetchMyOrders } from "@/features/orders";
 import { BackendProduct, getProductImage } from "@/features/products";
 import { BackendReview, createReview, fetchMyReviews } from "@/features/reviews";
@@ -68,13 +69,13 @@ const toReviewableItems = (orders: BackendOrder[], reviews: BackendReview[]) => 
 };
 
 export default function UserToReviewPage() {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submittingItemId, setSubmittingItemId] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let isActive = true;
@@ -82,7 +83,6 @@ export default function UserToReviewPage() {
     const loadOrders = async () => {
       setIsLoading(true);
       setError("");
-      setMessage("");
 
       try {
         const [nextOrders, nextReviews] = await Promise.all([fetchMyOrders(), fetchMyReviews()]);
@@ -129,7 +129,6 @@ export default function UserToReviewPage() {
 
     setSubmittingItemId(item.id);
     setError("");
-    setMessage("");
 
     try {
       const review = await createReview({
@@ -148,7 +147,7 @@ export default function UserToReviewPage() {
         delete nextDrafts[item.id];
         return nextDrafts;
       });
-      setMessage("Review submitted successfully.");
+      toast.success("Review submitted successfully.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to submit review.");
     } finally {
@@ -163,8 +162,6 @@ export default function UserToReviewPage() {
           <h2>To Review</h2>
           <p>Share your experience for products you received.</p>
         </header>
-
-        {message ? <p className="customer-review-message">{message}</p> : null}
 
         {isLoading ? (
           <div className="customer-orders-empty">Loading products to review...</div>

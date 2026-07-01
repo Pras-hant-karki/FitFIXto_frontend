@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check, X, CheckCircle, Clock, XCircle, User } from "lucide-react";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
+import { useToast } from "@/contexts";
 import {
   BackendBooking,
   BookingStatus,
@@ -31,24 +32,22 @@ const getClient = (booking: BackendBooking): PopulatedClient | null => {
 type FilterType = "all" | BookingStatus;
 
 export default function TrainerBookingsPage() {
+  const { toast } = useToast();
   const [bookings, setBookings] = useState<BackendBooking[]>([]);
   const [filter, setFilter] = useState<FilterType>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       setIsLoading(true);
-      setError("");
       try {
         const data = await fetchMyTrainerBookings();
         if (isActive) setBookings(data);
       } catch (err) {
-        if (isActive) setError(err instanceof Error ? err.message : "Unable to load bookings.");
+        if (isActive) toast.error(err instanceof Error ? err.message : "Unable to load bookings.");
       } finally {
         if (isActive) setIsLoading(false);
       }

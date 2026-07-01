@@ -11,6 +11,7 @@ import {
   type BackendPartnerGym,
   type PartnerGymPayload,
 } from "@/features/partner-gyms";
+import { useToast } from "@/contexts";
 
 type GymFormState = {
   name: string;
@@ -126,6 +127,7 @@ const loadGoogleMapsScript = (apiKey: string) =>
 const formatPin = (location: GoogleLatLng) => `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
 
 export default function AdminPartnerGymsPage() {
+  const { toast } = useToast();
   const [gyms, setGyms] = useState<BackendPartnerGym[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGymId, setEditingGymId] = useState<string | null>(null);
@@ -137,7 +139,6 @@ export default function AdminPartnerGymsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
-  const [statusMessage, setStatusMessage] = useState("");
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
@@ -155,7 +156,7 @@ export default function AdminPartnerGymsPage() {
       })
       .catch((error) => {
         if (isMounted) {
-          setStatusMessage(error instanceof Error ? error.message : "Unable to load partner gyms.");
+          toast.error(error instanceof Error ? error.message : "Unable to load partner gyms.");
         }
       });
 
@@ -271,12 +272,11 @@ export default function AdminPartnerGymsPage() {
 
   const handleImageUpload = async () => {
     if (!selectedImageFiles.length) {
-      setStatusMessage("Please choose 1-5 gym images before uploading.");
+      toast.warning("Please choose 1–5 gym images before uploading.");
       return;
     }
 
     setIsUploading(true);
-    setStatusMessage("");
 
     try {
       const uploadedUrls = await uploadPartnerGymImages(selectedImageFiles);
@@ -285,9 +285,9 @@ export default function AdminPartnerGymsPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      setStatusMessage(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
+      toast.success(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded.`);
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to upload partner gym images.");
+      toast.error(error instanceof Error ? error.message : "Unable to upload gym images.");
     } finally {
       setIsUploading(false);
     }
@@ -296,7 +296,6 @@ export default function AdminPartnerGymsPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setStatusMessage("");
 
     try {
       if (editingGymId) {
@@ -304,42 +303,42 @@ export default function AdminPartnerGymsPage() {
         if (updatedGym) {
           setGyms((current) => current.map((gym) => (gym._id === editingGymId ? updatedGym : gym)));
         }
+        toast.success("Partner gym updated.");
       } else {
         const createdGym = await createPartnerGym(toPayload());
         if (createdGym) {
           setGyms((current) => [createdGym, ...current]);
         }
+        toast.success("Partner gym added.");
       }
 
       closeForm();
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to save partner gym.");
+      toast.error(error instanceof Error ? error.message : "Unable to save partner gym.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleVisibilityToggle = async (gym: BackendPartnerGym) => {
-    setStatusMessage("");
-
     try {
       const updatedGym = await updatePartnerGym(gym._id, { isVisible: !gym.isVisible });
       if (updatedGym) {
         setGyms((current) => current.map((currentGym) => (currentGym._id === gym._id ? updatedGym : currentGym)));
       }
+      toast.success(gym.isVisible ? "Gym hidden from public." : "Gym now visible to public.");
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to update gym visibility.");
+      toast.error(error instanceof Error ? error.message : "Unable to update gym visibility.");
     }
   };
 
   const handleDelete = async (gymId: string) => {
-    setStatusMessage("");
-
     try {
       await deletePartnerGym(gymId);
       setGyms((current) => current.filter((gym) => gym._id !== gymId));
+      toast.success("Partner gym removed.");
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to delete partner gym.");
+      toast.error(error instanceof Error ? error.message : "Unable to delete partner gym.");
     }
   };
 
@@ -415,8 +414,6 @@ export default function AdminPartnerGymsPage() {
           Add Gym
         </button>
       </header>
-      {statusMessage ? <p className="admin-gym-status">{statusMessage}</p> : null}
-
       <div className="admin-partner-gyms-grid">
         <section className="admin-gym-map-shell" aria-label="Partner gyms map">
           <div className="admin-gym-map-search">

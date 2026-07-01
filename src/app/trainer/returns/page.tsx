@@ -4,28 +4,27 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
 import { BackendOrder, cancelOrder, fetchMyOrders } from "@/features/orders";
+import { useToast } from "@/contexts";
 
 const formatDate = (d: string) => new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d));
 
 export default function TrainerReturnsPage() {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<BackendOrder | null>(null);
   const [returnReason, setReturnReason] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState("");
-  const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      setError("");
       try {
         const all = await fetchMyOrders();
         setOrders(all);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load orders.");
+        toast.error(err instanceof Error ? err.message : "Unable to load orders.");
       } finally {
         setIsLoading(false);
       }

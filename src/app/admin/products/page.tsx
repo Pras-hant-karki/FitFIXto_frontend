@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Edit2, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { useToast } from "@/contexts";
 import {
   BackendProduct,
   ProductPayload,
@@ -126,8 +127,7 @@ export default function AdminProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const featuredCount = useMemo(() => products.filter((product) => product.isFeatured).length, [products]);
@@ -161,7 +161,6 @@ export default function AdminProductsPage() {
 
   const loadProducts = async (query = searchQuery) => {
     setIsLoading(true);
-    setError("");
 
     try {
       const response = await fetchProducts({
@@ -172,7 +171,7 @@ export default function AdminProductsPage() {
       });
       setProducts(response?.products || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load products.");
+      toast.error(err instanceof Error ? err.message : "Unable to load products.");
     } finally {
       setIsLoading(false);
     }
@@ -188,8 +187,6 @@ export default function AdminProductsPage() {
     setForm(emptyForm);
     setSelectedImageFiles([]);
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const openEditForm = (product: BackendProduct) => {
@@ -197,8 +194,6 @@ export default function AdminProductsPage() {
     setForm(toFormState(product));
     setSelectedImageFiles([]);
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const closeForm = () => {
@@ -252,24 +247,22 @@ export default function AdminProductsPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       const payload = toPayload(form);
 
       if (editingProduct) {
         await updateProduct(editingProduct._id, payload);
-        setMessage("Product updated successfully.");
+        toast.success("Product updated.");
       } else {
         await createProduct(payload);
-        setMessage("Product created successfully.");
+        toast.success("Product created.");
       }
 
       closeForm();
       await loadProducts(searchQuery);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save product.");
+      toast.error(err instanceof Error ? err.message : "Unable to save product.");
     } finally {
       setIsSaving(false);
     }
@@ -281,13 +274,11 @@ export default function AdminProductsPage() {
 
   const handleImageUpload = async () => {
     if (!selectedImageFiles.length) {
-      setError("Please choose an image before uploading.");
+      toast.error("Please choose an image before uploading.");
       return;
     }
 
     setIsUploading(true);
-    setError("");
-    setMessage("");
 
     try {
       const uploadedUrls = await uploadProductImages(selectedImageFiles);
@@ -301,41 +292,35 @@ export default function AdminProductsPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      setMessage(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
+      toast.success(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to upload product images.");
+      toast.error(err instanceof Error ? err.message : "Unable to upload product images.");
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleFeaturedToggle = async (product: BackendProduct) => {
-    setError("");
-    setMessage("");
-
     try {
       const updatedProduct = await updateProduct(product._id, { isFeatured: !product.isFeatured });
       if (updatedProduct) {
         setProducts((current) => current.map((item) => (item._id === updatedProduct._id ? updatedProduct : item)));
       }
-      setMessage(updatedProduct?.isFeatured ? "Product starred as featured." : "Product removed from featured.");
+      toast.success(updatedProduct?.isFeatured ? "Product starred as featured." : "Product removed from featured.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update featured product.");
+      toast.error(err instanceof Error ? err.message : "Unable to update featured product.");
     }
   };
 
   const handleDelete = async (product: BackendProduct) => {
     if (!window.confirm(`Delete ${product.name}?`)) return;
 
-    setError("");
-    setMessage("");
-
     try {
       await deleteProduct(product._id);
       setProducts((current) => current.filter((item) => item._id !== product._id));
-      setMessage("Product deleted successfully.");
+      toast.success("Product deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete product.");
+      toast.error(err instanceof Error ? err.message : "Unable to delete product.");
     }
   };
 
@@ -363,9 +348,6 @@ export default function AdminProductsPage() {
           onChange={(event) => setSearchQuery(event.target.value)}
         />
       </form>
-
-      {message ? <p className="admin-products-message success">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
 
       {isFormOpen ? (
         <div className="admin-product-form-card">

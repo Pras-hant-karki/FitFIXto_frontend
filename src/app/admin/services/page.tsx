@@ -12,6 +12,7 @@ import {
   uploadServiceImage,
 } from "@/features/services";
 import { BackendServiceBooking, ServiceBookingStatus, fetchAllServiceBookings, updateServiceBookingStatus } from "@/features/serviceBookings";
+import { useToast } from "@/contexts";
 
 type ServiceForm = {
   name: string;
@@ -63,6 +64,7 @@ const formatDate = (d: string) =>
   new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
 
 export default function AdminServicesPage() {
+  const { toast } = useToast();
   const [tab, setTab] = useState<"services" | "bookings">("services");
 
   // Services tab
@@ -74,8 +76,6 @@ export default function AdminServicesPage() {
   const [form, setForm] = useState<ServiceForm>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -84,7 +84,6 @@ export default function AdminServicesPage() {
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingStatusFilter, setBookingStatusFilter] = useState<"all" | ServiceBookingStatus>("all");
   const [updatingBookingId, setUpdatingBookingId] = useState("");
-  const [bookingMsg, setBookingMsg] = useState("");
 
   const filtered = search.trim()
     ? services.filter(
@@ -96,12 +95,11 @@ export default function AdminServicesPage() {
 
   const load = async () => {
     setIsLoading(true);
-    setError("");
     try {
       const data = await fetchAdminServices();
       setServices(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load services.");
+      toast.error(err instanceof Error ? err.message : "Unable to load services.");
     } finally {
       setIsLoading(false);
     }
@@ -117,11 +115,10 @@ export default function AdminServicesPage() {
 
   const handleBookingStatusChange = async (id: string, status: ServiceBookingStatus) => {
     setUpdatingBookingId(id);
-    setBookingMsg("");
     try {
       const updated = await updateServiceBookingStatus(id, status);
       setSvcBookings((cur) => cur.map((b) => b._id === id ? updated : b));
-      setBookingMsg(`Status updated to ${SVC_STATUS_LABELS[status]}.`);
+      toast.success(`Status updated to ${SVC_STATUS_LABELS[status]}.`);
     } catch {} finally { setUpdatingBookingId(""); }
   };
 
@@ -130,8 +127,6 @@ export default function AdminServicesPage() {
     setForm(emptyForm);
     setFormError("");
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const openEdit = (s: BackendService) => {
@@ -139,8 +134,6 @@ export default function AdminServicesPage() {
     setForm(toForm(s));
     setFormError("");
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const closeForm = () => {
@@ -193,11 +186,11 @@ export default function AdminServicesPage() {
       if (editingService) {
         const updated = await updateService(editingService._id, payload);
         if (updated) setServices((cur) => cur.map((s) => (s._id === editingService._id ? updated : s)));
-        setMessage("Service updated.");
+        toast.success("Service updated.");
       } else {
         const created = await createService(payload);
         if (created) setServices((cur) => [created, ...cur]);
-        setMessage("Service created.");
+        toast.success("Service created.");
       }
       closeForm();
     } catch (err) {
@@ -209,13 +202,12 @@ export default function AdminServicesPage() {
 
   const handleDelete = async (s: BackendService) => {
     if (!window.confirm(`Delete "${s.name}"?`)) return;
-    setError(""); setMessage("");
     try {
       await deleteService(s._id);
       setServices((cur) => cur.filter((item) => item._id !== s._id));
-      setMessage("Service deleted.");
+      toast.success("Service deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete service.");
+      toast.error(err instanceof Error ? err.message : "Unable to delete service.");
     }
   };
 
@@ -284,7 +276,6 @@ export default function AdminServicesPage() {
               </button>
             ))}
           </div>
-          {bookingMsg && <p className="admin-products-message success">{bookingMsg}</p>}
           {bookingsLoading ? (
             <div className="admin-products-empty">Loading bookings…</div>
           ) : filteredBookings.length === 0 ? (
@@ -352,9 +343,6 @@ export default function AdminServicesPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </form>
-
-      {message ? <p className="admin-products-message success">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
 
       {/* Create / Edit Form */}
       {isFormOpen ? (

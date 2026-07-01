@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { Plus, Save, User } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts";
 import { apiClient } from "@/lib";
 
 const normalizeProfileImageUrl = (path?: string | null) => {
@@ -29,14 +30,13 @@ const splitDisplayName = (name: string) => {
 
 export default function AdminSettingsPage() {
   const { user, refreshUser } = useAuth();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -54,8 +54,6 @@ export default function AdminSettingsPage() {
   const handleProfileUpdate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       const { firstName, lastName } = splitDisplayName(name);
@@ -67,9 +65,9 @@ export default function AdminSettingsPage() {
       });
 
       await refreshUser();
-      setMessage("Admin profile updated successfully.");
+      toast.success("Admin profile updated successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update admin profile.");
+      toast.error(err instanceof Error ? err.message : "Unable to update admin profile.");
     } finally {
       setIsSaving(false);
     }
@@ -77,13 +75,11 @@ export default function AdminSettingsPage() {
 
   const handlePhotoUpload = async () => {
     if (!selectedPhoto) {
-      setError("Please choose a profile picture before uploading.");
+      toast.error("Please choose a profile picture before uploading.");
       return;
     }
 
     setIsUploading(true);
-    setError("");
-    setMessage("");
 
     try {
       const formData = new FormData();
@@ -108,9 +104,9 @@ export default function AdminSettingsPage() {
         fileInputRef.current.value = "";
       }
       await refreshUser();
-      setMessage("Profile picture uploaded successfully.");
+      toast.success("Profile picture uploaded successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to upload profile picture.");
+      toast.error(err instanceof Error ? err.message : "Unable to upload profile picture.");
     } finally {
       setIsUploading(false);
     }

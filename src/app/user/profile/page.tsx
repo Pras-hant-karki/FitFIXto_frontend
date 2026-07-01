@@ -3,19 +3,18 @@
 import { FormEvent, useEffect, useState } from "react";
 import { RouteShell } from "@/components/shared";
 import { API_ENDPOINTS } from "@/constants/api";
-import { useAuth } from "@/contexts";
+import { useAuth, useToast } from "@/contexts";
 import { apiClient } from "@/lib";
 
 export default function UserProfilePage() {
   const { user, refreshUser } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     phone: "",
     bio: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -31,8 +30,6 @@ export default function UserProfilePage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
-    setSuccess("");
     setIsSubmitting(true);
 
     try {
@@ -43,9 +40,9 @@ export default function UserProfilePage() {
         bio: formData.bio,
       });
       await refreshUser();
-      setSuccess("Profile updated successfully.");
+      toast.success("Profile updated.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update profile. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Unable to update profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,9 +122,6 @@ export default function UserProfilePage() {
             disabled={isSubmitting}
           />
         </label>
-
-        {error ? <p className="auth-message error">{error}</p> : null}
-        {success ? <p className="auth-message success">{success}</p> : null}
 
         <button className="button button-primary profile-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : "Save Profile"}

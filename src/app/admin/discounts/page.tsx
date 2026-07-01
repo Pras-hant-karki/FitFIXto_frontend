@@ -2,6 +2,7 @@
 
 import { CSSProperties, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, Edit2, Package, Plus, Search, Shield, Trash2, X, Zap } from "lucide-react";
+import { useToast } from "@/contexts";
 import {
   Bundle,
   DiscountData,
@@ -182,13 +183,12 @@ function FlashSaleCard({
   const [selectedIds, setSelectedIds] = useState<string[]>(
     (fs?.productIds ?? []).map(idOf)
   );
+  const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setMsg("");
     try {
       await saveFlashSale({
         title: title.trim(),
@@ -197,10 +197,10 @@ function FlashSaleCard({
         productIds: selectedIds,
         isActive,
       });
-      setMsg("Saved.");
+      toast.success("Saved.");
       onSaved();
     } catch {
-      setMsg("Failed to save.");
+      toast.error("Failed to save.");
     } finally {
       setSaving(false);
     }
@@ -268,7 +268,6 @@ function FlashSaleCard({
         </div>
 
         <div className="dsc-card-foot">
-          {msg && <span className="dsc-msg">{msg}</span>}
           <button type="submit" className="dsc-btn dsc-btn--primary" disabled={saving}>
             {saving ? "Saving…" : "Save Flash Sale"}
           </button>
@@ -502,17 +501,16 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
 // ── Best-Price Labels ──────────────────────────────────────────────────────
 
 function BestPriceCard({ data, allProducts, onSaved }: { data: DiscountData; allProducts: BackendProduct[]; onSaved: () => void }) {
+  const { toast } = useToast();
   const [selectedIds, setSelectedIds] = useState<string[]>(
     (data.bestPriceProductIds ?? []).map(idOf)
   );
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
 
   const handleSave = async () => {
     setSaving(true);
-    setMsg("");
-    try { await saveBestPrice(selectedIds); setMsg("Saved."); onSaved(); }
-    catch { setMsg("Failed to save."); }
+    try { await saveBestPrice(selectedIds); toast.success("Saved."); onSaved(); }
+    catch { toast.error("Failed to save."); }
     finally { setSaving(false); }
   };
 
@@ -541,7 +539,6 @@ function BestPriceCard({ data, allProducts, onSaved }: { data: DiscountData; all
           />
         </div>
         <div className="dsc-card-foot">
-          {msg && <span className="dsc-msg">{msg}</span>}
           <button type="button" className="dsc-btn dsc-btn--primary" onClick={handleSave} disabled={saving}>
             {saving ? "Saving…" : "Save Labels"}
           </button>
@@ -557,16 +554,15 @@ const DEFAULT_REFUND_TEXT =
   "10-day money-back guarantee. If you're not fully satisfied, return any item within 10 days for a full refund. Refund process might take 3-6 business days";
 
 function RefundCard({ data, onSaved }: { data: DiscountData; onSaved: () => void }) {
+  const { toast } = useToast();
   const [text, setText] = useState(data.refundGuarantee || DEFAULT_REFUND_TEXT);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setMsg("");
-    try { await saveRefundGuarantee(text.trim()); setMsg("Saved."); onSaved(); }
-    catch { setMsg("Failed to save."); }
+    try { await saveRefundGuarantee(text.trim()); toast.success("Saved."); onSaved(); }
+    catch { toast.error("Failed to save."); }
     finally { setSaving(false); }
   };
 
@@ -590,7 +586,6 @@ function RefundCard({ data, onSaved }: { data: DiscountData; onSaved: () => void
           />
         </div>
         <div className="dsc-card-foot">
-          {msg && <span className="dsc-msg">{msg}</span>}
           <button type="submit" className="dsc-btn dsc-btn--primary" disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </button>

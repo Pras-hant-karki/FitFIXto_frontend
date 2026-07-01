@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { AddToCartButton } from "@/features/cart";
+import { useToast } from "@/contexts";
 import {
   BackendProduct,
   fetchComparedProducts,
@@ -89,12 +90,12 @@ const CompareProductCard = ({ product }: { product: BackendProduct }) => (
 function CompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const selectedIds = useMemo(() => parseCompareIds(searchParams.get("ids")), [searchParams]);
   const slotCount = useMemo(() => parseSlotCount(searchParams.get("slots"), selectedIds.length), [searchParams, selectedIds.length]);
   const compareSlots = useMemo(() => Array.from({ length: slotCount }, (_, index) => index), [slotCount]);
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const idsQuery = selectedIds.join(",");
   const shopPickHref = idsQuery
     ? `/shop?compare=1&ids=${encodeURIComponent(idsQuery)}&slots=${slotCount}`
@@ -116,12 +117,10 @@ function CompareContent() {
     const loadComparedProducts = async () => {
       if (selectedIds.length === 0) {
         setProducts([]);
-        setError("");
         return;
       }
 
       setIsLoading(true);
-      setError("");
 
       try {
         const comparedProducts =
@@ -137,7 +136,7 @@ function CompareContent() {
         }
       } catch (err) {
         if (isActive) {
-          setError(err instanceof Error ? err.message : "Unable to load compared products.");
+          toast.error(err instanceof Error ? err.message : "Unable to load compared products.");
         }
       } finally {
         if (isActive) {
@@ -162,7 +161,6 @@ function CompareContent() {
         <p>Compare up to 5 products side-by-side. Click <strong>Add Product</strong> to pick one from the shop - you won&apos;t open the detail page.</p>
       </header>
 
-      {error ? <p className="compare-error">{error}</p> : null}
       {isLoading ? <p className="compare-loading">Loading compared products...</p> : null}
 
       <div

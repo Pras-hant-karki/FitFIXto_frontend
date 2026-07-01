@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, User } from "lucide-react";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
 import { TrainerClient, fetchMyTrainerClients } from "@/features/bookings";
+import { useToast } from "@/contexts";
 
 const formatDate = (d: string) =>
   new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(
@@ -11,21 +12,20 @@ const formatDate = (d: string) =>
   );
 
 export default function TrainerClientsPage() {
+  const { toast } = useToast();
   const [clients, setClients] = useState<TrainerClient[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       setIsLoading(true);
-      setError("");
       try {
         const data = await fetchMyTrainerClients();
         if (isActive) setClients(data);
       } catch (err) {
-        if (isActive) setError(err instanceof Error ? err.message : "Unable to load clients.");
+        if (isActive) toast.error(err instanceof Error ? err.message : "Unable to load clients.");
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -65,8 +65,6 @@ export default function TrainerClientsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-
-        {error ? <p className="auth-message error" style={{ marginBottom: 12 }}>{error}</p> : null}
 
         {isLoading ? (
           <div className="customer-orders-empty">Loading clients...</div>

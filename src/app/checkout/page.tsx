@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CreditCard, ShieldCheck, WalletCards } from "lucide-react";
-import { useCart } from "@/contexts";
+import { useCart, useToast } from "@/contexts";
 import { BackendCart, fetchCart } from "@/features/cart";
 import { DiscountData, fetchPublicDiscounts } from "@/features/discounts";
 import {
@@ -49,6 +49,7 @@ const formatCompactMoney = (value: number) => (value > 0 ? `Npr ${Math.round(val
 export default function CheckoutPage() {
   const router = useRouter();
   const { refreshCart } = useCart();
+  const { toast } = useToast();
   const [step, setStep] = useState<CheckoutStep>(1);
   const [cart, setCart] = useState<BackendCart>({ items: [] });
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -60,12 +61,10 @@ export default function CheckoutPage() {
   const [publicDiscounts, setPublicDiscounts] = useState<DiscountData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadCheckout = async () => {
       setIsLoading(true);
-      setError("");
 
       try {
         const selectedIds = new URLSearchParams(window.location.search)
@@ -93,7 +92,7 @@ export default function CheckoutPage() {
           });
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load checkout.");
+        toast.error(err instanceof Error ? err.message : "Unable to load checkout.");
       } finally {
         setIsLoading(false);
       }
@@ -132,24 +131,21 @@ export default function CheckoutPage() {
 
   const handleShippingContinue = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
     setIsSubmitting(true);
 
     try {
       await ensureAddress();
       setStep(2);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save delivery address.");
+      toast.error(err instanceof Error ? err.message : "Unable to save delivery address.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handlePlaceOrder = async () => {
-    setError("");
-
     if (checkoutItems.length === 0) {
-      setError("No selected cart items found. Please return to cart and choose items.");
+      toast.error("No selected cart items found. Please return to cart and choose items.");
       return;
     }
 
@@ -164,9 +160,10 @@ export default function CheckoutPage() {
         selectedProductIds: checkoutItems.map((item) => item.productId._id),
       });
       await refreshCart();
+      toast.success("Order placed successfully!", { description: "You'll receive a confirmation shortly." });
       router.push("/user/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to place order.");
+      toast.error(err instanceof Error ? err.message : "Unable to place order.");
     } finally {
       setIsSubmitting(false);
     }
@@ -218,8 +215,6 @@ export default function CheckoutPage() {
         <i />
         {renderStepMarker(3, "Payment")}
       </nav>
-
-      {error ? <p className="checkout-error">{error}</p> : null}
 
       <div className="checkout-grid">
         {step === 1 ? (

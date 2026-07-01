@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Check, Eye, EyeOff, Plus, Star, Trash2, X } from "lucide-react";
+import { useToast } from "@/contexts";
 import {
   approveTrainerApplication,
   BackendTrainerApplication,
@@ -127,8 +128,7 @@ export default function AdminTrainersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast } = useToast();
   const trainerPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const selectedPhotoLabel = selectedPhotoFile?.name || "No file chosen";
   const pendingApplications = applications.filter((application) => application.status === "pending");
@@ -138,24 +138,21 @@ export default function AdminTrainersPage() {
 
   const loadTrainers = async () => {
     setIsLoading(true);
-    setError("");
 
     try {
       setTrainers(await fetchAdminTrainers());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load trainers.");
+      toast.error(err instanceof Error ? err.message : "Unable to load trainers.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadApplications = async () => {
-    setError("");
-
     try {
       setApplications(await fetchTrainerApplications());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load trainer applications.");
+      toast.error(err instanceof Error ? err.message : "Unable to load trainer applications.");
     }
   };
 
@@ -170,8 +167,6 @@ export default function AdminTrainersPage() {
     setSelectedPhotoFile(null);
     setShowTrainerPassword(false);
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const openCreateFormFromApplication = (application: BackendTrainerApplication) => {
@@ -181,8 +176,7 @@ export default function AdminTrainersPage() {
     setShowTrainerPassword(false);
     setIsFormOpen(true);
     setActiveTab("created");
-    setMessage("Trainer form filled from approved application. The password will be emailed after account creation.");
-    setError("");
+    toast.info("Trainer form filled from approved application. The password will be emailed after account creation.");
   };
 
   const openEditForm = (trainer: BackendTrainer) => {
@@ -191,8 +185,6 @@ export default function AdminTrainersPage() {
     setSelectedPhotoFile(null);
     setShowTrainerPassword(false);
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const closeForm = () => {
@@ -208,13 +200,11 @@ export default function AdminTrainersPage() {
 
   const handleTrainerPhotoUpload = async () => {
     if (!selectedPhotoFile) {
-      setError("Please choose a trainer photo before uploading.");
+      toast.error("Please choose a trainer photo before uploading.");
       return;
     }
 
     setIsUploading(true);
-    setError("");
-    setMessage("");
 
     try {
       const photoUrl = await uploadTrainerPhoto(selectedPhotoFile);
@@ -223,9 +213,9 @@ export default function AdminTrainersPage() {
       if (trainerPhotoInputRef.current) {
         trainerPhotoInputRef.current.value = "";
       }
-      setMessage("Trainer photo uploaded successfully.");
+      toast.success("Trainer photo uploaded successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to upload trainer photo.");
+      toast.error(err instanceof Error ? err.message : "Unable to upload trainer photo.");
     } finally {
       setIsUploading(false);
     }
@@ -234,34 +224,29 @@ export default function AdminTrainersPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       const payload = toPayload(form, Boolean(editingTrainer));
 
       if (editingTrainer) {
         await updateTrainer(editingTrainer._id, payload);
-        setMessage("Trainer updated successfully.");
+        toast.success("Trainer updated successfully.");
       } else {
         await createTrainer(payload as TrainerPayload & { password: string });
-        setMessage("Trainer created successfully.");
+        toast.success("Trainer created successfully.");
       }
 
       closeForm();
       await loadTrainers();
       await loadApplications();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save trainer.");
+      toast.error(err instanceof Error ? err.message : "Unable to save trainer.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleApplicationStatus = async (application: BackendTrainerApplication, status: "approved" | "rejected") => {
-    setError("");
-    setMessage("");
-
     try {
       const updated =
         status === "approved"
@@ -272,39 +257,33 @@ export default function AdminTrainersPage() {
         setApplications((current) => current.map((item) => (item._id === updated._id ? updated : item)));
       }
 
-      setMessage(status === "approved" ? "Trainer application approved." : "Trainer application rejected.");
+      toast.success(status === "approved" ? "Trainer application approved." : "Trainer application rejected.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update trainer application.");
+      toast.error(err instanceof Error ? err.message : "Unable to update trainer application.");
     }
   };
 
   const patchTrainer = async (trainer: BackendTrainer, payload: Partial<TrainerPayload>) => {
-    setError("");
-    setMessage("");
-
     try {
       const updated = await updateTrainer(trainer._id, payload);
       if (updated) {
         setTrainers((current) => current.map((item) => (item._id === updated._id ? updated : item)));
       }
-      setMessage("Trainer updated successfully.");
+      toast.success("Trainer updated successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update trainer.");
+      toast.error(err instanceof Error ? err.message : "Unable to update trainer.");
     }
   };
 
   const handleDelete = async (trainer: BackendTrainer) => {
     if (!window.confirm(`Delete ${trainer.userId.firstName} ${trainer.userId.lastName}?`)) return;
 
-    setError("");
-    setMessage("");
-
     try {
       await deleteTrainer(trainer._id);
       setTrainers((current) => current.filter((item) => item._id !== trainer._id));
-      setMessage("Trainer deleted successfully.");
+      toast.success("Trainer deleted successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete trainer.");
+      toast.error(err instanceof Error ? err.message : "Unable to delete trainer.");
     }
   };
 
@@ -403,9 +382,6 @@ export default function AdminTrainersPage() {
           Rejected {rejectedApplications.length}
         </button>
       </div>
-
-      {message ? <p className="admin-products-message success">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
 
       {isFormOpen && activeTab === "created" ? (
         <div className="admin-trainer-form-panel">

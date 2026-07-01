@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import {
   addWishlistItem,
   BackendWishlist,
@@ -26,6 +27,7 @@ const emptyWishlist: BackendWishlist = { items: [] };
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [wishlist, setWishlist] = useState<BackendWishlist>(emptyWishlist);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const [wishlistError, setWishlistError] = useState("");
@@ -64,14 +66,20 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   const toggleWishlistItem = useCallback(
     async (productId: string) => {
-      const nextWishlist = wishlistProductIds.has(productId)
+      const isRemoving = wishlistProductIds.has(productId);
+      const nextWishlist = isRemoving
         ? await removeWishlistItem(productId)
         : await addWishlistItem(productId);
 
       setWishlist(nextWishlist);
+      if (isRemoving) {
+        toast.info("Removed from wishlist");
+      } else {
+        toast.success("Added to wishlist");
+      }
       return nextWishlist;
     },
-    [wishlistProductIds]
+    [wishlistProductIds, toast]
   );
 
   const removeFromWishlist = useCallback(async (productId: string) => {

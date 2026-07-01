@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle, Clock, User, X, XCircle } from "lucide-react";
 import Link from "next/link";
 import { CustomerDashboardShell } from "@/components/shared/customer";
+import { useToast } from "@/contexts";
 import {
   BackendBooking,
   BookingStatus,
@@ -41,6 +42,7 @@ const getServiceName = (b: BackendServiceBooking) =>
 type MainTab = "trainer" | "service";
 
 export default function UserBookingsPage() {
+  const { toast } = useToast();
   const [tab, setTab] = useState<MainTab>("trainer");
 
   // Trainer bookings
@@ -48,22 +50,19 @@ export default function UserBookingsPage() {
   const [trainerFilter, setTrainerFilter] = useState<"all" | BookingStatus>("all");
   const [trainerLoading, setTrainerLoading] = useState(true);
   const [trainerProcessingId, setTrainerProcessingId] = useState("");
-  const [trainerError, setTrainerError] = useState("");
 
   // Service bookings
   const [svcBookings, setSvcBookings] = useState<BackendServiceBooking[]>([]);
   const [svcFilter, setSvcFilter] = useState<"all" | ServiceBookingStatus>("all");
   const [svcLoading, setSvcLoading] = useState(true);
   const [svcProcessingId, setSvcProcessingId] = useState("");
-  const [svcError, setSvcError] = useState("");
-  const [svcMessage, setSvcMessage] = useState("");
 
   useEffect(() => {
     let active = true;
     setTrainerLoading(true);
     fetchMyClientBookings()
       .then((d) => { if (active) setBookings(d); })
-      .catch((e) => { if (active) setTrainerError(e instanceof Error ? e.message : "Unable to load."); })
+      .catch((e) => { if (active) toast.error(e instanceof Error ? e.message : "Unable to load."); })
       .finally(() => { if (active) setTrainerLoading(false); });
     return () => { active = false; };
   }, []);
@@ -85,20 +84,19 @@ export default function UserBookingsPage() {
       const updated = await cancelClientBooking(id);
       if (updated) setBookings((cur) => cur.map((b) => (b._id === id ? updated : b)));
     } catch (e) {
-      setTrainerError(e instanceof Error ? e.message : "Unable to cancel.");
+      toast.error(e instanceof Error ? e.message : "Unable to cancel.");
     } finally { setTrainerProcessingId(""); }
   };
 
   const handleCancelService = async (id: string) => {
     if (!window.confirm("Cancel this service booking?")) return;
     setSvcProcessingId(id);
-    setSvcError(""); setSvcMessage("");
     try {
       await cancelMyServiceBooking(id);
       setSvcBookings((cur) => cur.map((b) => b._id === id ? { ...b, status: "cancelled" as ServiceBookingStatus } : b));
-      setSvcMessage("Booking cancelled.");
+      toast.success("Booking cancelled.");
     } catch (e) {
-      setSvcError(e instanceof Error ? e.message : "Unable to cancel.");
+      toast.error(e instanceof Error ? e.message : "Unable to cancel.");
     } finally { setSvcProcessingId(""); }
   };
 
@@ -147,7 +145,6 @@ export default function UserBookingsPage() {
                 </button>
               ))}
             </div>
-            {trainerError && <p className="auth-message error">{trainerError}</p>}
             {trainerLoading ? (
               <div className="customer-orders-empty">Loading…</div>
             ) : filteredTrainer.length === 0 ? (
@@ -220,8 +217,6 @@ export default function UserBookingsPage() {
                 </button>
               ))}
             </div>
-            {svcMessage && <p className="customer-review-message">{svcMessage}</p>}
-            {svcError && <p className="auth-message error">{svcError}</p>}
             {svcLoading ? (
               <div className="customer-orders-empty">Loading…</div>
             ) : filteredSvc.length === 0 ? (

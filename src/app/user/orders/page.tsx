@@ -4,31 +4,30 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { RouteShell } from "@/components/shared";
 import { BackendOrder, cancelOrder, fetchMyOrders } from "@/features/orders";
+import { useToast } from "@/contexts";
 
 const cancellableStatuses = new Set(["pending", "confirmed"]);
 
 const canCancelOrder = (status: string) => cancellableStatuses.has(status);
 
 export default function UserOrdersPage() {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<BackendOrder | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [cancellingOrderId, setCancellingOrderId] = useState("");
-  const [error, setError] = useState("");
   const [cancelError, setCancelError] = useState("");
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const loadOrders = async () => {
       setIsLoading(true);
-      setError("");
 
       try {
         const nextOrders = await fetchMyOrders();
         setOrders(nextOrders);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load orders.");
+        toast.error(err instanceof Error ? err.message : "Unable to load orders.");
       } finally {
         setIsLoading(false);
       }
@@ -41,7 +40,6 @@ export default function UserOrdersPage() {
     setSelectedOrder(order);
     setCancelReason("");
     setCancelError("");
-    setMessage("");
   };
 
   const closeCancelModal = () => {
@@ -69,7 +67,7 @@ export default function UserOrdersPage() {
       if (cancelledOrder) {
         setOrders((current) => current.map((order) => (order._id === cancelledOrder._id ? cancelledOrder : order)));
       }
-      setMessage("Order cancelled successfully.");
+      toast.success("Order cancelled successfully.");
       setSelectedOrder(null);
       setCancelReason("");
     } catch (err) {
@@ -87,18 +85,10 @@ export default function UserOrdersPage() {
       actionHref="/shop"
       actionLabel="Continue Shopping"
     >
-      {message ? <p className="user-orders-message success">{message}</p> : null}
-      {error ? <p className="user-orders-message error">{error}</p> : null}
-
       {isLoading ? (
         <div className="empty-state">
           <strong>Loading orders...</strong>
           <span>Please wait while we fetch your order history.</span>
-        </div>
-      ) : error ? (
-        <div className="empty-state">
-          <strong>Unable to load orders.</strong>
-          <span>{error}</span>
         </div>
       ) : orders.length === 0 ? (
         <div className="empty-state">
