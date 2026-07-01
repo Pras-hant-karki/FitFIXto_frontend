@@ -119,9 +119,6 @@ export default function AdminSettingsPage() {
         <p>Manage your admin account.</p>
       </header>
 
-      {message ? <p className="admin-products-message">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
-
       <section className="admin-settings-card">
         <h2>
           <User aria-hidden="true" />

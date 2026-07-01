@@ -53,6 +53,8 @@ export interface TrainerClient {
   user: PopulatedClient;
   bookingCount: number;
   lastBooking: string;
+  lastProgram: string;
+  upcomingSessions: number;
 }
 
 export const createBooking = async (payload: {

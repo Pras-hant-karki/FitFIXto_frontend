@@ -11094,13 +11094,29 @@ a {
    TRAINER DASHBOARD — clients
    ============================================================ */
 
+.trainer-clients-heading {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.trainer-clients-heading h2 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.trainer-clients-heading span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .trainer-clients-search {
   display: flex;
   align-items: center;
-  gap: 10px;
+  width: min(440px, 100%);
   height: 42px;
   border: 1.5px solid var(--line);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 0 14px;
   margin-bottom: 18px;
   background: var(--background);
@@ -11144,7 +11160,7 @@ a {
 .trainer-clients-head,
 .trainer-clients-row {
   display: grid;
-  grid-template-columns: minmax(160px, 2fr) 1fr 1fr 1fr 80px;
+  grid-template-columns: minmax(190px, 1.5fr) minmax(190px, 1.7fr) 100px 100px 80px;
   gap: 0;
   align-items: center;
 }
@@ -11175,6 +11191,88 @@ a {
 .trainer-clients-row > strong {
   color: var(--foreground);
   font-size: 13px;
+}
+
+.trainer-client-view {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trainer-client-view:hover {
+  border-color: var(--foreground);
+}
+
+.trainer-client-detail-panel {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--background);
+}
+
+.trainer-client-detail-panel h3,
+.trainer-client-detail-panel p {
+  margin: 0;
+}
+
+.trainer-client-detail-panel p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.trainer-client-detail-panel dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 0;
+}
+
+.trainer-client-detail-panel dl div {
+  display: grid;
+  gap: 5px;
+}
+
+.trainer-client-detail-panel dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.trainer-client-detail-panel dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.trainer-client-detail-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: var(--panel);
+  cursor: pointer;
+}
+
+.trainer-client-detail-close svg {
+  width: 16px;
+  height: 16px;
 }
 
 .trainer-client-name {
@@ -11911,6 +12009,10 @@ a {
   .trainer-clients-row > span:nth-child(2),
   .trainer-clients-row > span:nth-child(4) {
     display: none;
+  }
+
+  .trainer-client-detail-panel dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .trainer-program-list-card {

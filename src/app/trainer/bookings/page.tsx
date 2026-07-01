@@ -61,16 +61,14 @@ export default function TrainerBookingsPage() {
     status: "confirmed" | "cancelled" | "completed"
   ) => {
     setProcessingId(bookingId);
-    setError("");
-    setMessage("");
     try {
       const updated = await updateBookingStatus(bookingId, status, notesMap[bookingId]);
       if (updated) {
         setBookings((cur) => cur.map((b) => (b._id === bookingId ? updated : b)));
       }
-      setMessage(`Booking ${status} successfully.`);
+      toast.success(`Booking ${status} successfully.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update booking.");
+      toast.error(err instanceof Error ? err.message : "Unable to update booking.");
     } finally {
       setProcessingId("");
     }
@@ -109,9 +107,6 @@ export default function TrainerBookingsPage() {
             </button>
           ))}
         </div>
-
-        {message ? <p className="customer-review-message" style={{ marginBottom: 12 }}>{message}</p> : null}
-        {error ? <p className="auth-message error" style={{ marginBottom: 12 }}>{error}</p> : null}
 
         {isLoading ? (
           <div className="customer-orders-empty">Loading bookings...</div>
