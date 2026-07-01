@@ -117,6 +117,15 @@ export const API_ENDPOINTS = {
     uploadImages: '/partner-gyms/upload-images',
   },
 
+  // Services
+  services: {
+    list: '/services',
+    publicList: '/services/public',
+    create: '/services',
+    detail: (id: string) => `/services/${id}`,
+    uploadImage: '/services/upload-image',
+  },
+
   // Bookings (trainer-client sessions)
   bookings: {
     create: '/bookings',

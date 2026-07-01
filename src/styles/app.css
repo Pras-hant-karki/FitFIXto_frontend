@@ -10493,6 +10493,241 @@ a {
 }
 
 /* ============================================================
+   ADMIN — services management
+   ============================================================ */
+
+.admin-services-table {
+  display: grid;
+}
+
+.admin-services-head,
+.admin-services-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 2.2fr) minmax(130px, 1fr) 110px 110px minmax(140px, auto);
+  gap: 16px;
+  align-items: center;
+}
+
+.admin-services-head {
+  min-height: 52px;
+  background: #f7f7f9;
+  border-bottom: 1px solid #e5e5e8;
+  color: #747584;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-services-row {
+  min-height: 86px;
+  border-bottom: 1px solid #e5e5e8;
+  color: #050507;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+.admin-services-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-services-row > span,
+.admin-services-row > strong {
+  font-size: 14px;
+  color: #050507;
+}
+
+.admin-service-cell {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+}
+
+.admin-service-cell img {
+  width: 54px;
+  height: 54px;
+  border-radius: 6px;
+  background: #f0f0f2;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.admin-service-cell div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-service-cell strong {
+  font-size: 14px;
+  font-weight: 900;
+  color: #050507;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-service-cell span {
+  font-size: 12px;
+  color: #747584;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* feature input in form */
+.admin-service-features-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.admin-service-features-field > span {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--foreground);
+}
+
+.admin-service-feature-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-service-feature-input-row input {
+  flex: 1;
+  height: 38px;
+  border: 1.5px solid #e5e5e8;
+  border-radius: 6px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.admin-service-feature-input-row input:focus {
+  border-color: #030213;
+}
+
+.admin-service-add-feature-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #030213;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-service-add-feature-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.admin-service-add-feature-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-service-feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.admin-service-feature-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 12px;
+  border-radius: 20px;
+  background: #f0f0f4;
+  font-size: 13px;
+  font-weight: 700;
+  color: #050507;
+}
+
+.admin-service-feature-list li button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: #d0d0d8;
+  color: #050507;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s;
+}
+
+.admin-service-feature-list li button:hover {
+  background: #be123c;
+  color: #fff;
+}
+
+.admin-service-feature-list li button svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* dark mode */
+.dark .admin-services-head {
+  background: #18181c;
+  border-color: #2a2a30;
+  color: #747584;
+}
+
+.dark .admin-services-row {
+  border-color: #2a2a30;
+  color: #f0f0f4;
+}
+
+.dark .admin-services-row > span,
+.dark .admin-services-row > strong {
+  color: #f0f0f4;
+}
+
+.dark .admin-service-cell strong {
+  color: #f0f0f4;
+}
+
+.dark .admin-service-feature-input-row input {
+  border-color: #2a2a30;
+  background: #18181c;
+  color: #f0f0f4;
+}
+
+.dark .admin-service-feature-input-row input:focus {
+  border-color: #f0f0f4;
+}
+
+.dark .admin-service-feature-list li {
+  background: #2a2a30;
+  color: #f0f0f4;
+}
+
+.dark .admin-service-feature-list li button {
+  background: #3a3a44;
+  color: #f0f0f4;
+}
+
+/* ============================================================
    TRAINER DASHBOARD — settings
    ============================================================ */
 

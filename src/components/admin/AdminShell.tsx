@@ -18,12 +18,14 @@ import {
   User,
   UserCog,
   Users,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { label: "Overview", href: "/admin/dashboard", icon: LayoutGrid },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Services", href: "/admin/services", icon: Wrench },
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { label: "Trainers", href: "/admin/trainers", icon: UserCog },
   { label: "Users", href: "/admin/users", icon: Users },
