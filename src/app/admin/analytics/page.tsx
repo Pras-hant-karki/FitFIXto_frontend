@@ -8,6 +8,7 @@ import { normalizeTrainerPhotoUrl } from "@/features/trainers";
 const ranges: Array<{ label: string; value: AnalyticsRange }> = [
   { label: "Today", value: "today" },
   { label: "Weekly", value: "weekly" },
+  { label: "Monthly", value: "monthly" },
   { label: "Quarterly", value: "quarterly" },
   { label: "Half Yearly", value: "half-yearly" },
   { label: "Yearly", value: "yearly" },
@@ -34,6 +35,12 @@ const buildLinePoints = (values: number[], maxValue: number) =>
       return `${x},${y}`;
     })
     .join(" ");
+
+const getLabelStep = (range: AnalyticsRange, total: number): number => {
+  if (range === "today") return 4;
+  if (range === "monthly") return 5;
+  return 1;
+};
 
 export default function AdminAnalyticsPage() {
   const [range, setRange] = useState<AnalyticsRange>("yearly");
@@ -86,19 +93,19 @@ export default function AdminAnalyticsPage() {
       <div className="admin-analytics-summary">
         <article>
           <span>Revenue</span>
-          <strong>Npr {analytics.summary.revenue}</strong>
+          <strong>Npr {Math.round(analytics.summary.revenue).toLocaleString()}</strong>
         </article>
         <article>
           <span>Orders</span>
-          <strong>{analytics.summary.orders}</strong>
+          <strong>{analytics.summary.orders.toLocaleString()}</strong>
         </article>
         <article>
           <span>Avg. order</span>
-          <strong>Npr {analytics.summary.averageOrderValue}</strong>
+          <strong>Npr {Math.round(analytics.summary.averageOrderValue).toLocaleString()}</strong>
         </article>
         <article>
           <span>Products sold</span>
-          <strong>{analytics.summary.productsSold}</strong>
+          <strong>{analytics.summary.productsSold.toLocaleString()}</strong>
         </article>
       </div>
 
@@ -117,9 +124,11 @@ export default function AdminAnalyticsPage() {
                 {revenuePoints ? <polygon points={`24,250 ${revenuePoints} 520,250`} /> : null}
               </svg>
               <div className="admin-analytics-x-axis">
-                {analytics.series.map((point, index) => (
-                  <span key={`${point.label}-revenue-${index}`}>{point.label}</span>
-                ))}
+                {analytics.series
+                  .filter((_, i) => i % getLabelStep(range, analytics.series.length) === 0)
+                  .map((point, index) => (
+                    <span key={`${point.label}-revenue-${index}`}>{point.label}</span>
+                  ))}
               </div>
             </div>
           </article>
@@ -140,9 +149,11 @@ export default function AdminAnalyticsPage() {
                   : null}
               </svg>
               <div className="admin-analytics-x-axis">
-                {analytics.series.map((point, index) => (
-                  <span key={`${point.label}-orders-${index}`}>{point.label}</span>
-                ))}
+                {analytics.series
+                  .filter((_, i) => i % getLabelStep(range, analytics.series.length) === 0)
+                  .map((point, index) => (
+                    <span key={`${point.label}-orders-${index}`}>{point.label}</span>
+                  ))}
               </div>
             </div>
           </article>
@@ -165,7 +176,7 @@ export default function AdminAnalyticsPage() {
                 <div key={product.name}>
                   <em>{index + 1}</em>
                   <span>{product.name}</span>
-                  <strong>Npr {product.revenue}</strong>
+                  <strong>Npr {Math.round(product.revenue).toLocaleString()}</strong>
                 </div>
               ))}
               {analytics.topProducts.length === 0 ? <p>No product sales in this range.</p> : null}

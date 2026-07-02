@@ -140,6 +140,20 @@ export const fetchPublicTrainerAvailability = async (trainerId: string) => {
   };
 };
 
+export interface BackendTrainerReview {
+  _id: string;
+  clientRating: number;
+  clientComment?: string;
+  slotDate?: string;
+  timeLabel?: string;
+  clientId?: { _id: string; firstName?: string; lastName?: string; profilePicture?: string };
+}
+
+export const fetchPublicTrainerReviews = async (trainerId: string): Promise<BackendTrainerReview[]> => {
+  const response = await apiClient.get<{ reviews: BackendTrainerReview[] }>(API_ENDPOINTS.trainers.publicReviews(trainerId));
+  return response.data?.reviews || [];
+};
+
 export const fetchMyTrainerAvailableDates = async (): Promise<string[]> => {
   const response = await apiClient.get<{ availableDates: { date: string }[] }>(API_ENDPOINTS.trainers.myAvailableDates);
   return (response.data?.availableDates || []).map((d) => d.date.slice(0, 10));

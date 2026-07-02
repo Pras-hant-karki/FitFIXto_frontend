@@ -8,10 +8,12 @@ import {
   BackendTrainer,
   BackendTrainerAvailability,
   BackendTrainerProgram,
+  BackendTrainerReview,
   TrainerAvailabilityDay,
   fetchPublicTrainer,
   fetchPublicTrainerAvailability,
   fetchPublicTrainerPrograms,
+  fetchPublicTrainerReviews,
   normalizeTrainerPhotoUrl,
 } from "@/features/trainers";
 import { usePreferences } from "@/contexts";
@@ -99,6 +101,7 @@ export default function TrainerDetailsPage() {
   const [programs, setPrograms] = useState<BackendTrainerProgram[]>([]);
   const [availability, setAvailability] = useState<BackendTrainerAvailability[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [trainerReviews, setTrainerReviews] = useState<BackendTrainerReview[]>([]);
   const [period, setPeriod] = useState<Period>("this-week");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<BackendTrainerAvailability | null>(null);
@@ -116,10 +119,11 @@ export default function TrainerDetailsPage() {
       setError("");
 
       try {
-        const [nextTrainer, nextPrograms, nextAvailability] = await Promise.all([
+        const [nextTrainer, nextPrograms, nextAvailability, nextReviews] = await Promise.all([
           fetchPublicTrainer(trainerId),
           fetchPublicTrainerPrograms(trainerId),
           fetchPublicTrainerAvailability(trainerId),
+          fetchPublicTrainerReviews(trainerId),
         ]);
 
         if (!nextTrainer) {
@@ -138,6 +142,7 @@ export default function TrainerDetailsPage() {
               })
           );
           setAvailableDates(nextAvailability.availableDates);
+          setTrainerReviews(nextReviews);
         }
       } catch (err) {
         if (isActive) {
@@ -238,7 +243,9 @@ export default function TrainerDetailsPage() {
               <span>Rating</span>
               <strong>
                 <Star aria-hidden="true" />
-                New
+                {trainerReviews.length > 0
+                  ? `${(trainerReviews.reduce((sum, r) => sum + r.clientRating, 0) / trainerReviews.length).toFixed(1)} (${trainerReviews.length})`
+                  : "New"}
               </strong>
             </div>
           </div>
@@ -413,10 +420,45 @@ export default function TrainerDetailsPage() {
           ) : null}
 
           {activeTab === "reviews" ? (
-            <section className="trainer-detail-empty-state">
-              <Star aria-hidden="true" />
-              <strong>No reviews yet</strong>
-              <span>Customer reviews will appear after completed sessions.</span>
+            <section className="trainer-reviews-section">
+              {trainerReviews.length === 0 ? (
+                <section className="trainer-detail-empty-state">
+                  <Star aria-hidden="true" />
+                  <strong>No reviews yet</strong>
+                  <span>Customer reviews will appear after completed sessions.</span>
+                </section>
+              ) : (
+                <>
+                  <p className="trainer-reviews-count">{trainerReviews.length} review{trainerReviews.length === 1 ? "" : "s"}</p>
+                  {trainerReviews.map((review) => {
+                    const client = review.clientId;
+                    const clientName = client
+                      ? `${client.firstName || ""} ${client.lastName || ""}`.trim() || "Client"
+                      : "Client";
+                    const initial = clientName[0]?.toUpperCase() ?? "C";
+                    const dateLabel = review.slotDate
+                      ? new Date(review.slotDate + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+                      : "";
+                    return (
+                      <article className="trainer-review-card" key={review._id}>
+                        <div className="trainer-review-header">
+                          <div className="trainer-review-avatar">{initial}</div>
+                          <div>
+                            <strong>{clientName}</strong>
+                            {dateLabel ? <span>{dateLabel}{review.timeLabel ? ` · ${review.timeLabel}` : ""}</span> : null}
+                          </div>
+                          <div className="trainer-review-stars">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star key={i} aria-hidden="true" className={i < review.clientRating ? "filled" : ""} />
+                            ))}
+                          </div>
+                        </div>
+                        {review.clientComment ? <p>{review.clientComment}</p> : null}
+                      </article>
+                    );
+                  })}
+                </>
+              )}
             </section>
           ) : null}
         </section>

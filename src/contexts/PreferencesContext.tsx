@@ -75,11 +75,18 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     const rate = EXCHANGE_RATES[prefs.currency] ?? 1;
     const symbol = CURRENCY_SYMBOLS[prefs.currency] ?? "Npr";
     const converted = nprAmount * rate;
-    const formatted = prefs.currency === "NPR"
-      ? Math.round(converted).toLocaleString()
-      : converted < 1
-        ? converted.toFixed(2)
-        : converted.toFixed(2).replace(/\.00$/, "");
+    const useIndianSystem = prefs.currency === "NPR" || prefs.currency === "INR";
+    const locale = useIndianSystem ? "en-IN" : "en-US";
+    let formatted: string;
+    if (useIndianSystem) {
+      formatted = Math.round(converted).toLocaleString(locale);
+    } else if (converted < 0.01) {
+      formatted = converted.toFixed(4);
+    } else if (converted < 1) {
+      formatted = converted.toFixed(2);
+    } else {
+      formatted = converted.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
     return `${symbol} ${formatted}`;
   }, [prefs.currency]);
 

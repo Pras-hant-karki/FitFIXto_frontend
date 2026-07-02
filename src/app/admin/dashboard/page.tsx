@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, DollarSign, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
 import { AdminAnalytics, AnalyticsRange, fetchAdminAnalytics } from "@/features/admin-analytics/api";
+
+const getAxisStep = (range: AnalyticsRange) => (range === "today" ? 4 : range === "monthly" ? 5 : 1);
 import { fetchAdminUsers } from "@/features/admin-users/api";
 import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
 
@@ -160,9 +162,11 @@ export default function AdminDashboardPage() {
                 <polyline points={revenuePoints} />
               </svg>
               <div className="admin-line-x-axis">
-                {analytics.series.map((item, index) => (
-                  <span key={`${item.label}-revenue-${index}`}>{item.label}</span>
-                ))}
+                {analytics.series
+                  .filter((_, i) => i % getAxisStep(range) === 0)
+                  .map((item, index) => (
+                    <span key={`${item.label}-revenue-${index}`}>{item.label}</span>
+                  ))}
               </div>
             </div>
           ) : (
@@ -192,9 +196,11 @@ export default function AdminDashboardPage() {
                   : null}
               </svg>
               <div className="admin-line-x-axis">
-                {analytics.series.map((item, index) => (
-                  <span key={`${item.label}-orders-${index}`}>{item.label}</span>
-                ))}
+                {analytics.series
+                  .filter((_, i) => i % getAxisStep(range) === 0)
+                  .map((item, index) => (
+                    <span key={`${item.label}-orders-${index}`}>{item.label}</span>
+                  ))}
               </div>
             </div>
           ) : (

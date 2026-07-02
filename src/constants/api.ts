@@ -89,6 +89,7 @@ export const API_ENDPOINTS = {
     publicDetail: (id: string) => `/trainers/public/${id}`,
     publicPrograms: (id: string) => `/trainers/public/${id}/programs`,
     publicAvailability: (id: string) => `/trainers/public/${id}/availability`,
+    publicReviews: (id: string) => `/trainers/public/${id}/reviews`,
     detail: (id: string) => `/trainers/${id}`,
     myPrograms: '/trainers/programs/me',
     programs: '/trainers/programs',

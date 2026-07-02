@@ -96,7 +96,7 @@ export default function AdminReviewsPage() {
     setError("");
     try {
       const [reviewsData, bookingsData, serviceData] = await Promise.all([
-        fetchAdminReviews({ status: "all", limit: 200 }),
+        fetchAdminReviews({ status: "all", limit: 100 }),
         fetchAdminBookings(),
         fetchAllServiceBookings(),
       ]);
