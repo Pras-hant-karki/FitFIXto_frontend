@@ -77,6 +77,13 @@ export const createBooking = async (payload: {
   return response.data?.booking;
 };
 
+export const fetchAdminBookings = async (): Promise<BackendBooking[]> => {
+  const response = await apiClient.get<{ bookings: BackendBooking[] }>(
+    API_ENDPOINTS.bookings.adminAll
+  );
+  return response.data?.bookings || [];
+};
+
 export const fetchMyClientBookings = async (): Promise<BackendBooking[]> => {
   const response = await apiClient.get<{ bookings: BackendBooking[] }>(
     API_ENDPOINTS.bookings.myClient

@@ -44,7 +44,7 @@ export interface BackendOrder {
   estimatedDeliveryDate?: string | null;
   deliveredAt?: string | null;
   cancelledAt?: string | null;
-  cancelReason?: string;
+  cancellationReason?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;

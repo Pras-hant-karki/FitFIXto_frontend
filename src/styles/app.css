@@ -8,7 +8,11 @@
   --panel: #f0f0f2;
   --accent: #c40000;
   --accent-dark: #9d0000;
-  --footer: #0b0d10;
+  --footer: #f4f4f6;
+  --footer-color: #1a1b1f;
+  --footer-sub: #6b6b72;
+  --footer-link: #505059;
+  --footer-line: #dcdce0;
   --navbar-height: 72px;
   --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
 }
@@ -20,6 +24,10 @@
   --line: #25272d;
   --panel: #171a20;
   --footer: #050607;
+  --footer-color: #ffffff;
+  --footer-sub: rgba(255, 255, 255, 0.68);
+  --footer-link: rgba(255, 255, 255, 0.65);
+  --footer-line: rgba(255, 255, 255, 0.14);
 }
 
 * {
@@ -2738,7 +2746,7 @@ a {
 .auth-message {
   margin: -2px 0 0;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 400;
   line-height: 1.35;
 }
 
@@ -5154,8 +5162,11 @@ a {
 }
 
 .admin-overview-heading {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .admin-overview-heading h1,
@@ -6470,6 +6481,18 @@ a {
 .admin-review-status.removed {
   background: #f0f0f3;
   color: #747584;
+}
+
+.admin-review-type-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .admin-review-feature-btn {
@@ -9637,7 +9660,7 @@ a {
 
 .site-footer {
   background: var(--footer);
-  color: #ffffff;
+  color: var(--footer-color);
   padding: 46px 24px 24px;
 }
 
@@ -9655,7 +9678,7 @@ a {
 
 .footer-brand p {
   margin: 12px 0 0;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--footer-sub);
   font-size: 14px;
   line-height: 1.55;
 }
@@ -9673,12 +9696,12 @@ a {
 }
 
 .footer-links a {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--footer-link);
   font-size: 14px;
 }
 
 .footer-links a:hover {
-  color: #ffffff;
+  color: var(--footer-color);
 }
 
 .footer-bottom {
@@ -9688,8 +9711,8 @@ a {
   width: min(1180px, 100%);
   margin: 34px auto 0;
   padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.56);
+  border-top: 1px solid var(--footer-line);
+  color: var(--footer-sub);
   font-size: 13px;
 }
 

@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
 
-export type AnalyticsRange = "today" | "weekly" | "quarterly" | "half-yearly" | "yearly";
+export type AnalyticsRange = "today" | "weekly" | "monthly" | "quarterly" | "half-yearly" | "yearly";
 
 export type AnalyticsSeriesPoint = {
   label: string;

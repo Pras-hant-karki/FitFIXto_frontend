@@ -154,6 +154,7 @@ export const API_ENDPOINTS = {
   // Bookings (trainer-client sessions)
   bookings: {
     create: '/bookings',
+    adminAll: '/bookings/admin/all',
     myClient: '/bookings/my',
     myTrainer: '/bookings/trainer',
     myClients: '/bookings/trainer/clients',

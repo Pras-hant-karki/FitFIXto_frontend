@@ -27,7 +27,7 @@ const formatEmail = (email: string) => {
 };
 
 const extractReturnReason = (order: BackendOrder): string => {
-  const raw = order.cancelReason ?? order.notes ?? "";
+  const raw = order.cancellationReason ?? order.notes ?? "";
   if (raw.startsWith("RETURN REQUEST:")) {
     const withoutPrefix = raw.replace("RETURN REQUEST:", "").trim();
     const pipeIdx = withoutPrefix.indexOf("| Item:");
@@ -37,7 +37,7 @@ const extractReturnReason = (order: BackendOrder): string => {
 };
 
 const extractReturnItem = (order: BackendOrder): string => {
-  const raw = order.cancelReason ?? order.notes ?? "";
+  const raw = order.cancellationReason ?? order.notes ?? "";
   const match = raw.match(/\| Item: (.+)/);
   return match?.[1] ?? "";
 };

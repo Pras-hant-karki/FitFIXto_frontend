@@ -3,9 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, DollarSign, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
-import { AdminAnalytics, fetchAdminAnalytics } from "@/features/admin-analytics/api";
+import { AdminAnalytics, AnalyticsRange, fetchAdminAnalytics } from "@/features/admin-analytics/api";
 import { fetchAdminUsers } from "@/features/admin-users/api";
 import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
+
+const RANGE_OPTIONS: Array<{ label: string; value: AnalyticsRange }> = [
+  { label: "Today", value: "today" },
+  { label: "Weekly", value: "weekly" },
+  { label: "Monthly", value: "monthly" },
+  { label: "Half Yearly", value: "half-yearly" },
+  { label: "Yearly", value: "yearly" },
+];
 
 const emptyAnalytics: AdminAnalytics = {
   range: "yearly",
@@ -40,6 +48,7 @@ const buildLinePoints = (values: number[], maxValue: number) =>
     .join(" ");
 
 export default function AdminDashboardPage() {
+  const [range, setRange] = useState<AnalyticsRange>("yearly");
   const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
   const [recentOrders, setRecentOrders] = useState<BackendOrder[]>([]);
   const [customerCount, setCustomerCount] = useState(0);
@@ -53,7 +62,7 @@ export default function AdminDashboardPage() {
 
       try {
         const [analyticsData, users, orders] = await Promise.all([
-          fetchAdminAnalytics("yearly"),
+          fetchAdminAnalytics(range),
           fetchAdminUsers(),
           fetchAdminOrders(),
         ]);
@@ -69,7 +78,7 @@ export default function AdminDashboardPage() {
     };
 
     loadDashboard();
-  }, []);
+  }, [range]);
 
   const statCards: Array<{
     label: string;
@@ -95,8 +104,22 @@ export default function AdminDashboardPage() {
   return (
     <section className="admin-overview">
       <header className="admin-overview-heading">
-        <h1>Overview</h1>
-        <p>Snapshot of marketplace performance from real backend data.</p>
+        <div>
+          <h1>Overview</h1>
+          <p>Snapshot of marketplace performance from real backend data.</p>
+        </div>
+        <div className="admin-analytics-range">
+          {RANGE_OPTIONS.map((opt) => (
+            <button
+              type="button"
+              key={opt.value}
+              className={range === opt.value ? "active" : undefined}
+              onClick={() => setRange(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </header>
 
       {error ? <p className="admin-products-message error">{error}</p> : null}
