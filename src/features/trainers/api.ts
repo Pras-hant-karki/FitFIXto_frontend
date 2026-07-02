@@ -133,8 +133,20 @@ export const fetchPublicTrainerPrograms = async (trainerId: string) => {
 };
 
 export const fetchPublicTrainerAvailability = async (trainerId: string) => {
-  const response = await apiClient.get<{ availability: BackendTrainerAvailability[] }>(API_ENDPOINTS.trainers.publicAvailability(trainerId));
-  return response.data?.availability || [];
+  const response = await apiClient.get<{ availability: BackendTrainerAvailability[]; availableDates: { date: string }[] }>(API_ENDPOINTS.trainers.publicAvailability(trainerId));
+  return {
+    availability: response.data?.availability || [],
+    availableDates: (response.data?.availableDates || []).map((d) => d.date.slice(0, 10)),
+  };
+};
+
+export const fetchMyTrainerAvailableDates = async (): Promise<string[]> => {
+  const response = await apiClient.get<{ availableDates: { date: string }[] }>(API_ENDPOINTS.trainers.myAvailableDates);
+  return (response.data?.availableDates || []).map((d) => d.date.slice(0, 10));
+};
+
+export const saveMyTrainerAvailableDates = async (dates: string[]): Promise<void> => {
+  await apiClient.post(API_ENDPOINTS.trainers.myAvailableDates, { dates });
 };
 
 export const fetchMyTrainerPrograms = async () => {

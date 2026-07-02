@@ -95,6 +95,7 @@ export const API_ENDPOINTS = {
     uploadProgramImage: '/trainers/programs/upload-image',
     programDetail: (id: string) => `/trainers/programs/${id}`,
     myAvailability: '/trainers/availability/me',
+    myAvailableDates: '/trainers/availability/dates',
     availability: '/trainers/availability',
     availabilityDetail: (id: string) => `/trainers/availability/${id}`,
     applications: '/trainers/applications',
@@ -147,6 +148,7 @@ export const API_ENDPOINTS = {
     adminAll: '/service-bookings',
     updateStatus: (id: string) => `/service-bookings/${id}/status`,
     cancel: (id: string) => `/service-bookings/${id}/cancel`,
+    review: (id: string) => `/service-bookings/${id}/review`,
   },
 
   // Bookings (trainer-client sessions)
@@ -157,6 +159,7 @@ export const API_ENDPOINTS = {
     myClients: '/bookings/trainer/clients',
     updateStatus: (id: string) => `/bookings/${id}/status`,
     cancel: (id: string) => `/bookings/${id}/cancel`,
+    review: (id: string) => `/bookings/${id}/review`,
   },
 
 } as const;

@@ -15,6 +15,8 @@ export interface BackendServiceBooking {
   amount: number;
   status: ServiceBookingStatus;
   adminNotes?: string;
+  clientRating?: number;
+  clientComment?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,4 +57,12 @@ export const updateServiceBookingStatus = async (
 
 export const cancelMyServiceBooking = async (id: string): Promise<void> => {
   await apiClient.patch(API_ENDPOINTS.serviceBookings.cancel(id), {});
+};
+
+export const submitServiceReview = async (bookingId: string, rating: number, comment: string): Promise<BackendServiceBooking> => {
+  const res = await apiClient.patch<{ booking: BackendServiceBooking }>(
+    API_ENDPOINTS.serviceBookings.review(bookingId),
+    { rating, comment }
+  );
+  return (res as any).data.booking;
 };

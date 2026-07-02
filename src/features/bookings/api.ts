@@ -45,6 +45,8 @@ export interface BackendBooking {
   status: BookingStatus;
   notes?: string;
   trainerNotes?: string;
+  clientRating?: number;
+  clientComment?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -112,6 +114,14 @@ export const cancelClientBooking = async (bookingId: string) => {
   const response = await apiClient.patch<{ booking: BackendBooking }>(
     API_ENDPOINTS.bookings.cancel(bookingId),
     {}
+  );
+  return response.data?.booking;
+};
+
+export const submitTrainerReview = async (bookingId: string, rating: number, comment: string) => {
+  const response = await apiClient.patch<{ booking: BackendBooking }>(
+    API_ENDPOINTS.bookings.review(bookingId),
+    { rating, comment }
   );
   return response.data?.booking;
 };
