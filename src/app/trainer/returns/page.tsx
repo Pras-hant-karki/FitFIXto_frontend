@@ -39,7 +39,6 @@ export default function TrainerReturnsPage() {
     setSelectedOrder(order);
     setReturnReason("");
     setFormError("");
-    setMessage("");
   };
 
   const closeModal = () => {
@@ -58,7 +57,7 @@ export default function TrainerReturnsPage() {
     try {
       const updated = await cancelOrder(selectedOrder._id, `RETURN REQUEST: ${reason}`);
       if (updated) setOrders((cur) => cur.map((o) => (o._id === updated._id ? updated : o)));
-      setMessage("Return request submitted. Our team will contact you shortly.");
+      toast.success("Return request submitted. Our team will contact you shortly.");
       setSelectedOrder(null);
       setReturnReason("");
     } catch (err) {
@@ -78,8 +77,6 @@ export default function TrainerReturnsPage() {
           Request a return for delivered orders within 7 days of delivery.
         </p>
 
-        {message ? <p className="customer-review-message">{message}</p> : null}
-        {error ? <div className="customer-orders-empty">{error}</div> : null}
 
         {isLoading ? (
           <div className="customer-orders-empty">Loading orders...</div>

@@ -51,7 +51,9 @@ function BookingFlow() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchPublicTrainer(trainerId).then(setTrainer).catch((err) => setError(err instanceof Error ? err.message : "Unable to load trainer."));
+    fetchPublicTrainer(trainerId)
+      .then((nextTrainer) => setTrainer(nextTrainer || null))
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load trainer."));
   }, [trainerId]);
 
   useEffect(() => {

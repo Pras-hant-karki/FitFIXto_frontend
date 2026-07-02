@@ -31,6 +31,9 @@ export type BackendTrainerProgram = {
   trainerId: string;
   title: string;
   description?: string;
+  programType: string;
+  level: "beginner" | "intermediate" | "advanced";
+  image?: string | null;
   durationWeeks: number;
   sessions: number;
   price: number;
@@ -42,6 +45,9 @@ export type BackendTrainerProgram = {
 export type TrainerProgramPayload = {
   title: string;
   description?: string;
+  programType?: string;
+  level?: "beginner" | "intermediate" | "advanced";
+  image?: string;
   durationWeeks: number;
   sessions: number;
   price: number;
@@ -144,6 +150,20 @@ export const fetchMyTrainerAvailability = async () => {
 export const createTrainerProgram = async (payload: TrainerProgramPayload) => {
   const response = await apiClient.post<{ program: BackendTrainerProgram }>(API_ENDPOINTS.trainers.programs, payload);
   return response.data?.program;
+};
+
+export const uploadTrainerProgramImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append("image", file);
+  const token = apiClient.getAuthToken();
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.trainers.uploadProgramImage}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || "Unable to upload program image.");
+  return normalizeTrainerPhotoUrl(result.data?.image);
 };
 
 export const updateTrainerProgram = async (programId: string, payload: Partial<TrainerProgramPayload>) => {

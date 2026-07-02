@@ -92,6 +92,7 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/trainers/${id}`,
     myPrograms: '/trainers/programs/me',
     programs: '/trainers/programs',
+    uploadProgramImage: '/trainers/programs/upload-image',
     programDetail: (id: string) => `/trainers/programs/${id}`,
     myAvailability: '/trainers/availability/me',
     availability: '/trainers/availability',
