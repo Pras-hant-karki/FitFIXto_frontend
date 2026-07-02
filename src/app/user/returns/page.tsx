@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Package } from "lucide-react";
-import { TrainerDashboardShell } from "@/components/shared/trainer";
+import { CustomerDashboardShell } from "@/components/shared/customer";
 import { BackendOrder, BackendOrderItem, cancelOrder, fetchMyOrders } from "@/features/orders";
 import { useToast } from "@/contexts";
 import type { BackendProduct } from "@/features/products";
@@ -38,7 +38,7 @@ interface ItemForm {
 
 const defaultForm = (): ItemForm => ({ reason: "", details: "", submitting: false, error: "" });
 
-export default function TrainerReturnsPage() {
+export default function UserReturnsPage() {
   const { toast } = useToast();
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,7 +90,7 @@ export default function TrainerReturnsPage() {
   };
 
   return (
-    <TrainerDashboardShell>
+    <CustomerDashboardShell>
       <div className="customer-orders-panel">
         <div className="customer-orders-heading">
           <h2>Returns</h2>
@@ -202,6 +202,6 @@ export default function TrainerReturnsPage() {
           </>
         )}
       </div>
-    </TrainerDashboardShell>
+    </CustomerDashboardShell>
   );
 }

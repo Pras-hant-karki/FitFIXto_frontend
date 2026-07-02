@@ -44,6 +44,7 @@ export interface BackendOrder {
   estimatedDeliveryDate?: string | null;
   deliveredAt?: string | null;
   cancelledAt?: string | null;
+  cancelReason?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -119,6 +120,13 @@ export type AdminOrderStatusUpdate = "confirmed" | "shipped" | "delivered";
 export const updateAdminOrderStatus = async (orderId: string, status: AdminOrderStatusUpdate) => {
   const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.updateStatus(orderId), {
     status,
+  });
+  return response.data?.order;
+};
+
+export const processAdminReturn = async (orderId: string) => {
+  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.updateStatus(orderId), {
+    status: "refunded",
   });
   return response.data?.order;
 };

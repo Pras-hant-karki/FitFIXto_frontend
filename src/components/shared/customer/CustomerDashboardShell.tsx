@@ -10,7 +10,7 @@ const customerNav = [
   { label: "Orders", Icon: Box, href: "/user/dashboard" },
   { label: "Bookings", Icon: CalendarDays, href: "/user/bookings" },
   { label: "To Review", Icon: Star, href: "/user/to-review" },
-  { label: "Returns", Icon: RotateCcw },
+  { label: "Returns", Icon: RotateCcw, href: "/user/returns" },
   { label: "Profile", Icon: UserRound, href: "/user/profile" },
   { label: "Settings", Icon: Settings },
 ];
