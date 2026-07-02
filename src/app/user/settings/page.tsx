@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TrainerDashboardShell } from "@/components/shared/trainer";
+import { CustomerDashboardShell } from "@/components/shared/customer";
 import { useAuth, useToast } from "@/contexts";
 
 const NOTIF_KEY = "fitfixto_notifications";
@@ -31,7 +31,7 @@ function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => vo
   );
 }
 
-export default function TrainerSettingsPage() {
+export default function UserSettingsPage() {
   const { logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -83,7 +83,7 @@ export default function TrainerSettingsPage() {
   };
 
   return (
-    <TrainerDashboardShell>
+    <CustomerDashboardShell>
       <div className="settings-page">
         <div className="settings-page-header">
           <h2>Settings</h2>
@@ -196,6 +196,6 @@ export default function TrainerSettingsPage() {
           </section>
         </div>
       ) : null}
-    </TrainerDashboardShell>
+    </CustomerDashboardShell>
   );
 }

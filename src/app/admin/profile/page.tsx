@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Camera, KeyRound, UserRound } from "lucide-react";
-import { TrainerDashboardShell } from "@/components/shared/trainer";
 import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 import { useAuth, useToast } from "@/contexts";
 import { apiClient } from "@/lib";
@@ -18,7 +17,7 @@ const splitName = (name: string) => {
   return { firstName: parts[0] ?? "", lastName: parts.slice(1).join(" ") };
 };
 
-export default function TrainerProfilePage() {
+export default function AdminProfilePage() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -97,13 +96,18 @@ export default function TrainerProfilePage() {
     }
   };
 
-  const displayName = fullName || user?.email?.split("@")[0] || "trainer";
-  const initial = (user?.firstName || user?.email || "T")[0].toUpperCase();
+  const displayName = fullName || user?.email?.split("@")[0] || "admin";
+  const initial = (user?.firstName || user?.email || "A")[0].toUpperCase();
   const isActive = user?.isActive !== false;
 
   return (
-    <TrainerDashboardShell>
-      <div className="profile-page-wrap">
+    <section className="admin-orders-page">
+      <header className="admin-orders-header">
+        <h1>Profile</h1>
+        <p>Manage your personal information and account security.</p>
+      </header>
+
+      <div className="profile-page-wrap" style={{ marginTop: 0, borderRadius: 14, overflow: "hidden", border: "1.5px solid var(--line)" }}>
         <div className="profile-banner">
           <div className="profile-avatar-row">
             <div className="profile-avatar-circle">
@@ -116,7 +120,7 @@ export default function TrainerProfilePage() {
               <strong>{displayName}</strong>
               <span>{user?.email}</span>
               <div className="profile-badges">
-                <span className="profile-badge profile-badge-role">Trainer</span>
+                <span className="profile-badge profile-badge-role">Admin</span>
                 <span className={`profile-badge ${isActive ? "profile-badge-active" : "profile-badge-inactive"}`}>
                   {isActive ? "Active" : "Inactive"}
                 </span>
@@ -167,7 +171,7 @@ export default function TrainerProfilePage() {
               </label>
               <label className="profile-form-label profile-form-full">
                 Bio
-                <textarea value={bio} onChange={(e) => setBio(e.target.value)} className="profile-form-input profile-form-textarea" disabled={isSaving} placeholder="Tell clients about your training philosophy and experience..." maxLength={500} />
+                <textarea value={bio} onChange={(e) => setBio(e.target.value)} className="profile-form-input profile-form-textarea" disabled={isSaving} placeholder="Tell us a little about yourself..." maxLength={500} />
               </label>
             </div>
             <button type="submit" className="profile-save-btn" disabled={isSaving}>
@@ -190,6 +194,6 @@ export default function TrainerProfilePage() {
           </button>
         </div>
       </div>
-    </TrainerDashboardShell>
+    </section>
   );
 }

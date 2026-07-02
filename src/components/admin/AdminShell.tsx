@@ -32,6 +32,7 @@ const navItems = [
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { label: "Returns", href: "/admin/returns", icon: RotateCcw },
   { label: "Trainers", href: "/admin/trainers", icon: UserCog },
+  { label: "Profile", href: "/admin/profile", icon: User },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Reviews", href: "/admin/reviews", icon: MessageSquareText },
   { label: "Homepage", href: "/admin/homepage", icon: Home },

@@ -12,7 +12,7 @@ const customerNav = [
   { label: "To Review", Icon: Star, href: "/user/to-review" },
   { label: "Returns", Icon: RotateCcw, href: "/user/returns" },
   { label: "Profile", Icon: UserRound, href: "/user/profile" },
-  { label: "Settings", Icon: Settings },
+  { label: "Settings", Icon: Settings, href: "/user/settings" },
 ];
 
 const getUserName = (email?: string) => {
