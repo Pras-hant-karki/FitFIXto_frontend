@@ -12005,6 +12005,103 @@ a {
 }
 
 /* calendar preview */
+/* ── 3-month calendar preview ────────────────────────────── */
+
+.trainer-3cal-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.trainer-3cal-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.trainer-3cal-wrap {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.trainer-3cal-month {
+  background: var(--panel);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 14px 14px;
+}
+
+.trainer-3cal-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--foreground);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.trainer-3cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.trainer-3cal-day-head {
+  padding: 4px 2px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.trainer-3cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.trainer-3cal-cell.empty {
+  visibility: hidden;
+}
+
+.trainer-3cal-cell.past {
+  color: var(--muted);
+  opacity: 0.35;
+}
+
+.trainer-3cal-cell.available {
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-weight: 700;
+}
+
+.trainer-3cal-cell.today {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Dark mode */
+.dark .trainer-3cal-month {
+  background: var(--panel);
+}
+
+@media (max-width: 900px) {
+  .trainer-3cal-wrap { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 580px) {
+  .trainer-3cal-wrap { grid-template-columns: 1fr; }
+}
+
 .trainer-slots-cal-nav {
   display: flex;
   align-items: center;
@@ -12134,8 +12231,8 @@ a {
 }
 
 .trainer-cal-dot.available {
-  background: #dcfce7;
-  border: 1px solid #16a34a;
+  background: var(--foreground);
+  border-radius: 50%;
 }
 
 .trainer-cal-dot.today {

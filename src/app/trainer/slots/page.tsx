@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Save, Trash2 } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
+import { useToast } from "@/contexts";
 import { API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
 
@@ -49,8 +50,9 @@ const JS_DAY_TO_KEY: Record<number, DayKey> = {
 const getMonthInfo = (year: number, month: number) => {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
-  const startPad = (first.getDay() + 6) % 7; // pad so week starts Monday
-  return { first, last, daysInMonth: last.getDate(), startPad };
+  const startPad = (first.getDay() + 6) % 7; // Monday-first (weekly grid)
+  const startPadSun = first.getDay();           // Sunday-first  (3-month calendar)
+  return { first, last, daysInMonth: last.getDate(), startPad, startPadSun };
 };
 
 const MONTH_NAMES = [
@@ -59,29 +61,20 @@ const MONTH_NAMES = [
 ];
 
 export default function TrainerSlotsPage() {
+  const { toast } = useToast();
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
-  // Calendar navigation — show current month + next 2
   const today = new Date();
-  const [calOffset, setCalOffset] = useState(0); // 0 = current month
-  const displayYear =
-    calOffset === 0
-      ? today.getFullYear()
-      : calOffset === 1
-      ? new Date(today.getFullYear(), today.getMonth() + 1, 1).getFullYear()
-      : new Date(today.getFullYear(), today.getMonth() + 2, 1).getFullYear();
-  const displayMonth =
-    calOffset === 0
-      ? today.getMonth()
-      : calOffset === 1
-      ? (today.getMonth() + 1) % 12
-      : (today.getMonth() + 2) % 12;
+  const todayStr = today.toDateString();
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-  const { daysInMonth, startPad } = getMonthInfo(displayYear, displayMonth);
+  // Build 3 consecutive months starting from the current month
+  const months3 = [0, 1, 2].map((offset) => {
+    const ref = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    return { year: ref.getFullYear(), month: ref.getMonth(), ...getMonthInfo(ref.getFullYear(), ref.getMonth()) };
+  });
 
   // Local toggle state: set of "day|time" pairs that are currently active
   const [activeKeys, setActiveKeys] = useState<Set<string>>(new Set());
@@ -92,7 +85,6 @@ export default function TrainerSlotsPage() {
     let isActive = true;
     const load = async () => {
       setIsLoading(true);
-      setError("");
       try {
         const res = await apiClient.get<{ availability: AvailabilitySlot[] }>(
           API_ENDPOINTS.trainers.myAvailability
@@ -111,7 +103,7 @@ export default function TrainerSlotsPage() {
           setActiveKeys(newActive);
         }
       } catch (err) {
-        if (isActive) setError(err instanceof Error ? err.message : "Unable to load availability.");
+        if (isActive) toast.error(err instanceof Error ? err.message : "Unable to load availability.");
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -127,14 +119,10 @@ export default function TrainerSlotsPage() {
       next.has(k) ? next.delete(k) : next.add(k);
       return next;
     });
-    setMessage("");
-    setError("");
   };
 
   const handleSave = async () => {
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       // For each active key: if slot doesn't exist → create, if exists + active → ensure isActive=true
@@ -199,9 +187,13 @@ export default function TrainerSlotsPage() {
       });
 
       const totalChanged = toCreate.length + toActivate.length + toDeactivate.length;
-      setMessage(totalChanged > 0 ? `Availability saved — ${totalChanged} slot${totalChanged === 1 ? "" : "s"} updated.` : "No changes to save.");
+      if (totalChanged > 0) {
+        toast.success(`Availability saved — ${totalChanged} slot${totalChanged === 1 ? "" : "s"} updated.`);
+      } else {
+        toast.info("No changes to save.");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save availability.");
+      toast.error(err instanceof Error ? err.message : "Unable to save availability.");
     } finally {
       setIsSaving(false);
     }
@@ -210,8 +202,6 @@ export default function TrainerSlotsPage() {
   const handleClearAll = async () => {
     if (!window.confirm("Remove all your availability slots?")) return;
     setIsSaving(true);
-    setError("");
-    setMessage("");
     try {
       for (const slot of slots) {
         await apiClient.delete(API_ENDPOINTS.trainers.availabilityDetail(slot._id));
@@ -219,9 +209,9 @@ export default function TrainerSlotsPage() {
       setSlots([]);
       setSlotMap(new Map());
       setActiveKeys(new Set());
-      setMessage("All availability cleared.");
+      toast.success("All availability cleared.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to clear availability.");
+      toast.error(err instanceof Error ? err.message : "Unable to clear availability.");
     } finally {
       setIsSaving(false);
     }
@@ -265,9 +255,6 @@ export default function TrainerSlotsPage() {
         <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 0, marginBottom: 24 }}>
           Toggle your available time slots below. Changes apply weekly — clients will see which days you're open across all months.
         </p>
-
-        {error ? <p className="auth-message error" style={{ marginBottom: 14 }}>{error}</p> : null}
-        {message ? <p className="customer-review-message" style={{ marginBottom: 14 }}>{message}</p> : null}
 
         {isLoading ? (
           <div className="customer-orders-empty">Loading availability...</div>
@@ -314,70 +301,65 @@ export default function TrainerSlotsPage() {
               </div>
             </div>
 
-            {/* Calendar Preview */}
-            <div className="trainer-slots-section" style={{ marginTop: 36 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <h3 className="trainer-settings-heading" style={{ margin: 0 }}>Calendar Preview</h3>
-                <div className="trainer-slots-cal-nav">
-                  <button
-                    type="button"
-                    onClick={() => setCalOffset((c) => Math.max(0, c - 1))}
-                    disabled={calOffset === 0}
-                    aria-label="Previous month"
-                  >
-                    <ChevronLeft aria-hidden="true" />
-                  </button>
-                  <span>{MONTH_NAMES[displayMonth]} {displayYear}</span>
-                  <button
-                    type="button"
-                    onClick={() => setCalOffset((c) => Math.min(2, c + 1))}
-                    disabled={calOffset === 2}
-                    aria-label="Next month"
-                  >
-                    <ChevronRight aria-hidden="true" />
-                  </button>
+            {/* Calendar Preview — 3 months */}
+            {(() => {
+              // Count open days across the 3 months
+              const openDays = months3.reduce((count, { year, month, daysInMonth }) =>
+                count + Array.from({ length: daysInMonth }, (_, i) => {
+                  const d = new Date(year, month, i + 1);
+                  return (isDayAvailable(d) && d >= todayMidnight) ? 1 : 0;
+                }).reduce((a: number, b: number) => a + b, 0), 0);
+
+              return (
+                <div className="trainer-slots-section" style={{ marginTop: 36 }}>
+                  <div className="trainer-3cal-header">
+                    <h3 className="trainer-settings-heading" style={{ margin: 0 }}>Calendar Preview</h3>
+                    <p className="trainer-3cal-sub">
+                      Clients can book you on highlighted days.{" "}
+                      <strong>{openDays} day{openDays === 1 ? "" : "s"} open.</strong>
+                    </p>
+                  </div>
+
+                  <div className="trainer-3cal-wrap">
+                    {months3.map(({ year, month, daysInMonth, startPadSun }) => (
+                      <div key={`${year}-${month}`} className="trainer-3cal-month">
+                        <div className="trainer-3cal-title">
+                          {MONTH_NAMES[month]} {year}
+                        </div>
+                        <div className="trainer-3cal-grid">
+                          {["S","M","T","W","T","F","S"].map((d, i) => (
+                            <div className="trainer-3cal-day-head" key={i}>{d}</div>
+                          ))}
+                          {Array.from({ length: startPadSun }).map((_, i) => (
+                            <div className="trainer-3cal-cell empty" key={`pad-${i}`} />
+                          ))}
+                          {Array.from({ length: daysInMonth }).map((_, i) => {
+                            const day = i + 1;
+                            const date = new Date(year, month, day);
+                            const isToday = date.toDateString() === todayStr;
+                            const available = isDayAvailable(date);
+                            const isPast = date < todayMidnight;
+                            return (
+                              <div
+                                key={day}
+                                className={`trainer-3cal-cell${isToday ? " today" : ""}${available && !isPast ? " available" : ""}${isPast ? " past" : ""}`}
+                              >
+                                {day}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="trainer-cal-legend">
+                    <span><i className="trainer-cal-dot available" />Available</span>
+                    <span><i className="trainer-cal-dot today" />Today</span>
+                  </div>
                 </div>
-              </div>
-
-              <div className="trainer-slots-calendar">
-                {/* Day headers */}
-                {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => (
-                  <div className="trainer-cal-head" key={d}>{d}</div>
-                ))}
-
-                {/* Padding cells */}
-                {Array.from({ length: startPad }).map((_, i) => (
-                  <div className="trainer-cal-cell empty" key={`pad-${i}`} />
-                ))}
-
-                {/* Day cells */}
-                {Array.from({ length: daysInMonth }).map((_, i) => {
-                  const day = i + 1;
-                  const date = new Date(displayYear, displayMonth, day);
-                  const isToday =
-                    date.getDate() === today.getDate() &&
-                    date.getMonth() === today.getMonth() &&
-                    date.getFullYear() === today.getFullYear();
-                  const available = isDayAvailable(date);
-                  const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-                  return (
-                    <div
-                      key={day}
-                      className={`trainer-cal-cell${isToday ? " today" : ""}${available && !isPast ? " available" : ""}${isPast ? " past" : ""}`}
-                    >
-                      <span>{day}</span>
-                      {available && !isPast ? <i /> : null}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="trainer-cal-legend">
-                <span><i className="trainer-cal-dot available" />Available day</span>
-                <span><i className="trainer-cal-dot today" />Today</span>
-              </div>
-            </div>
+              );
+            })()}
           </>
         )}
       </div>
