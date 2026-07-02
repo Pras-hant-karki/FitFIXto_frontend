@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS, resolveAssetUrl } from "@/constants/api";
 import { apiClient } from "@/lib";
 
 export type BackendTrainerUser = {
@@ -286,24 +286,10 @@ export const rejectTrainerApplication = async (applicationId: string) => {
   return response.data?.application;
 };
 
-export const normalizeTrainerPhotoUrl = (url?: string | null) => {
-  if (!url) return "";
+export const normalizeTrainerPhotoUrl = (url?: string | null): string => resolveAssetUrl(url);
 
-  const uploadsIndex = url.indexOf("/uploads/");
-  if (uploadsIndex >= 0) {
-    return `/assets/${url.slice(uploadsIndex + "/uploads/".length)}`;
-  }
-
-  return url;
-};
-
-const toFrontendAssetUrl = (filename?: string, path?: string) => {
-  if (filename) {
-    return `/assets/${filename}`;
-  }
-
-  return normalizeTrainerPhotoUrl(path);
-};
+const toFrontendAssetUrl = (filename?: string, path?: string) =>
+  resolveAssetUrl(path || filename);
 
 export const uploadTrainerPhoto = async (file: File) => {
   const formData = new FormData();

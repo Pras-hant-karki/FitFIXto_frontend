@@ -3,15 +3,11 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Camera, KeyRound, UserRound } from "lucide-react";
 import { CustomerDashboardShell } from "@/components/shared/customer";
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS, resolveAssetUrl } from "@/constants/api";
 import { useAuth, useToast } from "@/contexts";
 import { apiClient } from "@/lib";
 
-const normalizeProfileImageUrl = (path?: string | null): string => {
-  if (!path) return "";
-  const i = path.indexOf("/uploads/");
-  return i >= 0 ? `/assets/${path.slice(i + "/uploads/".length)}` : path;
-};
+const normalizeProfileImageUrl = (path?: string | null): string => resolveAssetUrl(path);
 
 const splitName = (name: string) => {
   const parts = name.trim().split(/\s+/).filter(Boolean);

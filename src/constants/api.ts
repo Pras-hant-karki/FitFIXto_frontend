@@ -8,6 +8,24 @@ export const API_BASE_URL = normalizeApiBaseUrl(
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 );
 
+// Base URL for uploaded media files served by the backend at /assets/
+export const MEDIA_BASE_URL = (process.env.NEXT_PUBLIC_MEDIA_URL || API_BASE_URL).replace(/\/api\/v1$/, '').replace(/\/api$/, '');
+
+// Resolves any stored asset path to a full backend URL.
+// Handles new format ("products/img.jpg"), old /uploads/ format, and absolute URLs.
+export const resolveAssetUrl = (storedPath?: string | null): string => {
+  if (!storedPath) return '';
+  if (storedPath.startsWith('http://') || storedPath.startsWith('https://')) return storedPath;
+  const clean = storedPath.startsWith('/uploads/')
+    ? storedPath.slice('/uploads/'.length)
+    : storedPath.startsWith('/assets/')
+    ? storedPath.slice('/assets/'.length)
+    : storedPath.startsWith('/')
+    ? storedPath.slice(1)
+    : storedPath;
+  return `${MEDIA_BASE_URL}/assets/${clean}`;
+};
+
 export const API_ENDPOINTS = {
   // Admin
   admin: {

@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS, resolveAssetUrl } from "@/constants/api";
 import { apiClient } from "@/lib";
 
 export type HomepageHero = {
@@ -33,16 +33,8 @@ export type HomepageSettings = {
   sectionOrder: HomepageSectionOrderItem[];
 };
 
-const toFrontendAssetUrl = (filename?: string, path?: string) => {
-  if (filename) return `/assets/${filename}`;
-
-  const uploadsIndex = path?.indexOf("/uploads/") ?? -1;
-  if (path && uploadsIndex >= 0) {
-    return `/assets/${path.slice(uploadsIndex + "/uploads/".length)}`;
-  }
-
-  return path || "";
-};
+const toFrontendAssetUrl = (filename?: string, path?: string) =>
+  resolveAssetUrl(path || filename);
 
 export const fetchHomepageSettings = async () => {
   const response = await apiClient.get<{ settings: HomepageSettings }>(API_ENDPOINTS.homepage.settings);
