@@ -14,6 +14,7 @@ import {
   fetchPublicTrainerPrograms,
   normalizeTrainerPhotoUrl,
 } from "@/features/trainers";
+import { usePreferences } from "@/contexts";
 
 type Period = "this-week" | "next-week" | "next-month";
 
@@ -103,6 +104,7 @@ export default function TrainerDetailsPage() {
   const [selectedSlot, setSelectedSlot] = useState<BackendTrainerAvailability | null>(null);
   const [activeTab, setActiveTab] = useState<TrainerDetailTab>("about");
   const router = useRouter();
+  const { formatPrice } = usePreferences();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -219,7 +221,7 @@ export default function TrainerDetailsPage() {
             </button>
             <div>
               <span>Per session</span>
-              <strong>Npr {Math.round(trainer.sessionRate).toLocaleString()}</strong>
+              <strong>{formatPrice(trainer.sessionRate)}</strong>
             </div>
             <div>
               <span>Location</span>
@@ -319,7 +321,7 @@ export default function TrainerDetailsPage() {
                       {program.description ? <span>{program.description}</span> : null}
                     </div>
                     <div>
-                      <strong>Npr {Math.round(program.price).toLocaleString()}</strong>
+                      <strong>{formatPrice(program.price)}</strong>
                       <button type="button">Select Program</button>
                     </div>
                   </article>

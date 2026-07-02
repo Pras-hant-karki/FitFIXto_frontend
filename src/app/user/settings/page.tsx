@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CustomerDashboardShell } from "@/components/shared/customer";
-import { useAuth, useToast } from "@/contexts";
+import { useAuth, useToast, usePreferences } from "@/contexts";
+import type { CurrencyCode, LanguageCode, UnitSystem } from "@/contexts";
 
 const NOTIF_KEY = "fitfixto_notifications";
-const PREF_KEY = "fitfixto_preferences";
 const PRIVACY_KEY = "fitfixto_privacy";
 
 const DEFAULT_NOTIF = { orderUpdates: true, promotions: true, bookingReminders: true, smsAlerts: false, pushNotifications: true };
-const DEFAULT_PREF = { language: "", currency: "", units: "metric" as "metric" | "imperial" };
 const DEFAULT_PRIVACY = { publicProfile: false, showActivity: true, personalizedRecs: true };
 
 const load = <T,>(key: string, def: T): T => {
@@ -18,6 +17,26 @@ const load = <T,>(key: string, def: T): T => {
   try { const r = localStorage.getItem(key); return r ? { ...def, ...JSON.parse(r) } : def; } catch { return def; }
 };
 const save = (key: string, val: unknown) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+
+const LANGUAGE_OPTIONS: Array<{ value: LanguageCode; label: string }> = [
+  { value: "", label: "English (default)" },
+  { value: "en-AU", label: "English (Australia)" },
+  { value: "en-CA", label: "English (Canada)" },
+  { value: "en-GB", label: "English (United Kingdom)" },
+  { value: "ar-AE", label: "Arabic (UAE)" },
+  { value: "ne", label: "Nepali" },
+  { value: "hi", label: "Hindi" },
+];
+
+const CURRENCY_OPTIONS: Array<{ value: CurrencyCode; label: string }> = [
+  { value: "NPR", label: "NPR — Nepalese Rupee (default)" },
+  { value: "AUD", label: "AUD — Australian Dollar" },
+  { value: "CAD", label: "CAD — Canadian Dollar" },
+  { value: "AED", label: "AED — UAE Dirham" },
+  { value: "GBP", label: "GBP — British Pound" },
+  { value: "USD", label: "USD — US Dollar" },
+  { value: "INR", label: "INR — Indian Rupee" },
+];
 
 function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
   return (
@@ -34,11 +53,11 @@ function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => vo
 export default function UserSettingsPage() {
   const { logout } = useAuth();
   const { toast } = useToast();
+  const { prefs, setPrefs } = usePreferences();
   const router = useRouter();
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [notif, setNotif] = useState(DEFAULT_NOTIF);
-  const [pref, setPref] = useState(DEFAULT_PREF);
   const [privacy, setPrivacy] = useState(DEFAULT_PRIVACY);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -46,7 +65,6 @@ export default function UserSettingsPage() {
     const stored = localStorage.getItem("theme") as "light" | "dark" | null;
     setTheme(stored ?? "light");
     setNotif(load(NOTIF_KEY, DEFAULT_NOTIF));
-    setPref(load(PREF_KEY, DEFAULT_PREF));
     setPrivacy(load(PRIVACY_KEY, DEFAULT_PRIVACY));
   }, []);
 
@@ -67,12 +85,6 @@ export default function UserSettingsPage() {
     const next = { ...privacy, [key]: !privacy[key] };
     setPrivacy(next);
     save(PRIVACY_KEY, next);
-  };
-
-  const updatePref = (patch: Partial<typeof DEFAULT_PREF>) => {
-    const next = { ...pref, ...patch };
-    setPref(next);
-    save(PREF_KEY, next);
   };
 
   const handleLogout = () => { logout(); router.push("/login"); };
@@ -127,28 +139,39 @@ export default function UserSettingsPage() {
           <div className="settings-pref-grid">
             <label className="settings-pref-label">
               Language
-              <select value={pref.language} onChange={(e) => updatePref({ language: e.target.value })} className="settings-pref-select">
-                <option value="">English (default)</option>
-                <option value="ne">Nepali</option>
-                <option value="hi">Hindi</option>
+              <select
+                value={prefs.language}
+                onChange={(e) => setPrefs({ language: e.target.value as LanguageCode })}
+                className="settings-pref-select"
+              >
+                {LANGUAGE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </label>
             <label className="settings-pref-label">
               Currency
-              <select value={pref.currency} onChange={(e) => updatePref({ currency: e.target.value })} className="settings-pref-select">
-                <option value="">NPR (default)</option>
-                <option value="USD">USD</option>
-                <option value="INR">INR</option>
+              <select
+                value={prefs.currency}
+                onChange={(e) => setPrefs({ currency: e.target.value as CurrencyCode })}
+                className="settings-pref-select"
+              >
+                {CURRENCY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </label>
           </div>
           <div style={{ marginTop: 16 }}>
             <strong className="settings-pref-label" style={{ display: "block", marginBottom: 8 }}>Units</strong>
             <div className="settings-units-btns">
-              <button type="button" className={`settings-unit-btn${pref.units === "metric" ? " active" : ""}`} onClick={() => updatePref({ units: "metric" })}>Metric</button>
-              <button type="button" className={`settings-unit-btn${pref.units === "imperial" ? " active" : ""}`} onClick={() => updatePref({ units: "imperial" })}>Imperial</button>
+              <button type="button" className={`settings-unit-btn${prefs.units === "metric" ? " active" : ""}`} onClick={() => setPrefs({ units: "metric" as UnitSystem })}>Metric (kg)</button>
+              <button type="button" className={`settings-unit-btn${prefs.units === "imperial" ? " active" : ""}`} onClick={() => setPrefs({ units: "imperial" as UnitSystem })}>Imperial (lbs)</button>
             </div>
           </div>
+          <p className="settings-card-sub" style={{ marginTop: 12, fontSize: 12 }}>
+            Prices shown in {prefs.currency === "NPR" ? "Nepalese Rupee (NPR)" : prefs.currency} using approximate conversion rates. Actual charges are in NPR.
+          </p>
         </div>
 
         <div className="settings-card">

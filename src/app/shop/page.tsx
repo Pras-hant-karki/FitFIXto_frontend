@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePreferences } from "@/contexts";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronRight, Heart, Search, Star } from "lucide-react";
@@ -56,6 +57,7 @@ const parseCompareSlotCount = (value: string | null) => {
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onChange }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<"min" | "max" | null>(null);
+  const { formatPrice } = usePreferences();
 
   const getPercentage = useCallback((val: number) => ((val - min) / (max - min || 1)) * 100, [min, max]);
 
@@ -118,8 +120,8 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
         onMouseDown={() => setDragging("max")}
       />
       <div className="flex justify-between mt-4 text-sm text-gray-600">
-        <span>Npr {value[0]}</span>
-        <span>Npr {value[1]}</span>
+        <span>{formatPrice(value[0])}</span>
+        <span>{formatPrice(value[1])}</span>
       </div>
     </div>
   );
@@ -163,6 +165,7 @@ const ProductCard: React.FC<{
   const showOriginalPrice = isFlashSale && flashSalePercent > 0 ? product.price : originalPrice;
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
+  const { formatPrice } = usePreferences();
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
   const isWishlisted = wishlistProductIds.has(product._id);
   const isOutOfStock = product.stock <= 0;
@@ -277,8 +280,8 @@ const ProductCard: React.FC<{
           <span className="text-sm text-gray-500">({product.ratingCount})</span>
         </div>
         <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mb-4">
-          <span className="text-xl font-bold text-gray-900">Npr {effectivePrice}</span>
-          {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">Npr {showOriginalPrice}</span> : null}
+          <span className="text-xl font-bold text-gray-900">{formatPrice(effectivePrice)}</span>
+          {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">{formatPrice(showOriginalPrice)}</span> : null}
           {isBestPrice && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded">Best Price</span>}
         </div>
         {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
@@ -339,6 +342,7 @@ const ShopContent: React.FC = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { formatPrice } = usePreferences();
   const searchParamString = searchParams.toString();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [facetProducts, setFacetProducts] = useState<BackendProduct[]>([]);
@@ -641,7 +645,7 @@ const ShopContent: React.FC = () => {
               <div>
                 <h3 className="font-bold text-gray-900 mb-4">Price Range</h3>
                 <DualRangeSlider min={0} max={maxPrice} value={priceRange} onChange={updatePriceRange} />
-                <p className="text-xs text-gray-500 mt-2">Up to Npr {maxPrice}</p>
+                <p className="text-xs text-gray-500 mt-2">Up to {formatPrice(maxPrice)}</p>
               </div>
 
               <div>

@@ -8,6 +8,7 @@ import {
   fetchPublicTrainers,
   normalizeTrainerPhotoUrl,
 } from "@/features/trainers";
+import { usePreferences } from "@/contexts";
 
 const SpecialtyTag = ({ label }: { label: string }) => (
   <span className="inline-block bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">
@@ -24,6 +25,7 @@ const getTrainerPhoto = (trainer: BackendTrainer) =>
 const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
   const trainerName = getTrainerName(trainer);
   const trainerPhoto = getTrainerPhoto(trainer);
+  const { formatPrice } = usePreferences();
 
   return (
     <Link href={`/trainers/${trainer._id}`} className="block bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
@@ -67,7 +69,7 @@ const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xl font-bold text-gray-900">
-              Npr {Math.round(trainer.sessionRate).toLocaleString()}
+              {formatPrice(trainer.sessionRate)}
             </span>
             <span className="text-xs text-gray-500">/session</span>
           </div>
