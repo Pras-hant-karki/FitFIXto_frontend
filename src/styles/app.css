@@ -5011,7 +5011,7 @@ a {
 
 .admin-shell {
   --admin-topbar-height: 88px;
-  --admin-sidebar-width: 300px;
+  --admin-sidebar-width: 220px;
   width: 100%;
   min-height: 100vh;
   max-width: 100%;
@@ -5134,17 +5134,17 @@ a {
 }
 
 .admin-console-card {
-  padding: 28px 20px 24px;
+  padding: 14px 12px 12px;
   border-bottom: 1px solid #e5e5e8;
 }
 
 .admin-console-eyebrow {
   display: flex;
   align-items: center;
-  gap: 18px;
-  margin-bottom: 18px;
+  gap: 8px;
+  margin-bottom: 8px;
   color: #747584;
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.4px;
 }
@@ -5155,40 +5155,40 @@ a {
 }
 
 .admin-console-card strong {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: #050507;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.15;
 }
 
 .admin-console-card > span {
   color: #747584;
-  font-size: 16px;
+  font-size: 12px;
   line-height: 1.35;
   word-break: break-word;
 }
 
 .admin-sidebar-nav {
   display: grid;
-  gap: 8px;
-  padding: 16px 10px 26px;
+  gap: 3px;
+  padding: 10px 8px 14px;
 }
 
 .admin-sidebar-nav a,
 .admin-logout {
   display: flex;
   align-items: center;
-  gap: 22px;
-  min-height: 54px;
-  padding: 0 16px;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 7px;
   background: transparent;
   color: #08080d;
   font: inherit;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1;
   text-align: left;
   cursor: pointer;
@@ -5206,9 +5206,9 @@ a {
 
 .admin-sidebar-nav svg,
 .admin-logout svg {
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -5217,8 +5217,8 @@ a {
 }
 
 .admin-logout {
-  width: calc(100% - 20px);
-  margin: auto 10px 18px;
+  width: calc(100% - 16px);
+  margin: auto 8px 12px;
   border-top: 1px solid #e5e5e8;
   border-radius: 0;
   color: #747584;
