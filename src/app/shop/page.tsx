@@ -552,7 +552,7 @@ const ShopContent: React.FC = () => {
   const paginationPages = getPaginationPages(currentPage, totalPages);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="shop-page-root">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isComparePickMode ? (
           <div className="shop-compare-picker-bar">
@@ -570,8 +570,8 @@ const ShopContent: React.FC = () => {
         ) : null}
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">{isComparePickMode ? "Shop Equipment" : "Shop Your Needs"}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="shop-page-title">{isComparePickMode ? "Shop Equipment" : "Shop Your Needs"}</h1>
+          <p className="shop-page-subtitle">
             {isLoading
               ? "Loading products..."
               : searchQuery
@@ -586,7 +586,7 @@ const ShopContent: React.FC = () => {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search products..."
-              className="w-full rounded-lg border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm font-semibold text-gray-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
+              className="shop-search-input"
             />
           </label>
         </div>
@@ -595,7 +595,7 @@ const ShopContent: React.FC = () => {
           <aside className="w-full lg:w-64 flex-shrink-0">
             <div className="space-y-8">
               <div>
-                <h3 className="font-bold text-gray-900 mb-4">Category</h3>
+                <h3 className="shop-filter-heading">Category</h3>
                 <div className="space-y-3">
                   {categories.length > 0 ? (
                     categories.map((category) => {
@@ -643,13 +643,13 @@ const ShopContent: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="font-bold text-gray-900 mb-4">Price Range</h3>
+                <h3 className="shop-filter-heading">Price Range</h3>
                 <DualRangeSlider min={0} max={maxPrice} value={priceRange} onChange={updatePriceRange} />
                 <p className="text-xs text-gray-500 mt-2">Up to {formatPrice(maxPrice)}</p>
               </div>
 
               <div>
-                <h3 className="font-bold text-gray-900 mb-4">Brand</h3>
+                <h3 className="shop-filter-heading">Brand</h3>
                 <div className="space-y-3">
                   {brands.length > 0 ? (
                     brands.map((brand) => (

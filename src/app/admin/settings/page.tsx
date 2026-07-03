@@ -136,8 +136,12 @@ export default function AdminSettingsPage() {
               Currency
               <select value={pref.currency} onChange={(e) => updatePref({ currency: e.target.value })} className="settings-pref-select">
                 <option value="">NPR (default)</option>
-                <option value="USD">USD</option>
-                <option value="INR">INR</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="INR">INR — Indian Rupee</option>
+                <option value="AED">AED — UAE Dirham</option>
+                <option value="AUD">AUD — Australian Dollar</option>
+                <option value="CAD">CAD — Canadian Dollar</option>
+                <option value="GBP">GBP — British Pound</option>
               </select>
             </label>
           </div>

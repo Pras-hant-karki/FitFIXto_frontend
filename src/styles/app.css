@@ -5415,9 +5415,9 @@ a {
 
 .admin-stat-card strong {
   color: #030303;
-  font-size: clamp(28px, 3vw, 36px);
+  font-size: clamp(18px, 2vw, 24px);
   font-weight: 900;
-  line-height: 0.95;
+  line-height: 1.1;
 }
 
 .admin-stat-card p {
@@ -13648,11 +13648,11 @@ a {
 
 .toast-container {
   position: fixed;
-  top: 20px;
+  bottom: 24px;
   right: 20px;
   z-index: 10000;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 10px;
   width: 360px;
   max-width: calc(100vw - 40px);
@@ -13789,7 +13789,8 @@ a {
 
 @media (max-width: 600px) {
   .toast-container {
-    top: 12px;
+    bottom: 16px;
+    top: auto;
     right: 12px;
     left: 12px;
     width: auto;

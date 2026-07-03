@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, DollarSign, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
+import { ArrowRight, Banknote, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
 import { AdminAnalytics, AnalyticsRange, fetchAdminAnalytics } from "@/features/admin-analytics/api";
+import { usePreferences } from "@/contexts";
 
 const getAxisStep = (range: AnalyticsRange) => (range === "today" ? 4 : range === "monthly" ? 5 : 1);
 import { fetchAdminUsers } from "@/features/admin-users/api";
@@ -30,8 +31,6 @@ const emptyAnalytics: AdminAnalytics = {
   topTrainers: [],
 };
 
-const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
-
 const getOrderCustomer = (order: BackendOrder) => {
   if (!order.userId || typeof order.userId === "string") {
     return "Unknown customer";
@@ -50,6 +49,7 @@ const buildLinePoints = (values: number[], maxValue: number) =>
     .join(" ");
 
 export default function AdminDashboardPage() {
+  const { formatPrice } = usePreferences();
   const [range, setRange] = useState<AnalyticsRange>("yearly");
   const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
   const [recentOrders, setRecentOrders] = useState<BackendOrder[]>([]);
@@ -88,7 +88,7 @@ export default function AdminDashboardPage() {
     note: string;
     Icon: LucideIcon;
   }> = [
-    { label: "Revenue", value: formatMoney(analytics.summary.revenue), note: "From completed order records", Icon: DollarSign },
+    { label: "Revenue", value: formatPrice(analytics.summary.revenue), note: "From completed order records", Icon: Banknote },
     { label: "Orders", value: String(analytics.summary.orders), note: "Total orders in selected period", Icon: Package },
     { label: "Sales", value: String(analytics.summary.productsSold), note: "Products sold from order items", Icon: ShoppingBag },
     { label: "Customers", value: String(customerCount), note: "Registered customer accounts", Icon: Users },
@@ -230,7 +230,7 @@ export default function AdminDashboardPage() {
                   <strong>{order._id.slice(-8).toUpperCase()}</strong>
                   <span>{getOrderCustomer(order)}</span>
                   <span className={`admin-status admin-status-${order.status}`}>{order.status}</span>
-                  <strong>{formatMoney(order.totalAmount)}</strong>
+                  <strong>{formatPrice(order.totalAmount)}</strong>
                 </div>
               ))}
             </div>
@@ -254,7 +254,7 @@ export default function AdminDashboardPage() {
                   <div>
                     <strong>{product.name}</strong>
                     <span>
-                      {product.sold} sold - {formatMoney(product.revenue)}
+                      {product.sold} sold - {formatPrice(product.revenue)}
                     </span>
                   </div>
                   <em>{index + 1}</em>
