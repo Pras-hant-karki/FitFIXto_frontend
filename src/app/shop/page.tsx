@@ -145,7 +145,7 @@ const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChang
     >
       {checked && <CheckCircle2 className="w-3 h-3 text-white" />}
     </button>
-    <span className="text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
+    <span className="shop-filter-label text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
   </label>
 );
 
@@ -191,7 +191,7 @@ const ProductCard: React.FC<{
   };
 
   const cardClasses = [
-    "bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-shadow",
+    "shop-product-card rounded-lg overflow-hidden border hover:shadow-lg transition-shadow",
     compareMode ? "shop-compare-product-card" : "border-gray-100",
     isSelectedForCompare ? "selected" : "",
     isCompareSelectionDisabled ? "disabled" : "",
@@ -213,7 +213,7 @@ const ProductCard: React.FC<{
       }}
       aria-pressed={compareMode ? isSelectedForCompare : undefined}
     >
-      <div className="relative h-56 bg-gray-50">
+      <div className="shop-card-image relative h-56 bg-gray-50">
         {compareMode ? (
           <div className="block h-full">
             {getProductImage(product) ? (
@@ -263,49 +263,51 @@ const ProductCard: React.FC<{
         )}
       </div>
 
-      <div className="p-4">
-        <div className="text-xs text-gray-500 mb-1">
+      <div className="shop-product-body p-4">
+        <div className="shop-card-meta text-xs text-gray-500 mb-1">
           {[formatCategory(product.category), product.subcategory, product.brand || "FitFIXto"].filter(Boolean).join(" - ")}
         </div>
         {compareMode ? (
-          <strong className="block font-semibold text-gray-900 mb-2 leading-tight">{product.name}</strong>
+          <strong className="shop-card-name block font-semibold text-gray-900 mb-2 leading-tight">{product.name}</strong>
         ) : (
-          <Link href={`/products/${product._id}`} className="block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
+          <Link href={`/products/${product._id}`} className="shop-card-name block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
             {product.name}
           </Link>
         )}
-        <div className="flex items-center space-x-1 mb-3">
-          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-          <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
-          <span className="text-sm text-gray-500">({product.ratingCount})</span>
+        <div className="shop-card-bottom">
+          <div className="flex items-center space-x-1 mb-3">
+            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+            <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
+            <span className="text-sm text-gray-500">({product.ratingCount})</span>
+          </div>
+          <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mb-4">
+            <span className="text-xl font-bold text-gray-900">{formatPrice(effectivePrice)}</span>
+            {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">{formatPrice(showOriginalPrice)}</span> : null}
+            {isBestPrice && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded">Best Price</span>}
+          </div>
+          {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
+          {isOutOfStock ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                if (compareMode) event.stopPropagation();
+                handleWishlistToggle();
+              }}
+              disabled={isUpdatingWishlist}
+              className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium disabled:opacity-60"
+            >
+              <Heart className={`w-4 h-4 ${isWishlisted ? "fill-white text-white" : ""}`} />
+              <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+            </button>
+          ) : (
+            <AddToCartButton
+              productId={product._id}
+              stock={product.stock}
+              stopPropagation={compareMode}
+              className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
+            />
+          )}
         </div>
-        <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mb-4">
-          <span className="text-xl font-bold text-gray-900">{formatPrice(effectivePrice)}</span>
-          {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">{formatPrice(showOriginalPrice)}</span> : null}
-          {isBestPrice && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded">Best Price</span>}
-        </div>
-        {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
-        {isOutOfStock ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              if (compareMode) event.stopPropagation();
-              handleWishlistToggle();
-            }}
-            disabled={isUpdatingWishlist}
-            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium disabled:opacity-60"
-          >
-            <Heart className={`w-4 h-4 ${isWishlisted ? "fill-white text-white" : ""}`} />
-            <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
-          </button>
-        ) : (
-          <AddToCartButton
-            productId={product._id}
-            stock={product.stock}
-            stopPropagation={compareMode}
-            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
-          />
-        )}
       </div>
     </div>
   );
@@ -740,8 +742,8 @@ export default function ShopPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-gray-500">Loading shop...</div>
+        <div className="shop-page-root">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 shop-page-subtitle">Loading shop...</div>
         </div>
       }
     >

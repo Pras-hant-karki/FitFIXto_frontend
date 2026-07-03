@@ -14505,3 +14505,131 @@ a {
   .settings-pref-grid { grid-template-columns: 1fr; }
   .settings-card { padding: 16px; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   SHOP PAGE — base styles + dark mode
+   ═══════════════════════════════════════════════════════════ */
+
+.shop-page-root {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.shop-page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 4px;
+}
+
+.shop-page-subtitle {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.shop-filter-heading {
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 16px;
+}
+
+.shop-filter-label {
+  color: var(--muted);
+}
+
+.shop-search-input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--background);
+  padding: 12px 16px 12px 48px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.shop-search-input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.shop-search-input:focus {
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+}
+
+.dark .shop-search-input:focus {
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
+}
+
+/* Product card — dark mode */
+.shop-product-card {
+  background: var(--background);
+  border-color: var(--line) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark .shop-product-card {
+  background: var(--panel) !important;
+}
+
+.shop-card-image {
+  background: var(--panel);
+}
+
+/* Card body — flex so button always aligns to bottom */
+.shop-product-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Rating/price/button pinned to bottom */
+.shop-card-bottom {
+  margin-top: auto;
+}
+
+/* Text colors in dark mode */
+.dark .shop-card-name,
+.dark .shop-product-body .text-gray-900 {
+  color: var(--foreground) !important;
+}
+
+.dark .shop-card-meta,
+.dark .shop-product-body .text-gray-500,
+.dark .shop-product-body .text-gray-400,
+.dark .shop-page-root .text-gray-500 {
+  color: var(--muted) !important;
+}
+
+.dark .shop-page-root .border-gray-200,
+.dark .shop-page-root .border-gray-100 {
+  border-color: var(--line) !important;
+}
+
+/* Pagination dark mode */
+.dark .shop-page-root button.border-gray-200 {
+  border-color: var(--line) !important;
+  background: var(--panel) !important;
+  color: var(--foreground) !important;
+}
+
+/* No-products empty state dark mode */
+.dark .shop-page-root .bg-white {
+  background: var(--panel) !important;
+}
+
+/* Wishlist heart button in dark mode */
+.dark .shop-card-image button.bg-white {
+  background: var(--panel) !important;
+}
+
+/* Skeleton dark mode */
+.dark .shop-page-root .bg-gray-50,
+.dark .shop-page-root .bg-gray-100 {
+  background: var(--panel) !important;
+}
