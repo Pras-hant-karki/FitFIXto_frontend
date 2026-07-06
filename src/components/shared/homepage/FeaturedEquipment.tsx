@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { Heart, Zap } from "lucide-react";
 import {
   BackendProduct,
   fetchProducts,
@@ -10,6 +10,7 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { DiscountData, fetchPublicDiscounts } from "@/features/discounts";
 import { AddToCartButton } from "@/features/cart";
 import { useAuth, useWishlist } from "@/contexts";
 
@@ -17,6 +18,7 @@ const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()
 
 export function FeaturedEquipment() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
+  const [discounts, setDiscounts] = useState<DiscountData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingWishlistId, setUpdatingWishlistId] = useState("");
@@ -44,7 +46,10 @@ export function FeaturedEquipment() {
       setError("");
 
       try {
-        const data = await fetchProducts({ isFeatured: true, limit: 4 });
+        const [data] = await Promise.all([
+          fetchProducts({ isFeatured: true, limit: 4 }),
+          fetchPublicDiscounts().then(setDiscounts).catch(() => {}),
+        ]);
         setProducts(data?.products || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load featured equipment.");
@@ -55,6 +60,14 @@ export function FeaturedEquipment() {
 
     loadFeaturedProducts();
   }, []);
+
+  const flashSale = discounts?.flashSale;
+  const flashSalePercent = flashSale?.isActive ? flashSale.discountPercentage : 0;
+  const flashSaleActiveIds =
+    flashSale?.isActive && (flashSale.productIds as { _id: string }[]).length > 0
+      ? new Set((flashSale.productIds as { _id: string }[]).map((p) => p._id))
+      : null;
+  const bestPriceIds = new Set((discounts?.bestPriceProductIds || []).map((p) => p._id));
 
   return (
     <section className="home-section" id="shop">
@@ -81,6 +94,15 @@ export function FeaturedEquipment() {
               const isUpdatingWishlist = updatingWishlistId === product._id;
               const isOutOfStock = product.stock <= 0;
 
+              const isFlashSale =
+                flashSalePercent > 0 &&
+                (flashSaleActiveIds === null || flashSaleActiveIds.has(product._id));
+              const isBestPrice = bestPriceIds.has(product._id);
+              const effectivePrice = isFlashSale
+                ? Math.round(product.price * (1 - flashSalePercent / 100))
+                : product.price;
+              const displayOriginalPrice = isFlashSale ? product.price : originalPrice;
+
               return (
                 <article className="product-card" key={product._id}>
                   <div className="product-media">
@@ -93,7 +115,18 @@ export function FeaturedEquipment() {
                     </Link>
                     <div className="product-badges">
                       {product.verifiedBadge ? <span className="badge-dark">Verified</span> : null}
-                      {discount > 0 ? <span className="badge-sale">-{discount}%</span> : null}
+                      {isFlashSale ? (
+                        <span className="badge-dark badge-flash">
+                          <Zap aria-hidden="true" />
+                          Flash
+                        </span>
+                      ) : null}
+                      {isBestPrice ? <span className="badge-best-price">Best Price</span> : null}
+                      {isFlashSale ? (
+                        <span className="badge-sale-red">SALE -{flashSalePercent}%</span>
+                      ) : discount > 0 ? (
+                        <span className="badge-sale">-{discount}%</span>
+                      ) : null}
                     </div>
                     <button
                       className={`wishlist-button${isWishlisted ? " active" : ""}`}
@@ -119,8 +152,8 @@ export function FeaturedEquipment() {
                       <small>({product.ratingCount})</small>
                     </div>
                     <div className="price-line">
-                      <strong>{formatMoney(product.price)}</strong>
-                      {originalPrice ? <del>{formatMoney(originalPrice)}</del> : null}
+                      <strong>{formatMoney(effectivePrice)}</strong>
+                      {displayOriginalPrice ? <del>{formatMoney(displayOriginalPrice)}</del> : null}
                     </div>
                     {isOutOfStock ? <p className="stock-note out-stock">Out of stock</p> : null}
                     {isOutOfStock ? (

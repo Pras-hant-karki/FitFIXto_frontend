@@ -1,9 +1,34 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const footerGroups = [
-  { title: "Shop", links: ["Equipment", "Supplements", "Bundles", "New Arrivals"] },
-  { title: "Services", links: ["Gym Setup", "Trainer Booking", "Maintenance", "Consultation"] },
-  { title: "Support", links: ["Contact", "Shipping", "Warranty", "Returns"] },
+  {
+    title: "Shop",
+    links: [
+      { label: "Equipment", href: "/shop" },
+      { label: "Supplements", href: "/shop?category=supplements" },
+      { label: "Bundles", href: "/#bundles" },
+      { label: "New Arrivals", href: "/#shop" },
+    ],
+  },
+  {
+    title: "Services",
+    links: [
+      { label: "Gym Setup", href: "/services" },
+      { label: "Trainer Booking", href: "/trainers" },
+      { label: "Maintenance", href: "/services" },
+      { label: "Consultation", href: "/trainers" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { label: "Contact", href: "/contact" },
+      { label: "Shipping Info", href: "/shop" },
+      { label: "Warranty", href: "/shop" },
+      { label: "Returns", href: "/user/orders" },
+    ],
+  },
 ];
 
 export function Footer() {
@@ -20,9 +45,9 @@ export function Footer() {
           <div className="footer-links" key={group.title}>
             <h2>{group.title}</h2>
             {group.links.map((link) => (
-              <a href="#" key={link}>
-                {link}
-              </a>
+              <Link href={link.href} key={link.label}>
+                {link.label}
+              </Link>
             ))}
           </div>
         ))}

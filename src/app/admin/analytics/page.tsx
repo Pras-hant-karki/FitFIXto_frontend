@@ -69,7 +69,6 @@ export default function AdminAnalyticsPage() {
   const maxRevenue = useMemo(() => Math.max(...analytics.series.map((point) => point.revenue), 1), [analytics.series]);
   const maxOrders = useMemo(() => Math.max(...analytics.series.map((point) => point.orders), 1), [analytics.series]);
   const maxProductRevenue = useMemo(() => Math.max(...analytics.topProducts.map((product) => product.revenue), 1), [analytics.topProducts]);
-  const revenuePoints = buildLinePoints(analytics.series.map((point) => point.revenue), maxRevenue);
   const orderPoints = buildLinePoints(analytics.series.map((point) => point.orders), maxOrders);
 
   return (
@@ -116,12 +115,35 @@ export default function AdminAnalyticsPage() {
           <article className="admin-analytics-card">
             <h2>Revenue (Npr)</h2>
             <div className="admin-analytics-chart">
-              <svg viewBox="0 0 540 300" aria-label="Revenue chart">
+              <svg viewBox="0 0 540 300" aria-label="Revenue bar chart">
                 {[40, 92, 145, 198, 250].map((y) => (
                   <line x1="24" x2="520" y1={y} y2={y} key={`rh-${y}`} />
                 ))}
-                <polyline points={revenuePoints} />
-                {revenuePoints ? <polygon points={`24,250 ${revenuePoints} 520,250`} /> : null}
+                {(() => {
+                  const count = analytics.series.length;
+                  if (count === 0) return null;
+                  const totalWidth = 496;
+                  const slotWidth = totalWidth / count;
+                  const barWidth = Math.max(4, slotWidth * 0.65);
+                  const gap = (slotWidth - barWidth) / 2;
+                  return analytics.series.map((point, index) => {
+                    const barHeight = (point.revenue / Math.max(maxRevenue, 1)) * 210;
+                    const x = 24 + index * slotWidth + gap;
+                    const y = 250 - barHeight;
+                    return (
+                      <rect
+                        key={`rev-bar-${index}`}
+                        x={x}
+                        y={barHeight > 0 ? y : 250}
+                        width={barWidth}
+                        height={Math.max(0, barHeight)}
+                        rx={4}
+                        ry={4}
+                        className="revenue-bar"
+                      />
+                    );
+                  });
+                })()}
               </svg>
               <div className="admin-analytics-x-axis">
                 {analytics.series

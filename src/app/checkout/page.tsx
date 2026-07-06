@@ -46,6 +46,24 @@ const formatMoney = (value: number) =>
 
 const formatCompactMoney = (value: number) => (value > 0 ? `Npr ${Math.round(value)}` : "FREE");
 
+const calcDeliveryDates = (method: ShippingMethod): { from: Date; to: Date } => {
+  const today = new Date();
+  const addDays = (n: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  if (method === "overnight") return { from: addDays(1), to: addDays(1) };
+  if (method === "express") return { from: addDays(2), to: addDays(3) };
+  return { from: addDays(5), to: addDays(7) };
+};
+
+const formatDeliveryRange = (method: ShippingMethod): string => {
+  const { from, to } = calcDeliveryDates(method);
+  const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  return from.getTime() === to.getTime() ? fmt(from) : `${fmt(from)} - ${fmt(to)}`;
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { refreshCart } = useCart();
@@ -153,11 +171,13 @@ export default function CheckoutPage() {
 
     try {
       const deliveryAddressId = await ensureAddress();
+      const { to: estimatedTo } = calcDeliveryDates(shippingMethod);
       await placeOrder({
         deliveryAddressId,
         paymentMethod,
         shippingMethod,
         selectedProductIds: checkoutItems.map((item) => item.productId._id),
+        estimatedDeliveryDate: estimatedTo.toISOString(),
       });
       await refreshCart();
       toast.success("Order placed successfully!", { description: "You'll receive a confirmation shortly." });
@@ -182,14 +202,22 @@ export default function CheckoutPage() {
   };
 
   const orderSummary = (
-    <CartOrderSummary
-      cart={cart}
-      className="checkout-summary"
-      selectedProductIds={selectedProductIds}
-      shipping={selectedShipping.price}
-      formatMoney={formatMoney}
-      publicDiscounts={publicDiscounts}
-    />
+    <div className="checkout-summary-col">
+      <CartOrderSummary
+        cart={cart}
+        className="checkout-summary"
+        selectedProductIds={selectedProductIds}
+        shipping={selectedShipping.price}
+        formatMoney={formatMoney}
+        publicDiscounts={publicDiscounts}
+      />
+      {step === 3 ? (
+        <div className="checkout-estimated-delivery">
+          <span>Estimated Delivery</span>
+          <strong>{formatDeliveryRange(shippingMethod)}</strong>
+        </div>
+      ) : null}
+    </div>
   );
 
   if (isLoading) {

@@ -103,6 +103,7 @@ export const placeOrder = async (payload: {
   shippingMethod?: "standard" | "express" | "overnight";
   selectedProductIds?: string[];
   notes?: string;
+  estimatedDeliveryDate?: string;
 }) => {
   const response = await apiClient.post<{ order: BackendOrder }>(API_ENDPOINTS.orders.create, payload);
   return response.data?.order;
