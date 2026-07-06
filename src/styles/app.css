@@ -3433,6 +3433,22 @@ a {
   opacity: 0.45;
 }
 
+.stripe-card-wrapper {
+  padding: 14px 0 4px;
+}
+
+.stripe-card-element {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px 14px;
+  background: var(--background);
+  transition: border-color 0.15s;
+}
+
+.stripe-card-element:focus-within {
+  border-color: var(--foreground);
+}
+
 .checkout-summary {
   display: grid;
   gap: 14px;

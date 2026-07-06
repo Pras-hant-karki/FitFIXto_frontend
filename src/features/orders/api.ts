@@ -32,7 +32,7 @@ export interface BackendOrder {
   };
   items: BackendOrderItem[];
   deliveryAddressId: DeliveryAddress;
-  paymentMethod: "cash_on_delivery" | "esewa" | "khalti";
+  paymentMethod: "cash_on_delivery" | "esewa" | "khalti" | "card";
   paymentStatus: string;
   status: string;
   subtotal: number;
@@ -99,14 +99,28 @@ export const fetchOrderTracking = async (orderId: string) => {
 
 export const placeOrder = async (payload: {
   deliveryAddressId: string;
-  paymentMethod: "cash_on_delivery" | "esewa" | "khalti";
+  paymentMethod: "cash_on_delivery" | "esewa" | "khalti" | "card";
   shippingMethod?: "standard" | "express" | "overnight";
   selectedProductIds?: string[];
   notes?: string;
   estimatedDeliveryDate?: string;
+  stripePaymentIntentId?: string;
 }) => {
   const response = await apiClient.post<{ order: BackendOrder }>(API_ENDPOINTS.orders.create, payload);
   return response.data?.order;
+};
+
+export const createStripePaymentIntent = async (payload: {
+  deliveryAddressId: string;
+  shippingMethod?: "standard" | "express" | "overnight";
+  selectedProductIds?: string[];
+  voucherCode?: string;
+}) => {
+  const response = await apiClient.post<{ clientSecret: string; paymentIntentId: string }>(
+    API_ENDPOINTS.payments.stripeIntent,
+    payload
+  );
+  return response.data;
 };
 
 export const cancelOrder = async (orderId: string, reason: string) => {

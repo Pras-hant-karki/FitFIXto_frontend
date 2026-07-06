@@ -170,6 +170,11 @@ export const API_ENDPOINTS = {
     review: (id: string) => `/service-bookings/${id}/review`,
   },
 
+  // Payments
+  payments: {
+    stripeIntent: '/payments/stripe/intent',
+  },
+
   // Bookings (trainer-client sessions)
   bookings: {
     create: '/bookings',
