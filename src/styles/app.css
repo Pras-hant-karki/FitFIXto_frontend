@@ -109,12 +109,16 @@ a {
 .footer-logo-light { display: block; transform: scale(2); transform-origin: center center; }
 .site-logo-dark { display: none; }
 .site-logo-light { display: block; transform: scale(2); transform-origin: center center; }
+.logo-dark { display: none; }
+.logo-light { display: block; transform: scale(2); transform-origin: center center; }
 
 /* Dark mode: fitfixto_logo.png fills the frame — no scaling needed */
 .dark .footer-logo-dark { display: block; }
 .dark .footer-logo-light { display: none; }
 .dark .site-logo-dark { display: block; }
 .dark .site-logo-light { display: none; }
+.dark .logo-dark { display: block; }
+.dark .logo-light { display: none; }
 
 .primary-nav {
   display: flex;
@@ -2652,8 +2656,9 @@ a {
 
 .auth-logo-link {
   display: block;
-  width: fit-content;
+  width: 190px;
   margin: 0 0 48px;
+  overflow: hidden;
 }
 
 .auth-logo {
@@ -5060,6 +5065,7 @@ a {
   align-items: center;
   width: 190px;
   height: 58px;
+  overflow: hidden;
 }
 
 .admin-brand img,
@@ -8803,6 +8809,7 @@ a {
 
 .admin-footer-brand {
   max-width: 310px;
+  overflow: hidden;
 }
 
 .admin-footer-brand img {

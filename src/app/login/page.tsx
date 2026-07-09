@@ -59,7 +59,8 @@ export default function LoginPage() {
         <div className="auth-panel">
           <div className="auth-form-wrap">
             <Link className="auth-logo-link" href="/" aria-label="FitFIXto home">
-              <Image src="/fitfixto_logo.png" alt="FitFIXto" width={190} height={77} className="auth-logo" priority style={{ width: "auto", height: "auto" }} />
+              <Image src="/logo.png" alt="FitFIXto" width={190} height={77} className="auth-logo logo-light" priority style={{ width: "100%", height: "auto" }} />
+              <Image src="/fitfixto_logo.png" alt="FitFIXto" width={190} height={77} className="auth-logo logo-dark" priority style={{ width: "100%", height: "auto" }} />
             </Link>
             <div className="auth-title">
               <h1>Sign in</h1>
