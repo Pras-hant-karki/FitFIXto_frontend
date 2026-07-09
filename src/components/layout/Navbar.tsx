@@ -68,12 +68,21 @@ export function Navbar() {
     <header className="site-navbar">
       <Link className="site-logo-link" href="/" aria-label="FitFIXto home">
         <Image
+          src="/logo.png"
+          alt="FitFIXto"
+          width={178}
+          height={58}
+          priority
+          className="site-logo site-logo-light"
+          style={{ width: "100%", height: "auto" }}
+        />
+        <Image
           src="/fitfixto_logo.png"
           alt="FitFIXto"
           width={178}
           height={58}
           priority
-          className="site-logo"
+          className="site-logo site-logo-dark"
           style={{ width: "100%", height: "auto" }}
         />
       </Link>

@@ -8,7 +8,7 @@ import {
   type BackendPartnerGym,
 } from "@/features/partner-gyms";
 
-const fallbackImages = ["/home-hero-gym.png", "/assets/ctabanner.png"];
+const fallbackImages = ["/home-hero-gym.png", "/ctabanner.png"];
 
 const parsePin = (pin?: string) => {
   if (!pin) return null;

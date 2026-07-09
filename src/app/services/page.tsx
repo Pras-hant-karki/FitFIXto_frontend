@@ -6,11 +6,12 @@ import Link from "next/link";
 import { BackendService, fetchPublicServices } from "@/features/services";
 import { createServiceBooking } from "@/features/serviceBookings";
 import { useAuth } from "@/contexts";
+import { resolveAssetUrl } from "@/constants/api";
 
 function serviceImage(service: BackendService) {
-  if (!service.image) return "/assets/ctabanner.png";
+  if (!service.image) return "/ctabanner.png";
   if (service.image.startsWith("http") || service.image.startsWith("/")) return service.image;
-  return `/assets/${service.image}`;
+  return resolveAssetUrl(service.image);
 }
 
 const WHY_ITEMS = [
@@ -225,7 +226,7 @@ export default function ServicesPage() {
             </div>
           </div>
           <div className="svc-why-image">
-            <img src="/assets/gymhero.jpg" alt="FitFIXto gym installation" />
+            <img src="/ctabanner.png" alt="FitFIXto gym installation" />
           </div>
         </div>
       </section>

@@ -1,5 +1,6 @@
 export * from "./BundleOffersSection";
 export * from "./FeaturedEquipment";
+export * from "./FeaturedTrainers";
 export * from "./FlashSaleSection";
 export * from "./HeroSection";
 export * from "./HomePage";

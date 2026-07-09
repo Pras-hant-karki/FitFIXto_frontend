@@ -22,10 +22,16 @@ const getTrainerName = (trainer: BackendTrainer) =>
 const getTrainerPhoto = (trainer: BackendTrainer) =>
   normalizeTrainerPhotoUrl(trainer.userId.profilePicture);
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const isNewTrainer = (createdAt: string) => Date.now() - new Date(createdAt).getTime() < SEVEN_DAYS_MS;
+
 const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
   const trainerName = getTrainerName(trainer);
   const trainerPhoto = getTrainerPhoto(trainer);
   const { formatPrice } = usePreferences();
+  const isNew = isNewTrainer(trainer.createdAt);
+  const averageRating = trainer.averageRating ?? 0;
+  const ratingCount = trainer.ratingCount ?? 0;
 
   return (
     <Link href={`/trainers/${trainer._id}`} className="block bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
@@ -49,10 +55,12 @@ const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
         <div className="flex items-center space-x-2 mb-3">
           <div className="flex items-center space-x-1">
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            <span className="text-sm font-semibold text-gray-900">New</span>
+            <span className="text-sm font-semibold text-gray-900">
+              {isNew ? "New" : averageRating.toFixed(1)}
+            </span>
           </div>
           <span className="text-sm text-gray-500">
-            0 reviews · {trainer.experienceYears}+ yrs
+            {ratingCount} {ratingCount === 1 ? "review" : "reviews"} · {trainer.experienceYears}+ yrs
           </span>
         </div>
 

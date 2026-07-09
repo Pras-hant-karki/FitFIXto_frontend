@@ -46,7 +46,7 @@ const defaultSectionOrder: HomepageSectionOrderItem[] = [
 ];
 
 const featuredServices = [
-  { name: "Full Gym", image: "/assets/ctabanner.png" },
+  { name: "Full Gym", image: "/ctabanner.png" },
   { name: "Sauna & Steam", image: "/home-hero-gym.png" },
   { name: "Equipment", image: "/home-hero-gym.png" },
 ];

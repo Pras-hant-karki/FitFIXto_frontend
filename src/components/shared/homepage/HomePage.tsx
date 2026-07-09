@@ -1,5 +1,6 @@
 import { BundleOffersSection } from "./BundleOffersSection";
 import { FeaturedEquipment } from "./FeaturedEquipment";
+import { FeaturedTrainers } from "./FeaturedTrainers";
 import { FlashSaleSection } from "./FlashSaleSection";
 import { HeroSection } from "./HeroSection";
 import { ProfessionalServices } from "./ProfessionalServices";
@@ -16,6 +17,7 @@ export function HomePage() {
       <TrustBenefits />
       <FlashSaleSection />
       <FeaturedEquipment />
+      <FeaturedTrainers />
       <ProfessionalServices />
       <TrainerBanner />
       <BundleOffersSection />

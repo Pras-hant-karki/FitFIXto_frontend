@@ -22,6 +22,8 @@ export type BackendTrainer = {
   certifications: string[];
   isFeatured: boolean;
   isSuspended: boolean;
+  averageRating?: number;
+  ratingCount?: number;
   createdAt: string;
   updatedAt: string;
 };
