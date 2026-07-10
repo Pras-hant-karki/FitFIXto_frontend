@@ -6,7 +6,7 @@ import { resolveAssetUrl } from "@/constants/api";
 
 function serviceImage(service: BackendService) {
   if (!service.image) return "/ctabanner.png";
-  if (service.image.startsWith("http") || service.image.startsWith("/")) return service.image;
+  if (service.image.startsWith("http://") || service.image.startsWith("https://")) return service.image;
   return resolveAssetUrl(service.image);
 }
 

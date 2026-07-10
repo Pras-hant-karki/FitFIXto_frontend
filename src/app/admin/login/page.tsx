@@ -14,7 +14,7 @@ export default function AdminLoginPage() {
     email: "",
     password: "",
   });
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,10 +25,11 @@ export default function AdminLoginPage() {
 
     try {
       await adminLogin(formData, rememberMe);
-      const redirectTo =
+      const rawRedirect =
         typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("redirect")
           : null;
+      const redirectTo = rawRedirect?.startsWith("/") ? rawRedirect : null;
       router.push(redirectTo || "/admin/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in as admin.");

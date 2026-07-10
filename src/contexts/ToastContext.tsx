@@ -43,7 +43,7 @@ const DEFAULT_DURATIONS: Record<ToastType, number> = {
   success: 3000,
   info: 4000,
   warning: 5000,
-  error: 0,
+  error: 5000,
 };
 
 const MAX_VISIBLE = 3;
@@ -183,6 +183,7 @@ function ToastCard({ toast, exiting, onDismiss }: ToastCardProps) {
         className="toast__close"
         aria-label="Dismiss notification"
         onClick={handleDismiss}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <X size={13} aria-hidden="true" />
       </button>

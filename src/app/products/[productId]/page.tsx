@@ -14,6 +14,7 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { resolveAssetUrl } from "@/constants/api";
 import { DiscountData, fetchPublicDiscounts } from "@/features/discounts";
 import { BackendReview, fetchReviews } from "@/features/reviews";
 
@@ -130,7 +131,10 @@ export default function ProductDetailsPage() {
     }
   }, [productId]);
 
-  const galleryImages = useMemo(() => product?.images.filter(Boolean) || [], [product]);
+  const galleryImages = useMemo(
+    () => (product?.images.filter(Boolean) || []).map(resolveAssetUrl),
+    [product]
+  );
   const originalPrice = product ? getOriginalPrice(product) : null;
 
   const flashSale = discounts?.flashSale;

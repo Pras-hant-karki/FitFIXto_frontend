@@ -81,6 +81,15 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid — clear stored credentials so the next
+          // page load restores the unauthenticated state cleanly.
+          this.clearAuthToken();
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/admin/login')) {
+            const isAdmin = window.location.pathname.startsWith('/admin');
+            window.location.href = isAdmin ? '/admin/login' : `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+          }
+        }
         throw new Error(data.message || 'API request failed');
       }
 

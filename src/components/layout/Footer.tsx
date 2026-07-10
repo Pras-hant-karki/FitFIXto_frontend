@@ -11,7 +11,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-brand">
-          <Image src="/logo.png" alt="FitFIXto" width={150} height={49} className="footer-logo footer-logo-light" />
+          <Image src="/logo2.png" alt="FitFIXto" width={150} height={49} className="footer-logo footer-logo-light" />
           <Image src="/fitfixto_logo.png" alt="FitFIXto" width={150} height={49} className="footer-logo footer-logo-dark" />
           <p>Premium equipment, trainers, and gym services built around serious results.</p>
         </div>

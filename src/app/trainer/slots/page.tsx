@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Save, Trash2 } from "lucide-react";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
 import { useToast } from "@/contexts";
@@ -271,8 +271,8 @@ export default function TrainerSlotsPage() {
                     <div className="trainer-slots-day-head" key={d.key}>{d.short}</div>
                   ))}
                   {TIME_SLOTS.map((time) => (
-                    <>
-                      <div className="trainer-slots-time-label" key={`label-${time}`}>{time}</div>
+                    <Fragment key={time}>
+                      <div className="trainer-slots-time-label">{time}</div>
                       {DAYS.map((d) => {
                         const k = `${d.key}|${time}`;
                         const isOn = activeKeys.has(k);
@@ -290,7 +290,7 @@ export default function TrainerSlotsPage() {
                           </button>
                         );
                       })}
-                    </>
+                    </Fragment>
                   ))}
                 </div>
               </div>
