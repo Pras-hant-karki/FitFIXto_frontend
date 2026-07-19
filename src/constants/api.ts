@@ -173,6 +173,7 @@ export const API_ENDPOINTS = {
   // Payments
   payments: {
     stripeIntent: '/payments/stripe/intent',
+    stripeCheckout: '/payments/stripe/checkout',
   },
 
   // Bookings (trainer-client sessions)

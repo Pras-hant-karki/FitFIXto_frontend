@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -24,14 +24,19 @@ export default function LoginPage() {
 
     try {
       const loggedInUser = await login(formData, rememberMe);
+
+      if (loggedInUser.role === "trainer") {
+        logout();
+        setError("Trainer accounts have a dedicated sign-in page. Please visit /trainer/login");
+        return;
+      }
+
       const rawRedirect =
         typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("redirect")
           : null;
       const redirectTo = rawRedirect?.startsWith("/") ? rawRedirect : null;
-      const defaultDash =
-        loggedInUser.role === "trainer" ? "/trainer/dashboard" : "/user/dashboard";
-      router.push(redirectTo || defaultDash);
+      router.push(redirectTo || "/user/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in. Please try again.");
     } finally {
@@ -110,6 +115,9 @@ export default function LoginPage() {
 
             <p className="auth-switch">
               New here? <Link href="/signup">Create an account</Link>
+            </p>
+            <p className="auth-switch" style={{ marginTop: "10px", fontSize: "13px" }}>
+              Are you a trainer? <Link href="/trainer/login">Trainer sign-in</Link>
             </p>
           </div>
         </div>

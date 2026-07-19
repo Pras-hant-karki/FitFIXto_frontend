@@ -76,8 +76,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="admin-shell">
         <header className="admin-topbar">
           <Link href="/admin/dashboard" className="admin-brand" aria-label="FitFIXto admin dashboard">
-            <Image src="/logo.png" alt="FitFIXto" width={206} height={72} priority className="logo-light" style={{ width: "100%", height: "auto" }} />
-            <Image src="/fitfixto_logo.png" alt="FitFIXto" width={206} height={72} priority className="logo-dark" style={{ width: "100%", height: "auto" }} />
+            <Image src="/logo.png" alt="FitFIXto" width={206} height={72} priority style={{ width: "auto", height: "44px" }} />
           </Link>
           <span className="admin-badge">
             <Shield aria-hidden="true" />
@@ -131,8 +130,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <footer className="admin-footer">
             <div className="admin-footer-inner">
               <div className="admin-footer-brand">
-                <Image src="/logo.png" alt="FitFIXto" width={206} height={72} className="logo-light" style={{ width: "100%", height: "auto" }} />
-                <Image src="/fitfixto_logo.png" alt="FitFIXto" width={206} height={72} className="logo-dark" style={{ width: "100%", height: "auto" }} />
+                <Image src="/logo.png" alt="FitFIXto" width={206} height={72} style={{ width: "auto", height: "44px" }} />
                 <p>Premium gym equipment, supplements, services and trainers - all in one place.</p>
                 <div className="admin-socials" aria-label="Social links">
                   <a href="#" aria-label="Facebook">
