@@ -62,7 +62,7 @@ export default function TrainerReturnsPage() {
   }, []);
 
   const deliveredOrders = orders.filter((o) => o.status === "delivered");
-  const returnedOrders = orders.filter((o) => o.status === "returned" || o.status === "refunded");
+  const returnedOrders = orders.filter((o) => o.status === "returned");
 
   const getForm = (key: ItemKey): ItemForm => forms[key] ?? defaultForm();
 
@@ -189,8 +189,8 @@ export default function TrainerReturnsPage() {
                         <time dateTime={order.createdAt}>{new Date(order.createdAt).toLocaleDateString()}</time>
                       </div>
                       <div className="customer-order-total">
-                        <span className={`customer-order-status customer-order-status-${order.status}`}>
-                          {order.status === "refunded" ? "Refunded" : "Returned"}
+                        <span className={`customer-order-status customer-order-status-${order.paymentStatus === "refunded" ? "delivered" : order.status}`}>
+                          {order.paymentStatus === "refunded" ? "Refunded" : "Returned"}
                         </span>
                         <strong>Npr {order.totalAmount}</strong>
                       </div>
