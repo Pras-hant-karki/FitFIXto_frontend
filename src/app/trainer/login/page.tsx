@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
-import { useAuth } from "@/contexts";
+import { useAuth, useToast } from "@/contexts";
 
 export default function TrainerLoginPage() {
   const router = useRouter();
   const { trainerLogin } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
@@ -20,7 +21,14 @@ export default function TrainerLoginPage() {
     setIsSubmitting(true);
 
     try {
-      await trainerLogin(formData, rememberMe);
+      const loggedInTrainer = await trainerLogin(formData, rememberMe);
+
+      if (loggedInTrainer.passwordIsWeak) {
+        toast.warning("Your password is weak. Please change it to improve your account security.", {
+          duration: 7000,
+        });
+      }
+
       const rawRedirect =
         typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("redirect")

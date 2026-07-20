@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Check, Search, Star, Trash2 } from "lucide-react";
-import { BackendReview, featureReview, fetchAdminReviews, moderateReview } from "@/features/reviews";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Check, Search, Star, Trash2 } from "lucide-react";
+import { BackendReview, ReviewListResponse, featureReview, fetchAdminReviews, moderateReview } from "@/features/reviews";
 import { BackendProduct, getProductImage } from "@/features/products";
 import { BackendBooking, fetchAdminBookings } from "@/features/bookings";
 import { BackendServiceBooking, fetchAllServiceBookings } from "@/features/serviceBookings";
@@ -68,6 +68,17 @@ const getServiceName = (booking: BackendServiceBooking): string => {
   return (booking.serviceId as { name?: string }).name || "Service";
 };
 
+const REVIEWS_PER_PAGE = 20;
+
+const DEFAULT_PAGINATION = {
+  total: 0,
+  page: 1,
+  limit: REVIEWS_PER_PAGE,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
 function StarDisplay({ rating }: { rating: number }) {
   return (
     <div className="admin-review-rating">
@@ -81,6 +92,8 @@ function StarDisplay({ rating }: { rating: number }) {
 
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [reviewsPagination, setReviewsPagination] = useState(DEFAULT_PAGINATION);
+  const [reviewsPage, setReviewsPage] = useState(1);
   const [trainerBookings, setTrainerBookings] = useState<BackendBooking[]>([]);
   const [serviceBookings, setServiceBookings] = useState<BackendServiceBooking[]>([]);
   const [selectedTab, setSelectedTab] = useState<ReviewTab>("all");
@@ -90,79 +103,75 @@ export default function AdminReviewsPage() {
   const [featuringReviewId, setFeaturingReviewId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadAll = async () => {
+  const loadProductReviews = useCallback(async (page: number, search: string) => {
     setIsLoading(true);
     setError("");
     try {
-      const [reviewsData, bookingsData, serviceData] = await Promise.all([
-        fetchAdminReviews({ status: "all", limit: 100 }),
-        fetchAdminBookings(),
-        fetchAllServiceBookings(),
-      ]);
-      setReviews(reviewsData?.reviews || []);
-      setTrainerBookings(bookingsData.filter((b) => b.clientRating));
-      setServiceBookings(serviceData.filter((b) => b.clientRating));
+      const data = await fetchAdminReviews({ status: "all", page, limit: REVIEWS_PER_PAGE, ...(search.trim() ? { search: search.trim() } : {}) });
+      setReviews(data?.reviews || []);
+      setReviewsPagination(data?.pagination || DEFAULT_PAGINATION);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load reviews.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  const loadBookingReviews = useCallback(async () => {
+    try {
+      const [bookingsResult, svcResult] = await Promise.all([
+        fetchAdminBookings({ limit: 200 }),
+        fetchAllServiceBookings({ limit: 200 }),
+      ]);
+      setTrainerBookings(bookingsResult.bookings.filter((b) => b.clientRating));
+      setServiceBookings(svcResult.bookings.filter((b) => b.clientRating));
+    } catch {
+      // secondary data — do not surface error
+    }
+  }, []);
 
   useEffect(() => {
-    loadAll();
+    loadProductReviews(1, "");
+    loadBookingReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredReviews = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    let list = reviews;
-    if (selectedTab === "product") list = reviews;
-    else if (selectedTab !== "all") return [];
-    if (!q) return list;
-    return list.filter((r) => {
-      const prod = getProduct(r);
-      const user = getUser(r);
-      return (
-        prod?.name?.toLowerCase().includes(q) ||
-        user?.email?.toLowerCase().includes(q) ||
-        getReviewerName(r).toLowerCase().includes(q) ||
-        r.comment?.toLowerCase().includes(q)
-      );
-    });
-  }, [reviews, selectedTab, searchQuery]);
+  const handleTabChange = (tab: ReviewTab) => {
+    setSelectedTab(tab);
+    setReviewsPage(1);
+    loadProductReviews(1, searchQuery);
+  };
 
-  const filteredTrainerBookings = useMemo(() => {
-    if (selectedTab !== "all" && selectedTab !== "trainer") return [];
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return trainerBookings;
-    return trainerBookings.filter((b) =>
-      getTrainerName(b).toLowerCase().includes(q) ||
-      getClientName(b).toLowerCase().includes(q) ||
-      b.clientComment?.toLowerCase().includes(q)
-    );
-  }, [trainerBookings, selectedTab, searchQuery]);
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setReviewsPage(1);
+      loadProductReviews(1, query);
+    }, 350);
+  };
 
-  const filteredServiceBookings = useMemo(() => {
-    if (selectedTab !== "all" && selectedTab !== "service") return [];
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return serviceBookings;
-    return serviceBookings.filter((b) =>
-      getServiceName(b).toLowerCase().includes(q) ||
-      getClientName(b).toLowerCase().includes(q) ||
-      b.clientComment?.toLowerCase().includes(q)
-    );
-  }, [serviceBookings, selectedTab, searchQuery]);
+  const handleReviewsPageChange = (newPage: number) => {
+    setReviewsPage(newPage);
+    loadProductReviews(newPage, searchQuery);
+  };
 
-  const totalCount = filteredReviews.length + filteredTrainerBookings.length + filteredServiceBookings.length;
+  const visibleReviews = selectedTab === "all" || selectedTab === "product" ? reviews : [];
+  const visibleTrainerBookings =
+    (selectedTab === "all" || selectedTab === "trainer") ? trainerBookings : [];
+  const visibleServiceBookings =
+    (selectedTab === "all" || selectedTab === "service") ? serviceBookings : [];
 
-  const tabCounts = useMemo(() => ({
-    all: reviews.length + trainerBookings.length + serviceBookings.length,
-    product: reviews.length,
+  const totalCount = visibleReviews.length + visibleTrainerBookings.length + visibleServiceBookings.length;
+
+  const tabCounts = {
+    all: reviewsPagination.total + trainerBookings.length + serviceBookings.length,
+    product: reviewsPagination.total,
     trainer: trainerBookings.length,
     service: serviceBookings.length,
-  }), [reviews, trainerBookings, serviceBookings]);
+  };
 
   const handleModeration = async (review: BackendReview, status: "approved" | "removed") => {
     setMessage("");
@@ -199,6 +208,9 @@ export default function AdminReviewsPage() {
     }
   };
 
+  const showProductPagination =
+    (selectedTab === "all" || selectedTab === "product") && reviewsPagination.totalPages > 1;
+
   return (
     <section className="admin-reviews-page">
       <header className="admin-reviews-header">
@@ -214,7 +226,7 @@ export default function AdminReviewsPage() {
             <button
               type="button"
               className={selectedTab === tab.key ? "active" : undefined}
-              onClick={() => setSelectedTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               key={tab.key}
             >
               {tab.label}
@@ -229,7 +241,7 @@ export default function AdminReviewsPage() {
             type="search"
             placeholder="Search reviews..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </form>
       </div>
@@ -240,12 +252,12 @@ export default function AdminReviewsPage() {
       <div className="admin-reviews-list">
         {isLoading ? (
           <div className="admin-reviews-empty">Loading reviews...</div>
-        ) : totalCount === 0 ? (
+        ) : totalCount === 0 && !isLoading ? (
           <div className="admin-reviews-empty">No reviews found.</div>
         ) : (
           <>
             {/* Product reviews */}
-            {filteredReviews.map((review) => {
+            {visibleReviews.map((review) => {
               const product = getProduct(review);
               const user = getUser(review);
               const order = getOrder(review);
@@ -311,7 +323,7 @@ export default function AdminReviewsPage() {
             })}
 
             {/* Trainer session reviews */}
-            {filteredTrainerBookings.map((booking) => (
+            {visibleTrainerBookings.map((booking) => (
               <article className="admin-review-card" key={`trainer-${booking._id}`}>
                 <div className="admin-review-product">
                   <div style={{ width: 52, height: 52, borderRadius: 8, background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "var(--muted)", flexShrink: 0 }}>
@@ -341,7 +353,7 @@ export default function AdminReviewsPage() {
             ))}
 
             {/* Service reviews */}
-            {filteredServiceBookings.map((booking) => (
+            {visibleServiceBookings.map((booking) => (
               <article className="admin-review-card" key={`service-${booking._id}`}>
                 <div className="admin-review-product">
                   <div style={{ width: 52, height: 52, borderRadius: 8, background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "var(--muted)", flexShrink: 0 }}>
@@ -372,6 +384,30 @@ export default function AdminReviewsPage() {
           </>
         )}
       </div>
+
+      {showProductPagination ? (
+        <div className="admin-pagination">
+          <button
+            type="button"
+            disabled={!reviewsPagination.hasPrevPage}
+            onClick={() => handleReviewsPageChange(reviewsPage - 1)}
+            aria-label="Previous page"
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <span>
+            Page {reviewsPagination.page} of {reviewsPagination.totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={!reviewsPagination.hasNextPage}
+            onClick={() => handleReviewsPageChange(reviewsPage + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

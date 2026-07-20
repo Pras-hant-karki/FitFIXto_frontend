@@ -38,9 +38,43 @@ export const fetchMyServiceBookings = async (): Promise<BackendServiceBooking[]>
   return (res as any).data?.bookings ?? [];
 };
 
-export const fetchAllServiceBookings = async (): Promise<BackendServiceBooking[]> => {
-  const res = await apiClient.get<{ bookings: BackendServiceBooking[] }>(API_ENDPOINTS.serviceBookings.adminAll);
-  return (res as any).data?.bookings ?? [];
+export type ServiceBookingPaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
+
+export type AdminServiceBookingsResponse = {
+  bookings: BackendServiceBooking[];
+  pagination: ServiceBookingPaginationMeta;
+};
+
+const DEFAULT_SVC_PAGINATION: ServiceBookingPaginationMeta = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
+export const fetchAllServiceBookings = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}): Promise<AdminServiceBookingsResponse> => {
+  const res = await apiClient.get<{ bookings: BackendServiceBooking[]; pagination?: ServiceBookingPaginationMeta }>(
+    API_ENDPOINTS.serviceBookings.adminAll,
+    { params }
+  );
+  return {
+    bookings: (res as any).data?.bookings ?? [],
+    pagination: (res as any).data?.pagination ?? DEFAULT_SVC_PAGINATION,
+  };
 };
 
 export const updateServiceBookingStatus = async (

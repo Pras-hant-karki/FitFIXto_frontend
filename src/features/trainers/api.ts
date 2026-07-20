@@ -114,8 +114,8 @@ export type BackendTrainerApplication = {
   updatedAt: string;
 };
 
-export const fetchAdminTrainers = async () => {
-  const response = await apiClient.get<{ trainers: BackendTrainer[] }>(API_ENDPOINTS.trainers.list);
+export const fetchAdminTrainers = async (params?: { page?: number; limit?: number }) => {
+  const response = await apiClient.get<{ trainers: BackendTrainer[] }>(API_ENDPOINTS.trainers.list, { params });
   return response.data?.trainers || [];
 };
 
@@ -219,9 +219,42 @@ export const deleteTrainerAvailability = async (slotId: string) => {
   return response.data;
 };
 
-export const fetchTrainerApplications = async () => {
-  const response = await apiClient.get<{ applications: BackendTrainerApplication[] }>(API_ENDPOINTS.trainers.applications);
-  return response.data?.applications || [];
+export type TrainerApplicationPaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
+
+export type AdminTrainerApplicationsResponse = {
+  applications: BackendTrainerApplication[];
+  pagination: TrainerApplicationPaginationMeta;
+};
+
+const DEFAULT_APP_PAGINATION: TrainerApplicationPaginationMeta = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
+export const fetchTrainerApplications = async (params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<AdminTrainerApplicationsResponse> => {
+  const response = await apiClient.get<{ applications: BackendTrainerApplication[]; pagination?: TrainerApplicationPaginationMeta }>(
+    API_ENDPOINTS.trainers.applications,
+    { params }
+  );
+  return {
+    applications: response.data?.applications || [],
+    pagination: response.data?.pagination || DEFAULT_APP_PAGINATION,
+  };
 };
 
 export type TrainerApplicationPayload = {

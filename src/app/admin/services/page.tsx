@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Check, CheckCircle, Clock, Edit2, Plus, Search, Trash2, X, XCircle } from "lucide-react";
+import { Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Edit2, Plus, Search, Trash2, X, XCircle } from "lucide-react";
 import {
   BackendService,
   ServicePayload,
@@ -11,7 +11,7 @@ import {
   updateService,
   uploadServiceImage,
 } from "@/features/services";
-import { BackendServiceBooking, ServiceBookingStatus, fetchAllServiceBookings, updateServiceBookingStatus } from "@/features/serviceBookings";
+import { BackendServiceBooking, ServiceBookingPaginationMeta, ServiceBookingStatus, fetchAllServiceBookings, updateServiceBookingStatus } from "@/features/serviceBookings";
 import { useToast } from "@/contexts";
 
 type ServiceForm = {
@@ -81,6 +81,10 @@ export default function AdminServicesPage() {
 
   // Bookings tab
   const [svcBookings, setSvcBookings] = useState<BackendServiceBooking[]>([]);
+  const [bookingsPagination, setBookingsPagination] = useState<ServiceBookingPaginationMeta>({
+    total: 0, page: 1, limit: 20, totalPages: 1, hasNextPage: false, hasPrevPage: false,
+  });
+  const [bookingsPage, setBookingsPage] = useState(1);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingStatusFilter, setBookingStatusFilter] = useState<"all" | ServiceBookingStatus>("all");
   const [updatingBookingId, setUpdatingBookingId] = useState("");
@@ -107,11 +111,30 @@ export default function AdminServicesPage() {
 
   useEffect(() => { load(); }, []);
 
-  const loadBookings = async () => {
+  const loadBookings = async (page: number, statusFilter: "all" | ServiceBookingStatus) => {
     setBookingsLoading(true);
-    try { setSvcBookings(await fetchAllServiceBookings()); } catch {} finally { setBookingsLoading(false); }
+    try {
+      const result = await fetchAllServiceBookings({
+        page,
+        limit: 20,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      });
+      setSvcBookings(result.bookings);
+      setBookingsPagination(result.pagination);
+    } catch {} finally { setBookingsLoading(false); }
   };
-  useEffect(() => { if (tab === "bookings") loadBookings(); }, [tab]);
+  useEffect(() => { if (tab === "bookings") loadBookings(1, bookingStatusFilter); }, [tab]);
+
+  const handleBookingStatusFilterChange = (f: "all" | ServiceBookingStatus) => {
+    setBookingStatusFilter(f);
+    setBookingsPage(1);
+    loadBookings(1, f);
+  };
+
+  const handleBookingsPageChange = (newPage: number) => {
+    setBookingsPage(newPage);
+    loadBookings(newPage, bookingStatusFilter);
+  };
 
   const handleBookingStatusChange = async (id: string, status: ServiceBookingStatus) => {
     setUpdatingBookingId(id);
@@ -211,10 +234,6 @@ export default function AdminServicesPage() {
     }
   };
 
-  const filteredBookings = bookingStatusFilter === "all"
-    ? svcBookings
-    : svcBookings.filter((b) => b.status === bookingStatusFilter);
-
   const getClientName = (b: BackendServiceBooking) =>
     typeof b.clientId === "string" ? b.contactName : `${b.clientId.firstName} ${b.clientId.lastName}`;
   const getClientEmail = (b: BackendServiceBooking) =>
@@ -230,7 +249,7 @@ export default function AdminServicesPage() {
           <p>
             {tab === "services"
               ? `${services.length} service${services.length === 1 ? "" : "s"} customers can purchase.`
-              : `${svcBookings.length} service booking${svcBookings.length === 1 ? "" : "s"}.`}
+              : `${bookingsPagination.total} service booking${bookingsPagination.total === 1 ? "" : "s"}.`}
           </p>
         </div>
         {tab === "services" && (
@@ -257,7 +276,7 @@ export default function AdminServicesPage() {
           onClick={() => setTab("bookings")}
         >
           Bookings
-          <span className="bookings-tab-count">{svcBookings.length}</span>
+          <span className="bookings-tab-count">{bookingsPagination.total}</span>
         </button>
       </div>
 
@@ -270,7 +289,7 @@ export default function AdminServicesPage() {
                 key={f}
                 type="button"
                 className={`trainer-booking-filter-btn${bookingStatusFilter === f ? " active" : ""}`}
-                onClick={() => setBookingStatusFilter(f as "all" | ServiceBookingStatus)}
+                onClick={() => handleBookingStatusFilterChange(f as "all" | ServiceBookingStatus)}
               >
                 {f === "all" ? "All" : SVC_STATUS_LABELS[f as ServiceBookingStatus]}
               </button>
@@ -278,13 +297,13 @@ export default function AdminServicesPage() {
           </div>
           {bookingsLoading ? (
             <div className="admin-products-empty">Loading bookings…</div>
-          ) : filteredBookings.length === 0 ? (
+          ) : svcBookings.length === 0 ? (
             <div className="admin-products-empty">
               {bookingStatusFilter === "all" ? "No service bookings yet." : `No ${SVC_STATUS_LABELS[bookingStatusFilter as ServiceBookingStatus]?.toLowerCase()} bookings.`}
             </div>
           ) : (
             <div className="trainer-booking-list">
-              {filteredBookings.map((b) => {
+              {svcBookings.map((b) => {
                 const isUpdating = updatingBookingId === b._id;
                 return (
                   <article className="trainer-booking-card svc-admin-booking-card" key={b._id}>
@@ -325,6 +344,27 @@ export default function AdminServicesPage() {
               })}
             </div>
           )}
+          {bookingsPagination.totalPages > 1 ? (
+            <div className="admin-pagination" style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                disabled={!bookingsPagination.hasPrevPage}
+                onClick={() => handleBookingsPageChange(bookingsPage - 1)}
+                aria-label="Previous page"
+              >
+                <ChevronLeft aria-hidden="true" />
+              </button>
+              <span>Page {bookingsPagination.page} of {bookingsPagination.totalPages}</span>
+              <button
+                type="button"
+                disabled={!bookingsPagination.hasNextPage}
+                onClick={() => handleBookingsPageChange(bookingsPage + 1)}
+                aria-label="Next page"
+              >
+                <ChevronRight aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
 

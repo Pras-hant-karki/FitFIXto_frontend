@@ -85,9 +85,15 @@ class ApiClient {
           // Token expired or invalid — clear stored credentials so the next
           // page load restores the unauthenticated state cleanly.
           this.clearAuthToken();
-          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/admin/login')) {
-            const isAdmin = window.location.pathname.startsWith('/admin');
-            window.location.href = isAdmin ? '/admin/login' : `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+          if (typeof window !== 'undefined') {
+            const path = window.location.pathname;
+            const onLoginPage = path.startsWith('/login') || path.startsWith('/admin/login') || path.startsWith('/trainer/login');
+            if (!onLoginPage) {
+              const isAdmin = path.startsWith('/admin');
+              const isTrainer = path.startsWith('/trainer');
+              const loginPath = isAdmin ? '/admin/login' : isTrainer ? '/trainer/login' : '/login';
+              window.location.href = `${loginPath}?redirect=${encodeURIComponent(path)}`;
+            }
           }
         }
         throw new Error(data.message || 'API request failed');

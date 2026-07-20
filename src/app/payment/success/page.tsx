@@ -6,6 +6,7 @@ import { Suspense } from "react";
 
 function SuccessContent() {
   const params = useSearchParams();
+  const orderId = params.get("order_id");
   const sessionId = params.get("session_id");
 
   return (
@@ -41,13 +42,19 @@ function SuccessContent() {
         Payment successful!
       </h1>
       <p style={{ color: "var(--muted, #6b7280)", maxWidth: 420, lineHeight: 1.6, marginBottom: 8 }}>
-        Your order has been placed and payment confirmed. You will receive a confirmation email shortly.
+        Your order has been placed and payment confirmed. A confirmation email will be sent to you shortly.
       </p>
-      {sessionId && (
-        <p style={{ fontSize: 12, color: "var(--muted, #9ca3af)", marginBottom: 32 }}>
+      {orderId && (
+        <p style={{ fontSize: 13, color: "var(--muted, #6b7280)", marginBottom: 4 }}>
+          Order ID: <strong style={{ color: "var(--fg, #111)" }}>{orderId.slice(-12).toUpperCase()}</strong>
+        </p>
+      )}
+      {sessionId && !orderId && (
+        <p style={{ fontSize: 12, color: "var(--muted, #9ca3af)", marginBottom: 4 }}>
           Reference: {sessionId.slice(0, 20)}…
         </p>
       )}
+      <div style={{ marginBottom: 32 }} />
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
         <Link
           href="/user/dashboard"

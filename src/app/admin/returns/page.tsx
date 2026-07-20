@@ -54,8 +54,8 @@ export default function AdminReturnsPage() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const all = await fetchAdminOrders();
-        setOrders(all.filter((o) => o.status === "returned" || o.status === "refunded"));
+        const all = await fetchAdminOrders({ status: "returned" });
+        setOrders(all.orders.filter((o) => o.status === "returned" || o.status === "refunded"));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Unable to load returns.");
       } finally {

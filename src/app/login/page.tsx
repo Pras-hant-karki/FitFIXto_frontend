@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
-import { useAuth } from "@/contexts";
+import { useAuth, useToast } from "@/contexts";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, logout } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -29,6 +30,13 @@ export default function LoginPage() {
         logout();
         setError("Trainer accounts have a dedicated sign-in page. Please visit /trainer/login");
         return;
+      }
+
+      if (loggedInUser.passwordIsWeak) {
+        toast.warning("Your password is weak. Please change it to improve your account security.", {
+          duration: 7000,
+          action: { label: "Change Password", onClick: () => router.push("/user/settings") },
+        });
       }
 
       const rawRedirect =

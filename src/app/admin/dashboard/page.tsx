@@ -70,8 +70,8 @@ export default function AdminDashboardPage() {
         ]);
 
         setAnalytics(analyticsData || emptyAnalytics);
-        setCustomerCount(users.filter((user) => user.role === "customer").length);
-        setRecentOrders(orders.slice(0, 5));
+        setCustomerCount(users.users.filter((user) => user.role === "customer").length);
+        setRecentOrders(orders.orders.slice(0, 5));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
       } finally {

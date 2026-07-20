@@ -27,6 +27,7 @@ type AuthTokens = {
 type AuthResponseData = {
   user: AuthUser;
   tokens: AuthTokens;
+  passwordIsWeak?: boolean;
 };
 
 type LoginPayload = {
@@ -43,12 +44,14 @@ type RegisterPayload = {
   confirmPassword: string;
 };
 
+export type LoginResult = AuthUser & { passwordIsWeak?: boolean };
+
 type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (payload: LoginPayload, remember?: boolean) => Promise<AuthUser>;
-  trainerLogin: (payload: LoginPayload, remember?: boolean) => Promise<AuthUser>;
+  login: (payload: LoginPayload, remember?: boolean) => Promise<LoginResult>;
+  trainerLogin: (payload: LoginPayload, remember?: boolean) => Promise<LoginResult>;
   adminLogin: (payload: LoginPayload, remember?: boolean) => Promise<AuthUser>;
   register: (payload: RegisterPayload, remember?: boolean) => Promise<AuthUser>;
   logout: () => void;
@@ -108,20 +111,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUser]);
 
   const login = useCallback(
-    async (payload: LoginPayload, remember = false) => {
+    async (payload: LoginPayload, remember = false): Promise<LoginResult> => {
       const response = await apiClient.post<AuthResponseData>(API_ENDPOINTS.auth.login, payload);
 
       if (!response.data?.tokens?.accessToken || !response.data.user) {
         throw new Error("Login succeeded, but the server response was incomplete.");
       }
 
-      return storeAuthResult(response.data, remember);
+      const user = storeAuthResult(response.data, remember);
+      return { ...user, passwordIsWeak: response.data.passwordIsWeak ?? false };
     },
     [storeAuthResult]
   );
 
   const trainerLogin = useCallback(
-    async (payload: LoginPayload, remember = false) => {
+    async (payload: LoginPayload, remember = false): Promise<LoginResult> => {
       const response = await apiClient.post<AuthResponseData>(API_ENDPOINTS.auth.login, payload);
 
       if (!response.data?.tokens?.accessToken || !response.data.user) {
@@ -132,7 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("These credentials belong to a customer account. Please use the regular sign-in page.");
       }
 
-      return storeAuthResult(response.data, remember);
+      const user = storeAuthResult(response.data, remember);
+      return { ...user, passwordIsWeak: response.data.passwordIsWeak ?? false };
     },
     [storeAuthResult]
   );

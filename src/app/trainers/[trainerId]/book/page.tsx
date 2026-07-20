@@ -123,7 +123,7 @@ function BookingFlow() {
               {sessionOptions.map((option) => <button type="button" className={sessionType === option.id ? "selected" : ""} onClick={() => setSessionType(option.id)} key={option.id}><strong>{option.label}</strong><span>{formatMoney((trainer.sessionRate || 0) * option.multiplier)}</span></button>)}
             </div>
             <div className="booking-field-row">
-              <label><span>Date</span><input type="date" min={toDateInput(new Date())} value={date} onChange={(event) => setDate(event.target.value)} /></label>
+              <label><span>Date</span><input type="date" min={toDateInput(new Date(Date.now() + 864e5))} value={date} onChange={(event) => setDate(event.target.value)} /></label>
               <label><span>Time</span><input value={formatTime(selectedTime)} readOnly /></label>
             </div>
           </> : null}

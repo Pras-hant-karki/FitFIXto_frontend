@@ -77,11 +77,43 @@ export const createBooking = async (payload: {
   return response.data?.booking;
 };
 
-export const fetchAdminBookings = async (): Promise<BackendBooking[]> => {
-  const response = await apiClient.get<{ bookings: BackendBooking[] }>(
-    API_ENDPOINTS.bookings.adminAll
+export type BookingPaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
+
+export type AdminBookingsResponse = {
+  bookings: BackendBooking[];
+  pagination: BookingPaginationMeta;
+};
+
+const DEFAULT_BOOKINGS_PAGINATION: BookingPaginationMeta = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
+export const fetchAdminBookings = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}): Promise<AdminBookingsResponse> => {
+  const response = await apiClient.get<{ bookings: BackendBooking[]; pagination?: BookingPaginationMeta }>(
+    API_ENDPOINTS.bookings.adminAll,
+    { params }
   );
-  return response.data?.bookings || [];
+  return {
+    bookings: response.data?.bookings || [],
+    pagination: response.data?.pagination || DEFAULT_BOOKINGS_PAGINATION,
+  };
 };
 
 export const fetchMyClientBookings = async (): Promise<BackendBooking[]> => {

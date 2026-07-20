@@ -1,28 +1,23 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CreditCard, ShieldCheck, WalletCards } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
 import { useCart, useToast } from "@/contexts";
 import { BackendCart, fetchCart } from "@/features/cart";
 import { DiscountData, fetchPublicDiscounts } from "@/features/discounts";
 import {
   CartOrderSummary,
   createDeliveryAddress,
-  createStripePaymentIntent,
   DeliveryAddress,
   fetchDeliveryAddresses,
   placeOrder,
 } from "@/features/orders";
-import { StripeCardInput, StripeCardInputHandle } from "@/components/checkout/StripeCardInput";
+import { apiClient } from "@/lib";
 
 type CheckoutStep = 1 | 2 | 3;
 type PaymentMethod = "cash_on_delivery" | "esewa" | "khalti" | "card";
 type ShippingMethod = "standard" | "express" | "overnight";
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 const shippingOptions: Array<{ id: ShippingMethod; label: string; price: number }> = [
   { id: "standard", label: "Standard (5-7 days)", price: 0 },
@@ -30,9 +25,9 @@ const shippingOptions: Array<{ id: ShippingMethod; label: string; price: number 
   { id: "overnight", label: "Overnight", price: 79 },
 ];
 
-const paymentOptions: Array<{ id: PaymentMethod; label: string; badge?: string; icon?: "card" | "wallet"; disabled?: boolean }> = [
-  { id: "esewa", label: "eSewa", badge: "eSewa" },
-  { id: "khalti", label: "Khalti", badge: "Khalti" },
+const paymentOptions: Array<{ id: PaymentMethod; label: string; badge?: string; icon?: "card" | "wallet"; disabled?: boolean; comingSoon?: boolean }> = [
+  { id: "esewa", label: "eSewa", badge: "eSewa", disabled: true, comingSoon: true },
+  { id: "khalti", label: "Khalti", badge: "Khalti", disabled: true, comingSoon: true },
   { id: "card", label: "Credit / Debit Card", icon: "card" },
   { id: "cash_on_delivery", label: "Cash on Delivery", icon: "wallet" },
 ];
@@ -74,14 +69,13 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { refreshCart } = useCart();
   const { toast } = useToast();
-  const stripeCardRef = useRef<StripeCardInputHandle>(null);
   const [step, setStep] = useState<CheckoutStep>(1);
   const [cart, setCart] = useState<BackendCart>({ items: [] });
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [shippingForm, setShippingForm] = useState(emptyShippingForm);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("esewa");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [refundText, setRefundText] = useState("10-day money-back guarantee. If you're not fully satisfied, return any item within 10 days for a full refund. Refund process might take 3-6 business days");
   const [publicDiscounts, setPublicDiscounts] = useState<DiscountData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -168,6 +162,14 @@ export default function CheckoutPage() {
     }
   };
 
+  const handlePaymentOptionClick = (option: typeof paymentOptions[0]) => {
+    if (option.comingSoon) {
+      toast.info("Coming Soon", { description: `${option.label} payment integration is coming soon. Please use Card or Cash on Delivery.` });
+      return;
+    }
+    if (!option.disabled) setPaymentMethod(option.id);
+  };
+
   const handlePlaceOrder = async () => {
     if (checkoutItems.length === 0) {
       toast.error("No selected cart items found. Please return to cart and choose items.");
@@ -181,40 +183,35 @@ export default function CheckoutPage() {
       const { to: estimatedTo } = calcDeliveryDates(shippingMethod);
 
       if (paymentMethod === "card") {
-        // Step 1: Create PaymentIntent on server (server calculates total)
-        const intentData = await createStripePaymentIntent({
-          deliveryAddressId,
-          shippingMethod,
-          selectedProductIds: checkoutItems.map((item) => item.productId._id),
-        });
+        // Stripe Checkout redirect flow — server creates order + session atomically
+        const response = await apiClient.post<{ url: string; sessionId: string; orderId: string }>(
+          "/payments/stripe/checkout",
+          {
+            deliveryAddressId,
+            shippingMethod,
+            selectedProductIds: checkoutItems.map((item) => item.productId._id),
+            estimatedDeliveryDate: estimatedTo.toISOString(),
+          }
+        );
 
-        if (!intentData?.clientSecret) {
+        if (!response.data?.url) {
           throw new Error("Unable to initialize card payment. Please try again.");
         }
 
-        // Step 2: Confirm card payment via Stripe Elements
-        const result = await stripeCardRef.current?.confirmPayment(intentData.clientSecret);
-        if (!result) throw new Error("Card payment component is not ready. Please refresh.");
-        if ("error" in result) throw new Error(result.error);
-
-        // Step 3: Place order, backend verifies PI before creating
-        await placeOrder({
-          deliveryAddressId,
-          paymentMethod: "card",
-          shippingMethod,
-          selectedProductIds: checkoutItems.map((item) => item.productId._id),
-          estimatedDeliveryDate: estimatedTo.toISOString(),
-          stripePaymentIntentId: result.paymentIntentId,
-        });
-      } else {
-        await placeOrder({
-          deliveryAddressId,
-          paymentMethod,
-          shippingMethod,
-          selectedProductIds: checkoutItems.map((item) => item.productId._id),
-          estimatedDeliveryDate: estimatedTo.toISOString(),
-        });
+        // Refresh cart context before leaving page (cart was cleared server-side)
+        await refreshCart();
+        window.location.href = response.data.url;
+        return;
       }
+
+      // Non-card payment methods (COD)
+      await placeOrder({
+        deliveryAddressId,
+        paymentMethod,
+        shippingMethod,
+        selectedProductIds: checkoutItems.map((item) => item.productId._id),
+        estimatedDeliveryDate: estimatedTo.toISOString(),
+      });
 
       await refreshCart();
       toast.success("Order placed successfully!", { description: "You'll receive a confirmation shortly." });
@@ -281,8 +278,7 @@ export default function CheckoutPage() {
         {renderStepMarker(3, "Payment")}
       </nav>
 
-      <Elements stripe={stripePromise}>
-        <div className="checkout-grid">
+      <div className="checkout-grid">
           {step === 1 ? (
             <form className="checkout-panel checkout-shipping-form" onSubmit={handleShippingContinue}>
               <div className="checkout-field-row">
@@ -357,23 +353,26 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     className={paymentMethod === option.id ? "selected" : ""}
-                    disabled={option.disabled}
-                    onClick={() => {
-                      if (!option.disabled) setPaymentMethod(option.id);
-                    }}
+                    onClick={() => handlePaymentOptionClick(option)}
                     key={option.id}
+                    style={option.comingSoon ? { opacity: 0.55, cursor: "pointer" } : undefined}
+                    aria-label={option.comingSoon ? `${option.label} — coming soon` : option.label}
                   >
                     {option.badge ? <em className={option.id === "khalti" ? "khalti" : "esewa"}>{option.badge}</em> : null}
                     {option.icon === "card" ? <CreditCard aria-hidden="true" /> : null}
                     {option.icon === "wallet" ? <WalletCards aria-hidden="true" /> : null}
-                    <span>{option.label}</span>
+                    <span>
+                      {option.label}
+                      {option.comingSoon ? <small style={{ marginLeft: 6, fontSize: "0.7em", color: "#9ca3af" }}>Coming Soon</small> : null}
+                    </span>
                   </button>
                 ))}
               </div>
 
               {paymentMethod === "card" ? (
-                <div className="stripe-card-wrapper">
-                  <StripeCardInput ref={stripeCardRef} />
+                <div className="stripe-card-wrapper" style={{ padding: "12px 16px", background: "var(--surface-2, #f9fafb)", borderRadius: 8, border: "1px solid var(--border, #e5e7eb)", fontSize: 14, color: "var(--muted, #6b7280)" }}>
+                  <CreditCard aria-hidden="true" style={{ display: "inline", marginRight: 8, verticalAlign: "middle" }} />
+                  You will be securely redirected to Stripe to complete your payment.
                 </div>
               ) : null}
 
@@ -397,7 +396,6 @@ export default function CheckoutPage() {
 
           {orderSummary}
         </div>
-      </Elements>
     </main>
   );
 }
