@@ -7,7 +7,6 @@ import { AdminAnalytics, AnalyticsRange, fetchAdminAnalytics } from "@/features/
 import { usePreferences } from "@/contexts";
 
 const getAxisStep = (range: AnalyticsRange) => (range === "today" ? 4 : range === "monthly" ? 5 : 1);
-import { fetchAdminUsers } from "@/features/admin-users/api";
 import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
 
 const RANGE_OPTIONS: Array<{ label: string; value: AnalyticsRange }> = [
@@ -25,6 +24,7 @@ const emptyAnalytics: AdminAnalytics = {
     orders: 0,
     averageOrderValue: 0,
     productsSold: 0,
+    customerCount: 0,
   },
   series: [],
   topProducts: [],
@@ -53,7 +53,6 @@ export default function AdminDashboardPage() {
   const [range, setRange] = useState<AnalyticsRange>("yearly");
   const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
   const [recentOrders, setRecentOrders] = useState<BackendOrder[]>([]);
-  const [customerCount, setCustomerCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -63,14 +62,12 @@ export default function AdminDashboardPage() {
       setError("");
 
       try {
-        const [analyticsData, users, orders] = await Promise.all([
+        const [analyticsData, orders] = await Promise.all([
           fetchAdminAnalytics(range),
-          fetchAdminUsers(),
           fetchAdminOrders(),
         ]);
 
         setAnalytics(analyticsData || emptyAnalytics);
-        setCustomerCount(users.users.filter((user) => user.role === "customer").length);
         setRecentOrders(orders.orders.slice(0, 5));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
@@ -91,7 +88,7 @@ export default function AdminDashboardPage() {
     { label: "Revenue", value: formatPrice(analytics.summary.revenue), note: "From completed order records", Icon: Banknote },
     { label: "Orders", value: String(analytics.summary.orders), note: "Total orders in selected period", Icon: Package },
     { label: "Sales", value: String(analytics.summary.productsSold), note: "Products sold from order items", Icon: ShoppingBag },
-    { label: "Customers", value: String(customerCount), note: "Registered customer accounts", Icon: Users },
+    { label: "Customers", value: String(analytics.summary.customerCount ?? 0), note: "Registered customer accounts", Icon: Users },
   ];
 
   const revenueSeries = analytics.series.map((point) => point.revenue);

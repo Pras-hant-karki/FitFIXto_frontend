@@ -21,6 +21,7 @@ const emptyAnalytics: AdminAnalytics = {
     orders: 0,
     averageOrderValue: 0,
     productsSold: 0,
+    customerCount: 0,
   },
   series: [],
   topProducts: [],

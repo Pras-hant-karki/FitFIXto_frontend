@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Edit2, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit2, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { useToast } from "@/contexts";
 import {
   BackendProduct,
@@ -37,6 +37,7 @@ type ProductFormState = {
   sku: string;
   tags: string;
   isFeatured: boolean;
+  isActive: boolean;
   verifiedBadge: boolean;
 };
 
@@ -59,6 +60,7 @@ const emptyForm: ProductFormState = {
   sku: "",
   tags: "",
   isFeatured: false,
+  isActive: true,
   verifiedBadge: false,
 };
 
@@ -81,6 +83,7 @@ const toFormState = (product: BackendProduct): ProductFormState => ({
   sku: product.sku || "",
   tags: product.tags?.join(", ") || "",
   isFeatured: product.isFeatured,
+  isActive: product.isActive ?? true,
   verifiedBadge: product.verifiedBadge,
 });
 
@@ -111,12 +114,20 @@ const toPayload = (form: ProductFormState): ProductPayload => ({
     .map((tag) => tag.trim())
     .filter(Boolean),
   isFeatured: form.isFeatured,
-  isActive: true,
+  isActive: form.isActive,
   verifiedBadge: form.verifiedBadge,
 });
 
+const PAGE_LIMIT = 20;
+
+const DEFAULT_PRODUCTS_PAGINATION = {
+  total: 0, page: 1, limit: PAGE_LIMIT, totalPages: 1, hasNextPage: false, hasPrevPage: false,
+};
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
+  const [productsPagination, setProductsPagination] = useState(DEFAULT_PRODUCTS_PAGINATION);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [form, setForm] = useState<ProductFormState>(emptyForm);
   const [customCategories, setCustomCategories] = useState<Array<{ label: string; value: string }>>([]);
@@ -159,17 +170,19 @@ export default function AdminProductsPage() {
     ? selectedImageFiles.map((file) => file.name).join(", ")
     : "No file chosen";
 
-  const loadProducts = async (query = searchQuery) => {
+  const loadProducts = async (query = searchQuery, page = 1) => {
     setIsLoading(true);
 
     try {
       const response = await fetchProducts({
-        limit: 100,
+        page,
+        limit: PAGE_LIMIT,
         sortBy: "createdAt",
         order: "desc",
         ...(query.trim() ? { search: query.trim() } : {}),
       });
       setProducts(response?.products || []);
+      setProductsPagination(response?.pagination || DEFAULT_PRODUCTS_PAGINATION);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unable to load products.");
     } finally {
@@ -178,7 +191,7 @@ export default function AdminProductsPage() {
   };
 
   useEffect(() => {
-    loadProducts("");
+    loadProducts("", 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -208,7 +221,13 @@ export default function AdminProductsPage() {
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await loadProducts(searchQuery);
+    setCurrentPage(1);
+    await loadProducts(searchQuery, 1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    loadProducts(searchQuery, newPage);
   };
 
   const handleCategoryChange = (category: string) => {
@@ -260,7 +279,7 @@ export default function AdminProductsPage() {
       }
 
       closeForm();
-      await loadProducts(searchQuery);
+      await loadProducts(searchQuery, currentPage);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unable to save product.");
     } finally {
@@ -330,7 +349,7 @@ export default function AdminProductsPage() {
         <div>
           <h1>Products</h1>
           <p>
-            {products.length} products · {featuredCount}/9 featured on homepage
+            {productsPagination.total} products · {featuredCount}/9 featured on homepage
           </p>
         </div>
         <button type="button" className="admin-create-button" onClick={openCreateForm}>
@@ -576,6 +595,14 @@ export default function AdminProductsPage() {
             <label className="admin-feature-check">
               <input
                 type="checkbox"
+                checked={form.isActive}
+                onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))}
+              />
+              Product is active (visible to customers)
+            </label>
+            <label className="admin-feature-check">
+              <input
+                type="checkbox"
                 checked={form.verifiedBadge}
                 onChange={(event) => setForm((current) => ({ ...current, verifiedBadge: event.target.checked }))}
               />
@@ -623,7 +650,7 @@ export default function AdminProductsPage() {
                   )}
                   <div>
                     <strong>{product.name}</strong>
-                    <span>{product.verifiedBadge ? "Verified" : product.isActive ? "New" : "Inactive"}</span>
+                    <span>{product.verifiedBadge ? "Verified" : product.isActive ? "Active" : "Inactive"}</span>
                   </div>
                 </div>
                 <span>{[formatCategory(product.category), product.subcategory].filter(Boolean).join(" / ")}</span>
@@ -647,6 +674,30 @@ export default function AdminProductsPage() {
           )}
         </div>
       </div>
+
+      {productsPagination.totalPages > 1 ? (
+        <div className="admin-pagination">
+          <button
+            type="button"
+            disabled={!productsPagination.hasPrevPage}
+            onClick={() => handlePageChange(currentPage - 1)}
+            aria-label="Previous page"
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <span>
+            Page {productsPagination.page} of {productsPagination.totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={!productsPagination.hasNextPage}
+            onClick={() => handlePageChange(currentPage + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

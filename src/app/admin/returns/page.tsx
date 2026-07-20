@@ -55,7 +55,7 @@ export default function AdminReturnsPage() {
       setIsLoading(true);
       try {
         const all = await fetchAdminOrders({ status: "returned" });
-        setOrders(all.orders.filter((o) => o.status === "returned" || o.status === "refunded"));
+        setOrders(all.orders);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Unable to load returns.");
       } finally {
@@ -80,7 +80,7 @@ export default function AdminReturnsPage() {
   }, [orders, searchQuery]);
 
   const handleMarkRefunded = async (order: BackendOrder) => {
-    if (order.status === "refunded") return;
+    if (order.paymentStatus === "refunded") return;
     setProcessingId(order._id);
     try {
       const updated = await processAdminReturn(order._id);
@@ -109,10 +109,10 @@ export default function AdminReturnsPage() {
             All Returns <span>{orders.length}</span>
           </button>
           <button type="button" disabled={true}>
-            Pending <span>{orders.filter((o) => o.status === "returned").length}</span>
+            Pending <span>{orders.filter((o) => o.paymentStatus !== "refunded").length}</span>
           </button>
           <button type="button" disabled={true}>
-            Refunded <span>{orders.filter((o) => o.status === "refunded").length}</span>
+            Refunded <span>{orders.filter((o) => o.paymentStatus === "refunded").length}</span>
           </button>
         </div>
 
@@ -149,7 +149,7 @@ export default function AdminReturnsPage() {
               const customer = getCustomer(order);
               const returnItem = extractReturnItem(order);
               const reason = extractReturnReason(order);
-              const isRefunded = order.status === "refunded";
+              const isRefunded = order.paymentStatus === "refunded";
 
               return (
                 <div className="admin-orders-admin-row" key={order._id}>
@@ -224,11 +224,11 @@ export default function AdminReturnsPage() {
                 className="returns-submit-btn"
                 style={{ width: "100%" }}
                 onClick={() => handleMarkRefunded(selectedOrder)}
-                disabled={selectedOrder.status === "refunded" || processingId === selectedOrder._id}
+                disabled={selectedOrder.paymentStatus === "refunded" || processingId === selectedOrder._id}
               >
                 {processingId === selectedOrder._id
                   ? "Processing..."
-                  : selectedOrder.status === "refunded"
+                  : selectedOrder.paymentStatus === "refunded"
                   ? "Already Refunded"
                   : "Mark as Refunded"}
               </button>

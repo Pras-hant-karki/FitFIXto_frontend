@@ -93,6 +93,7 @@ export const API_ENDPOINTS = {
     track: (id: string) => `/orders/${id}/track`,
     cancel: (id: string) => `/orders/${id}/cancel`,
     updateStatus: (id: string) => `/orders/${id}/status`,
+    updatePayment: (id: string) => `/orders/${id}/payment`,
   },
 
   // User

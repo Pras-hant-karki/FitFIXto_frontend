@@ -31,6 +31,7 @@ export type AdminAnalytics = {
     orders: number;
     averageOrderValue: number;
     productsSold: number;
+    customerCount: number;
   };
   series: AnalyticsSeriesPoint[];
   topProducts: AnalyticsProduct[];

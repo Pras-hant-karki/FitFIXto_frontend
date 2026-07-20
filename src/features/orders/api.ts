@@ -174,8 +174,8 @@ export const updateAdminOrderStatus = async (orderId: string, status: AdminOrder
 };
 
 export const processAdminReturn = async (orderId: string) => {
-  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.updateStatus(orderId), {
-    status: "refunded",
+  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.updatePayment(orderId), {
+    paymentStatus: "refunded",
   });
   return response.data?.order;
 };
