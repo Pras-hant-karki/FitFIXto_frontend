@@ -86,9 +86,17 @@ export default function UserOrdersPage() {
       actionLabel="Continue Shopping"
     >
       {isLoading ? (
-        <div className="empty-state">
-          <strong>Loading orders...</strong>
-          <span>Please wait while we fetch your order history.</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "8px 0" }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid var(--line)" }}>
+              <div className="skeleton" style={{ width: 48, height: 48, borderRadius: 8, flexShrink: 0 }} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                <div className="skeleton skeleton-text wide" />
+                <div className="skeleton skeleton-text mid" />
+                <div className="skeleton skeleton-text short" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : orders.length === 0 ? (
         <div className="empty-state">

@@ -189,9 +189,19 @@ export default function TrainerDetailsPage() {
   if (isLoading) {
     return (
       <main className="trainer-detail-page">
-        <section className="cart-state-card">
-          <strong>Loading trainer...</strong>
-          <span>Please wait while we fetch trainer details.</span>
+        <section className="cart-state-card" aria-busy="true">
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+              <div className="skeleton skeleton-avatar" style={{ width: 72, height: 72 }} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="skeleton skeleton-text wide" style={{ height: 20 }} />
+                <div className="skeleton skeleton-text mid" />
+              </div>
+            </div>
+            <div className="skeleton skeleton-text wide" />
+            <div className="skeleton skeleton-text mid" />
+            <div className="skeleton skeleton-text short" />
+          </div>
         </section>
       </main>
     );

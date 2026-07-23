@@ -193,7 +193,13 @@ export default function AdminHomepagePage() {
         </div>
 
         {isLoading ? (
-          <div className="admin-products-empty">Loading hero settings...</div>
+          <div className="admin-products-empty">
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div className="skeleton skeleton-text wide" style={{ height: 20 }} />
+              <div className="skeleton skeleton-text mid" />
+              <div className="skeleton skeleton-card" style={{ height: 120 }} />
+            </div>
+          </div>
         ) : (
           <div className="admin-hero-editor">
             <form className="admin-hero-form" onSubmit={handleSaveHero}>

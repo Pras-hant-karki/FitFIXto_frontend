@@ -167,6 +167,7 @@ const ProductCard: React.FC<{
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
   const { formatPrice } = usePreferences();
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const isWishlisted = wishlistProductIds.has(product._id);
   const isOutOfStock = product.stock <= 0;
 
@@ -175,11 +176,14 @@ const ProductCard: React.FC<{
       window.location.href = "/login";
       return;
     }
-
+    const wasWishlisted = wishlistProductIds.has(product._id);
     setIsUpdatingWishlist(true);
-
     try {
       await toggleWishlistItem(product._id);
+      if (!wasWishlisted) {
+        setJustAdded(true);
+        window.setTimeout(() => setJustAdded(false), 300);
+      }
     } finally {
       setIsUpdatingWishlist(false);
     }
@@ -252,7 +256,7 @@ const ProductCard: React.FC<{
         ) : (
           <button
             type="button"
-            className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-60"
+            className={`wishlist-button absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm disabled:opacity-60${justAdded ? " just-added" : ""}`}
             onClick={handleWishlistToggle}
             disabled={isUpdatingWishlist}
             aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}

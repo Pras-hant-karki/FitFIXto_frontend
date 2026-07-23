@@ -109,7 +109,18 @@ export default function TrainerBookingsPage() {
         </div>
 
         {isLoading ? (
-          <div className="customer-orders-empty">Loading bookings...</div>
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton skeleton-avatar" />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                  <div className="skeleton skeleton-text short" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           <div className="customer-orders-empty">
             {filter === "all" ? "No bookings yet. Clients will appear here once they book your slots." : `No ${filter} bookings.`}

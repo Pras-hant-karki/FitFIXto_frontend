@@ -125,7 +125,16 @@ export default function AdminUsersPage() {
           </div>
 
           {isLoading ? (
-            <div className="admin-users-empty">Loading users...</div>
+            <div className="admin-users-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-avatar" style={{ width: 36, height: 36 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 100 }} />
+                  <div className="skeleton skeleton-text short" style={{ width: 72 }} />
+                </div>
+              ))}
+            </div>
           ) : users.length === 0 ? (
             <div className="admin-users-empty">No users found.</div>
           ) : (

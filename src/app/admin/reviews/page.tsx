@@ -251,7 +251,18 @@ export default function AdminReviewsPage() {
 
       <div className="admin-reviews-list">
         {isLoading ? (
-          <div className="admin-reviews-empty">Loading reviews...</div>
+          <div className="admin-reviews-empty" style={{ textAlign: "left" }}>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                <div className="skeleton skeleton-avatar" style={{ width: 36, height: 36 }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                </div>
+                <div className="skeleton skeleton-text" style={{ width: 80 }} />
+              </div>
+            ))}
+          </div>
         ) : totalCount === 0 && !isLoading ? (
           <div className="admin-reviews-empty">No reviews found.</div>
         ) : (

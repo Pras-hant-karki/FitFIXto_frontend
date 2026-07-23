@@ -56,7 +56,17 @@ export default function TrainerClientsPage() {
         </label>
 
         {isLoading ? (
-          <div className="customer-orders-empty">Loading clients...</div>
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton skeleton-avatar" />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           <div className="customer-orders-empty">{search ? "No clients match your search." : "No clients yet. They appear here after booking a session."}</div>
         ) : (

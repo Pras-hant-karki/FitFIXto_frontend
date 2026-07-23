@@ -256,7 +256,16 @@ export default function TrainerSlotsPage() {
         </p>
 
         {isLoading ? (
-          <div className="customer-orders-empty">Loading availability...</div>
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton" style={{ width: 80, height: 20, borderRadius: 4, flexShrink: 0 }} />
+                <div style={{ flex: 1, display: "flex", gap: 8 }}>
+                  {[0, 1, 2, 3].map((j) => <div key={j} className="skeleton" style={{ flex: 1, height: 20, borderRadius: 4 }} />)}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <>
             <div className="trainer-slots-section">

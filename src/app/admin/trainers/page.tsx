@@ -640,7 +640,17 @@ export default function AdminTrainersPage() {
 
       {/* Created trainers */}
       {activeTab === "created" && isLoading ? (
-        <div className="admin-products-empty">Loading trainers...</div>
+        <div className="admin-products-empty" style={{ textAlign: "left" }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid var(--line)" }}>
+              <div className="skeleton skeleton-avatar" style={{ width: 40, height: 40 }} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                <div className="skeleton skeleton-text wide" />
+                <div className="skeleton skeleton-text mid" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : activeTab === "created" && trainers.length === 0 ? (
         <div className="admin-products-empty">No trainers found.</div>
       ) : activeTab === "created" ? (
@@ -726,7 +736,17 @@ export default function AdminTrainersPage() {
             />
           </label>
           {bookingsLoading ? (
-            <div className="admin-products-empty">Loading bookings...</div>
+            <div className="admin-products-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-avatar" style={{ width: 36, height: 36 }} />
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                    <div className="skeleton skeleton-text wide" />
+                    <div className="skeleton skeleton-text mid" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : bookings.length === 0 ? (
             <div className="admin-products-empty">No trainer bookings found.</div>
           ) : (

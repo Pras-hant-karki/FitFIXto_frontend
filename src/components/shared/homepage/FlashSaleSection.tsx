@@ -28,6 +28,7 @@ export function FlashSaleSection() {
   const [discounts, setDiscounts] = useState<DiscountData | null>(null);
   const [countdown, setCountdown] = useState<Countdown>({ days: 0, hours: 0, mins: 0, secs: 0 });
   const [updatingWishlistId, setUpdatingWishlistId] = useState("");
+  const [justAddedWishlistId, setJustAddedWishlistId] = useState("");
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
 
@@ -65,9 +66,14 @@ export function FlashSaleSection() {
       window.location.href = `/login`;
       return;
     }
+    const wasWishlisted = wishlistProductIds.has(productId);
     setUpdatingWishlistId(productId);
     try {
       await toggleWishlistItem(productId);
+      if (!wasWishlisted) {
+        setJustAddedWishlistId(productId);
+        window.setTimeout(() => setJustAddedWishlistId(""), 300);
+      }
     } finally {
       setUpdatingWishlistId("");
     }
@@ -132,7 +138,7 @@ export function FlashSaleSection() {
                     <span className="badge-sale-red">-{discountPct}%</span>
                   </div>
                   <button
-                    className={`wishlist-button${isWishlisted ? " active" : ""}`}
+                    className={`wishlist-button${isWishlisted ? " active" : ""}${justAddedWishlistId === product._id ? " just-added" : ""}`}
                     type="button"
                     onClick={() => handleWishlistToggle(product._id)}
                     disabled={isUpdatingWishlist}

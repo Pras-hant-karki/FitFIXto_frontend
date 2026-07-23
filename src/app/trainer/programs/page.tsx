@@ -130,7 +130,20 @@ export default function TrainerProgramsPage() {
         {message ? <p className="customer-review-message">{message}</p> : null}
         {error ? <p className="auth-message error">{error}</p> : null}
 
-        {isLoading ? <div className="customer-orders-empty">Loading programs...</div> : programs.length === 0 ? (
+        {isLoading ? (
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton skeleton-image" style={{ width: 72, height: 72, margin: 0, flexShrink: 0, borderRadius: 8 }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                  <div className="skeleton skeleton-text short" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : programs.length === 0 ? (
           <div className="trainer-programs-empty"><Layers3 /><strong>No programs yet</strong><span>Create your first program so clients can discover and book it.</span><button type="button" className="customer-reorder-button" onClick={openCreate}><Plus />Create Program</button></div>
         ) : (
           <div className="trainer-program-large-grid">

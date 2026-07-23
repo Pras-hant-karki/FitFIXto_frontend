@@ -213,7 +213,16 @@ export default function AdminOrdersPage() {
           </div>
 
           {isLoading ? (
-            <div className="admin-orders-empty">Loading orders...</div>
+            <div className="admin-orders-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 100 }} />
+                  <div className="skeleton skeleton-text short" style={{ width: 72 }} />
+                </div>
+              ))}
+            </div>
           ) : orders.length === 0 ? (
             <div className="admin-orders-empty">No orders found.</div>
           ) : (

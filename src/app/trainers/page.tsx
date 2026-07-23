@@ -171,12 +171,14 @@ export default function TrainersPage() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">Loading trainers...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="skeleton skeleton-card" />
+            ))}
           </div>
         ) : error ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">{error}</p>
+          <div className="empty-state">
+            <p>{error}</p>
           </div>
         ) : filteredTrainers.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -185,8 +187,8 @@ export default function TrainersPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">No trainers found matching your search.</p>
+          <div className="empty-state">
+            <p>No trainers found matching your search.</p>
             {searchQuery ? (
               <button onClick={() => setSearchQuery("")} className="mt-4 text-black font-semibold hover:underline">
                 Clear search

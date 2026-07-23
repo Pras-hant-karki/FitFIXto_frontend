@@ -22,6 +22,7 @@ export function FeaturedEquipment() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingWishlistId, setUpdatingWishlistId] = useState("");
+  const [justAddedWishlistId, setJustAddedWishlistId] = useState("");
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
 
@@ -30,11 +31,14 @@ export function FeaturedEquipment() {
       window.location.href = "/login";
       return;
     }
-
+    const wasWishlisted = wishlistProductIds.has(productId);
     setUpdatingWishlistId(productId);
-
     try {
       await toggleWishlistItem(productId);
+      if (!wasWishlisted) {
+        setJustAddedWishlistId(productId);
+        window.setTimeout(() => setJustAddedWishlistId(""), 300);
+      }
     } finally {
       setUpdatingWishlistId("");
     }
@@ -129,7 +133,7 @@ export function FeaturedEquipment() {
                       ) : null}
                     </div>
                     <button
-                      className={`wishlist-button${isWishlisted ? " active" : ""}`}
+                      className={`wishlist-button${isWishlisted ? " active" : ""}${justAddedWishlistId === product._id ? " just-added" : ""}`}
                       type="button"
                       onClick={() => handleWishlistToggle(product._id)}
                       disabled={isUpdatingWishlist}

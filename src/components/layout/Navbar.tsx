@@ -30,6 +30,7 @@ const IconButton = ({
 export function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const navbarRef = useRef<HTMLElement>(null);
   const { isAuthenticated, logout, user } = useAuth();
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
@@ -40,6 +41,14 @@ export function Navbar() {
     const shouldUseDark = savedTheme === "dark" || (!savedTheme && prefersDark);
 
     document.documentElement.classList.toggle("dark", shouldUseDark);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      navbarRef.current?.classList.toggle("scrolled", window.scrollY > 8);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
@@ -65,7 +74,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="site-navbar">
+    <header className="site-navbar" ref={navbarRef}>
       <Link className="site-logo-link" href="/" aria-label="FitFIXto home">
         <Image
           src="/logo.png"

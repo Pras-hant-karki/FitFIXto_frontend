@@ -146,7 +146,18 @@ export default function UserBookingsPage() {
               ))}
             </div>
             {trainerLoading ? (
-              <div className="customer-orders-empty">Loading…</div>
+              <div className="customer-orders-empty">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                    <div className="skeleton skeleton-avatar" />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                      <div className="skeleton skeleton-text wide" />
+                      <div className="skeleton skeleton-text mid" />
+                      <div className="skeleton skeleton-text short" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : filteredTrainer.length === 0 ? (
               <div className="customer-orders-empty">
                 <CalendarDays style={{ width: 38, height: 38, opacity: 0.35, display: "block", margin: "0 auto 10px" }} />
@@ -218,7 +229,18 @@ export default function UserBookingsPage() {
               ))}
             </div>
             {svcLoading ? (
-              <div className="customer-orders-empty">Loading…</div>
+              <div className="customer-orders-empty">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                    <div className="skeleton skeleton-avatar" />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                      <div className="skeleton skeleton-text wide" />
+                      <div className="skeleton skeleton-text mid" />
+                      <div className="skeleton skeleton-text short" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : filteredSvc.length === 0 ? (
               <div className="customer-orders-empty">
                 <CalendarDays style={{ width: 38, height: 38, opacity: 0.35, display: "block", margin: "0 auto 10px" }} />

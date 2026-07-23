@@ -258,9 +258,13 @@ export default function CheckoutPage() {
     return (
       <main className="checkout-page">
         <h1>Checkout</h1>
-        <section className="cart-state-card">
-          <strong>Loading checkout...</strong>
-          <span>Please wait while we prepare your order.</span>
+        <section className="cart-state-card" aria-busy="true">
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="skeleton skeleton-text wide" style={{ height: 20 }} />
+            <div className="skeleton skeleton-text mid" />
+            <div className="skeleton skeleton-card" style={{ height: 80 }} />
+            <div className="skeleton skeleton-text short" />
+          </div>
         </section>
       </main>
     );

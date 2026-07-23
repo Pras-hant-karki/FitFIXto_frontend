@@ -296,7 +296,15 @@ export default function AdminServicesPage() {
             ))}
           </div>
           {bookingsLoading ? (
-            <div className="admin-products-empty">Loading bookings…</div>
+            <div className="admin-products-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                </div>
+              ))}
+            </div>
           ) : svcBookings.length === 0 ? (
             <div className="admin-products-empty">
               {bookingStatusFilter === "all" ? "No service bookings yet." : `No ${SVC_STATUS_LABELS[bookingStatusFilter as ServiceBookingStatus]?.toLowerCase()} bookings.`}
@@ -546,7 +554,16 @@ export default function AdminServicesPage() {
           </div>
 
           {isLoading ? (
-            <div className="admin-products-empty">Loading services...</div>
+            <div className="admin-products-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 100 }} />
+                  <div className="skeleton skeleton-text short" style={{ width: 72 }} />
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <div className="admin-products-empty">
               {search ? "No services match your search." : "No services yet. Create your first one."}

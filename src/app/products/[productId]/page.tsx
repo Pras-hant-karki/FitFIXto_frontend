@@ -94,6 +94,7 @@ export default function ProductDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const [wishlistJustAdded, setWishlistJustAdded] = useState(false);
   const [activeTab, setActiveTab] = useState<"reviews" | "faq">("reviews");
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
@@ -159,16 +160,18 @@ export default function ProductDetailsPage() {
   const isOutOfStock = product ? product.stock <= 0 : false;
   const handleWishlistToggle = async () => {
     if (!product) return;
-
     if (!isAuthenticated) {
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
-
+    const wasWishlisted = wishlistProductIds.has(product._id);
     setIsUpdatingWishlist(true);
-
     try {
       await toggleWishlistItem(product._id);
+      if (!wasWishlisted) {
+        setWishlistJustAdded(true);
+        window.setTimeout(() => setWishlistJustAdded(false), 300);
+      }
     } finally {
       setIsUpdatingWishlist(false);
     }
@@ -296,7 +299,7 @@ export default function ProductDetailsPage() {
             {isOutOfStock ? null : <AddToCartButton productId={product._id} stock={product.stock} />}
             <button
               type="button"
-              className={isWishlisted ? "active" : undefined}
+              className={`wishlist-button${isWishlisted ? " active" : ""}${wishlistJustAdded ? " just-added" : ""}`}
               onClick={handleWishlistToggle}
               disabled={isUpdatingWishlist}
               aria-pressed={isWishlisted}

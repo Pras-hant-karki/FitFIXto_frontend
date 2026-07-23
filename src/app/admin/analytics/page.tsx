@@ -110,7 +110,12 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {isLoading ? (
-        <div className="admin-products-empty">Loading analytics...</div>
+        <div className="admin-products-empty">
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="skeleton skeleton-card" style={{ height: 200 }} />
+            <div className="skeleton skeleton-card" style={{ height: 200 }} />
+          </div>
+        </div>
       ) : (
         <div className="admin-analytics-grid">
           <article className="admin-analytics-card">

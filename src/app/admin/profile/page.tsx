@@ -110,11 +110,17 @@ export default function AdminProfilePage() {
       <div className="profile-page-wrap" style={{ marginTop: 0, borderRadius: 14, overflow: "hidden", border: "1.5px solid var(--line)" }}>
         <div className="profile-banner">
           <div className="profile-avatar-row">
-            <div className="profile-avatar-circle">
-              {profilePicture
-                ? <img src={profilePicture} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span>{initial}</span>
-              }
+            <div
+              className="profile-avatar-wrap"
+              onClick={() => fileInputRef.current?.click()}
+              style={{ borderRadius: "50%", cursor: "pointer" }}
+            >
+              <div className="profile-avatar-circle">
+                {profilePicture
+                  ? <img src={profilePicture} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <span>{initial}</span>
+                }
+              </div>
             </div>
             <div className="profile-banner-meta">
               <strong>{displayName}</strong>

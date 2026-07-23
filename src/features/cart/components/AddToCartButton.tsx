@@ -82,9 +82,19 @@ export function AddToCartButton({
     }
   };
 
+  const { className: passedClassName, ...restButtonProps } = buttonProps;
+  const mergedClassName = [
+    "cart-button",
+    status === "success" ? "added" : "",
+    passedClassName || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <button
-      {...buttonProps}
+      {...restButtonProps}
+      className={mergedClassName}
       type={type}
       disabled={isDisabled}
       onClick={handleClick}
