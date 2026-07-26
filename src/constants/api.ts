@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
     login: '/auth/login',
     signup: '/auth/register',
     me: '/auth/me',
+    refresh: '/auth/refresh',
     profile: '/auth/profile',
     uploadProfileImage: '/auth/profile/upload-image',
     verify: '/auth/verify-email',

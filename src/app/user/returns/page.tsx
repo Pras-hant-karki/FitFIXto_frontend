@@ -6,6 +6,7 @@ import { CustomerDashboardShell } from "@/components/shared/customer";
 import { BackendOrder, BackendOrderItem, cancelOrder, fetchMyOrders } from "@/features/orders";
 import { useToast } from "@/contexts";
 import type { BackendProduct } from "@/features/products";
+import { resolveAssetUrl } from "@/constants/api";
 
 const RETURN_REASONS = [
   "Damaged or defective product",
@@ -129,7 +130,7 @@ export default function UserReturnsPage() {
                           <div className="returns-item-img">
                             {img ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={img} alt={item.productName} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }} />
+                              <img src={resolveAssetUrl(img)} alt={item.productName} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }} />
                             ) : (
                               <div className="returns-item-img-placeholder"><Package size={28} /></div>
                             )}

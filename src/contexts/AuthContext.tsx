@@ -64,6 +64,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Listen for the custom event dispatched by api-client when a 401 cannot be
+  // recovered (no refresh token or refresh also failed). Clears auth state so
+  // ProtectedRoute can redirect to the right login page via React Router.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleUnauthorized = () => {
+      apiClient.clearAuthToken();
+      setUser(null);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
   const storeAuthResult = useCallback((data: AuthResponseData, remember = false) => {
     apiClient.setTokens(data.tokens, remember);
     setUser(data.user);
@@ -82,8 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(nextUser);
       return nextUser;
     } catch {
-      apiClient.clearAuthToken();
-      setUser(null);
+      // Do NOT clear tokens here. If the failure was a 401, api-client already
+      // attempted a token refresh and dispatched auth:unauthorized if that also
+      // failed. For transient network errors we leave auth state intact.
       return null;
     }
   }, []);
@@ -93,9 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const hydrateAuth = async () => {
       try {
-        const nextUser = await refreshUser();
+        await refreshUser();
         if (!isActive) return;
-        setUser(nextUser);
       } finally {
         if (isActive) {
           setIsLoading(false);
@@ -116,6 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.data?.tokens?.accessToken || !response.data.user) {
         throw new Error("Login succeeded, but the server response was incomplete.");
+      }
+
+      if (response.data.user.role === "trainer") {
+        throw new Error("Trainer accounts have a dedicated sign-in page. Please visit /trainer/login");
       }
 
       const user = storeAuthResult(response.data, remember);

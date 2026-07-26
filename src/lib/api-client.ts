@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_HEADERS } from '@/constants/api';
+import { API_BASE_URL, API_ENDPOINTS, API_HEADERS } from '@/constants/api';
 import { ApiResponse } from '@/types';
 
 interface FetchOptions extends RequestInit {
@@ -14,6 +14,8 @@ export type StoredTokens = {
 class ApiClient {
   private baseUrl: string;
   private headers: HeadersInit;
+  private isRefreshing = false;
+  private pendingRefreshResolvers: Array<(token: string | null) => void> = [];
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -57,12 +59,86 @@ class ApiClient {
     };
   }
 
-  private getHeaders(): HeadersInit {
-    const token = this.getAuthToken();
+  private getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
+  }
+
+  private getHeaders(overrideToken?: string): HeadersInit {
+    const token = overrideToken !== undefined ? overrideToken : this.getAuthToken();
     return {
       ...this.headers,
       ...(token && { Authorization: `Bearer ${token}` }),
     };
+  }
+
+  // Dispatches a custom event that AuthContext listens to in order to clear
+  // the user state and redirect via React Router (no hard navigation).
+  private signalUnauthorized(): void {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+  }
+
+  // Attempts to exchange the stored refresh token for a new access token.
+  // Concurrent calls are deduplicated: only one network request is made and
+  // all callers awaiting the result share the same outcome.
+  private async attemptRefresh(): Promise<string | null> {
+    if (this.isRefreshing) {
+      return new Promise<string | null>((resolve) => {
+        this.pendingRefreshResolvers.push(resolve);
+      });
+    }
+
+    const storedRefreshToken = this.getRefreshToken();
+    if (!storedRefreshToken) {
+      this.signalUnauthorized();
+      return null;
+    }
+
+    this.isRefreshing = true;
+
+    try {
+      const url = this.buildUrl(API_ENDPOINTS.auth.refresh);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { ...this.headers },
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
+      });
+
+      let responseData: any;
+      try {
+        responseData = await response.json();
+      } catch {
+        responseData = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Refresh failed');
+      }
+
+      const newTokens = responseData?.data?.tokens;
+      if (!newTokens?.accessToken) {
+        throw new Error('Invalid refresh response');
+      }
+
+      const stored = this.getStoredTokens();
+      const remember = stored?.remember ?? true;
+      this.setTokens(newTokens, remember);
+
+      this.pendingRefreshResolvers.forEach((resolve) => resolve(newTokens.accessToken));
+      this.pendingRefreshResolvers = [];
+      this.isRefreshing = false;
+
+      return newTokens.accessToken as string;
+    } catch {
+      this.clearAuthToken();
+      this.pendingRefreshResolvers.forEach((resolve) => resolve(null));
+      this.pendingRefreshResolvers = [];
+      this.isRefreshing = false;
+      this.signalUnauthorized();
+      return null;
+    }
   }
 
   async request<T = unknown>(
@@ -72,37 +148,45 @@ class ApiClient {
     const { params, ...fetchOptions } = options;
     const url = this.buildUrl(endpoint, params);
 
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers: this.getHeaders(),
+    });
+
+    let data: any;
     try {
-      const response = await fetch(url, {
-        ...fetchOptions,
-        headers: this.getHeaders(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired or invalid — clear stored credentials so the next
-          // page load restores the unauthenticated state cleanly.
-          this.clearAuthToken();
-          if (typeof window !== 'undefined') {
-            const path = window.location.pathname;
-            const onLoginPage = path.startsWith('/login') || path.startsWith('/admin/login') || path.startsWith('/trainer/login');
-            if (!onLoginPage) {
-              const isAdmin = path.startsWith('/admin');
-              const isTrainer = path.startsWith('/trainer');
-              const loginPath = isAdmin ? '/admin/login' : isTrainer ? '/trainer/login' : '/login';
-              window.location.href = `${loginPath}?redirect=${encodeURIComponent(path)}`;
-            }
-          }
-        }
-        throw new Error(data.message || 'API request failed');
-      }
-
-      return data;
-    } catch (error) {
-      throw error;
+      data = await response.json();
+    } catch {
+      data = {};
     }
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        const newAccessToken = await this.attemptRefresh();
+        if (newAccessToken) {
+          // Retry the original request with the fresh access token
+          const retryResponse = await fetch(url, {
+            ...fetchOptions,
+            headers: this.getHeaders(newAccessToken),
+          });
+          let retryData: any;
+          try {
+            retryData = await retryResponse.json();
+          } catch {
+            retryData = {};
+          }
+          if (!retryResponse.ok) {
+            throw new Error(retryData.message || 'API request failed');
+          }
+          return retryData;
+        }
+        // attemptRefresh already cleared tokens and dispatched auth:unauthorized
+        throw new Error(data.message || 'Session expired. Please sign in again.');
+      }
+      throw new Error(data.message || 'API request failed');
+    }
+
+    return data;
   }
 
   async get<T = unknown>(endpoint: string, options?: FetchOptions): Promise<ApiResponse<T>> {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth, useCart, useWishlist } from "@/contexts";
+import { getDashboardRoute } from "@/utils";
 
 const navItems = [
   { label: "Shop", href: "/shop" },
@@ -148,7 +149,7 @@ export function Navbar() {
               {isAuthenticated ? (
                 <>
                   <Link
-                    href={user?.role === "trainer" ? "/trainer/dashboard" : "/user/dashboard"}
+                    href={getDashboardRoute(user?.role)}
                     role="menuitem"
                     onClick={() => setIsAccountMenuOpen(false)}
                   >

@@ -8,7 +8,7 @@ import { useAuth, useToast } from "@/contexts";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, logout } = useAuth();
+  const { login } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: "",
@@ -25,12 +25,6 @@ export default function LoginPage() {
 
     try {
       const loggedInUser = await login(formData, rememberMe);
-
-      if (loggedInUser.role === "trainer") {
-        logout();
-        setError("Trainer accounts have a dedicated sign-in page. Please visit /trainer/login");
-        return;
-      }
 
       if (loggedInUser.passwordIsWeak) {
         toast.warning("Your password is weak. Please change it to improve your account security.", {

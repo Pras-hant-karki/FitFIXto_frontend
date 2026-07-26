@@ -62,13 +62,20 @@ export default function AdminDashboardPage() {
       setError("");
 
       try {
-        const [analyticsData, orders] = await Promise.all([
+        const [analyticsResult, ordersResult] = await Promise.allSettled([
           fetchAdminAnalytics(range),
           fetchAdminOrders(),
         ]);
 
-        setAnalytics(analyticsData || emptyAnalytics);
-        setRecentOrders(orders.orders.slice(0, 5));
+        if (analyticsResult.status === "fulfilled") {
+          setAnalytics(analyticsResult.value || emptyAnalytics);
+        } else {
+          setError(analyticsResult.reason instanceof Error ? analyticsResult.reason.message : "Unable to load analytics.");
+        }
+
+        if (ordersResult.status === "fulfilled") {
+          setRecentOrders(ordersResult.value.orders.slice(0, 5));
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
       } finally {

@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts";
+import { getDashboardRoute } from "@/utils";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
@@ -16,9 +17,24 @@ export function ProtectedRoute({ children, allowedRoles, loginPath = "/login" }:
   const router = useRouter();
   const isLoginPage = pathname === loginPath;
 
+  // Safety valve: if auth hydration takes more than 10 seconds, treat it as
+  // unauthenticated so the page never freezes on a blank screen indefinitely.
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setTimedOut(true), 10_000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
+
+  const effectiveLoading = isLoading && !timedOut;
+
   useEffect(() => {
     if (isLoginPage) return;
-    if (isLoading) return;
+    if (effectiveLoading) return;
 
     if (!isAuthenticated) {
       router.replace(`${loginPath}?redirect=${encodeURIComponent(pathname)}`);
@@ -26,15 +42,15 @@ export function ProtectedRoute({ children, allowedRoles, loginPath = "/login" }:
     }
 
     if (allowedRoles?.length && user && !allowedRoles.includes(user.role)) {
-      router.replace("/user/dashboard");
+      router.replace(getDashboardRoute(user.role));
     }
-  }, [allowedRoles, isAuthenticated, isLoading, isLoginPage, loginPath, pathname, router, user]);
+  }, [allowedRoles, isAuthenticated, effectiveLoading, isLoginPage, loginPath, pathname, router, user]);
 
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  if (isLoading || !isAuthenticated) {
+  if (effectiveLoading || !isAuthenticated) {
     return null;
   }
 

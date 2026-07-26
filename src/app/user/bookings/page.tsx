@@ -279,7 +279,7 @@ export default function UserBookingsPage() {
                       </div>
                       {b.notes && <p className="trainer-booking-notes"><strong>Your note:</strong> {b.notes}</p>}
                       {b.adminNotes && <p className="trainer-booking-notes trainer-booking-trainer-response"><strong>Admin note:</strong> {b.adminNotes}</p>}
-                      {b.status === "completed" && (
+                      {b.status === "completed" && !b.clientRating && (
                         <div className="trainer-booking-action-buttons">
                           <Link href={`/user/to-review?type=service&id=${b._id}&serviceId=${typeof b.serviceId === "string" ? b.serviceId : b.serviceId._id}`}
                             className="trainer-booking-confirm">
