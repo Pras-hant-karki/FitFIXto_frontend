@@ -2,7 +2,7 @@ import { API_BASE_URL, API_ENDPOINTS, API_HEADERS } from '@/constants/api';
 import { ApiResponse } from '@/types';
 
 interface FetchOptions extends RequestInit {
-  params?: Record<string, string | number | boolean>;
+  params?: Record<string, string | number | boolean | undefined | null>;
 }
 
 export type StoredTokens = {
@@ -22,11 +22,13 @@ class ApiClient {
     this.headers = { ...API_HEADERS };
   }
 
-  private buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
+  private buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined | null>): string {
     const url = new URL(`${this.baseUrl}${endpoint}`);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, String(value));
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, String(value));
+        }
       });
     }
     return url.toString();
