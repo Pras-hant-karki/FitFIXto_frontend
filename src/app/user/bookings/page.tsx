@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle, Clock, User, X, XCircle } from "lucide-react";
+import { avatarUrl } from "@/utils/assets";
 import Link from "next/link";
 import { CustomerDashboardShell } from "@/components/shared/customer";
 import { useToast } from "@/contexts";
@@ -174,8 +175,8 @@ export default function UserBookingsPage() {
                     <article className="trainer-booking-card" key={booking._id}>
                       <div className="trainer-booking-client">
                         <div className="trainer-booking-avatar">
-                          {trainerUser?.profilePicture ? (
-                            <img src={trainerUser.profilePicture} alt={trainerUser.firstName} />
+                          {avatarUrl(trainerUser) ? (
+                            <img src={avatarUrl(trainerUser)} alt={trainerUser?.firstName ?? "Trainer"} />
                           ) : <User />}
                         </div>
                         <div>

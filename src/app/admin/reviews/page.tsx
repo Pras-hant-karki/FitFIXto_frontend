@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Check, Search, Star, Trash2 } from "lucide-react";
-import { BackendReview, ReviewListResponse, featureReview, fetchAdminReviews, moderateReview } from "@/features/reviews";
+import {
+  BackendReview,
+  BookingReviewKind,
+  ReviewListResponse,
+  featureBookingReview,
+  featureReview,
+  fetchAdminReviews,
+  moderateBookingReview,
+  moderateReview,
+} from "@/features/reviews";
 import { BackendProduct, getProductImage } from "@/features/products";
 import { BackendBooking, fetchAdminBookings } from "@/features/bookings";
 import { BackendServiceBooking, fetchAllServiceBookings } from "@/features/serviceBookings";
@@ -208,6 +217,68 @@ export default function AdminReviewsPage() {
     }
   };
 
+  /**
+   * Trainer and service reviews live on booking documents, so they are updated in their own
+   * lists. Both handlers mirror the product flow: optimistic id lock, then patch state in place.
+   */
+  const applyBookingReviewPatch = (
+    kind: BookingReviewKind,
+    bookingId: string,
+    patch: { reviewIsFeatured?: boolean; reviewModerationStatus?: "approved" | "removed" }
+  ) => {
+    if (kind === "trainer") {
+      setTrainerBookings((current) =>
+        current.map((item) => (item._id === bookingId ? { ...item, ...patch } : item))
+      );
+    } else {
+      setServiceBookings((current) =>
+        current.map((item) => (item._id === bookingId ? { ...item, ...patch } : item))
+      );
+    }
+  };
+
+  const handleBookingFeature = async (
+    kind: BookingReviewKind,
+    bookingId: string,
+    currentlyFeatured: boolean
+  ) => {
+    setMessage("");
+    setError("");
+    setFeaturingReviewId(bookingId);
+    const next = !currentlyFeatured;
+    try {
+      await featureBookingReview(kind, bookingId, next);
+      applyBookingReviewPatch(kind, bookingId, { reviewIsFeatured: next });
+      setMessage(next ? "Review featured on homepage." : "Review removed from homepage.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update feature status.");
+    } finally {
+      setFeaturingReviewId("");
+    }
+  };
+
+  const handleBookingModeration = async (
+    kind: BookingReviewKind,
+    bookingId: string,
+    status: "approved" | "removed"
+  ) => {
+    setMessage("");
+    setError("");
+    setUpdatingReviewId(bookingId);
+    try {
+      await moderateBookingReview(kind, bookingId, status);
+      applyBookingReviewPatch(kind, bookingId, {
+        reviewModerationStatus: status,
+        ...(status === "removed" ? { reviewIsFeatured: false } : {}),
+      });
+      setMessage(status === "approved" ? "Review approved." : "Review removed from public listings.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to moderate review.");
+    } finally {
+      setUpdatingReviewId("");
+    }
+  };
+
   const showProductPagination =
     (selectedTab === "all" || selectedTab === "product") && reviewsPagination.totalPages > 1;
 
@@ -358,7 +429,35 @@ export default function AdminReviewsPage() {
                 </div>
 
                 <div className="admin-review-actions">
-                  <span className="admin-review-status approved">submitted</span>
+                  <span className={`admin-review-status ${booking.reviewModerationStatus === "removed" ? "removed" : "approved"}`}>
+                    {booking.reviewModerationStatus === "removed" ? "removed" : "approved"}
+                  </span>
+                  <button
+                    type="button"
+                    className={booking.reviewIsFeatured ? "admin-review-feature-btn featured" : "admin-review-feature-btn"}
+                    disabled={featuringReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingFeature("trainer", booking._id, Boolean(booking.reviewIsFeatured))}
+                  >
+                    <Star aria-hidden="true" className={booking.reviewIsFeatured ? "filled" : undefined} />
+                    {booking.reviewIsFeatured ? "Featured" : "Feature"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus !== "removed"}
+                    onClick={() => handleBookingModeration("trainer", booking._id, "approved")}
+                  >
+                    <Check aria-hidden="true" />
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingModeration("trainer", booking._id, "removed")}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    Remove
+                  </button>
                 </div>
               </article>
             ))}
@@ -388,7 +487,35 @@ export default function AdminReviewsPage() {
                 </div>
 
                 <div className="admin-review-actions">
-                  <span className="admin-review-status approved">submitted</span>
+                  <span className={`admin-review-status ${booking.reviewModerationStatus === "removed" ? "removed" : "approved"}`}>
+                    {booking.reviewModerationStatus === "removed" ? "removed" : "approved"}
+                  </span>
+                  <button
+                    type="button"
+                    className={booking.reviewIsFeatured ? "admin-review-feature-btn featured" : "admin-review-feature-btn"}
+                    disabled={featuringReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingFeature("service", booking._id, Boolean(booking.reviewIsFeatured))}
+                  >
+                    <Star aria-hidden="true" className={booking.reviewIsFeatured ? "filled" : undefined} />
+                    {booking.reviewIsFeatured ? "Featured" : "Feature"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus !== "removed"}
+                    onClick={() => handleBookingModeration("service", booking._id, "approved")}
+                  >
+                    <Check aria-hidden="true" />
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingModeration("service", booking._id, "removed")}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    Remove
+                  </button>
                 </div>
               </article>
             ))}

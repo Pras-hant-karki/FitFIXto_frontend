@@ -5,12 +5,9 @@ import { Camera, KeyRound, UserRound } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 import { useAuth, useToast } from "@/contexts";
 import { apiClient } from "@/lib";
+import { assetUrl } from "@/utils/assets";
 
-const normalizeProfileImageUrl = (path?: string | null): string => {
-  if (!path) return "";
-  const i = path.indexOf("/uploads/");
-  return i >= 0 ? `/assets/${path.slice(i + "/uploads/".length)}` : path;
-};
+const normalizeProfileImageUrl = (path?: string | null): string => assetUrl(path);
 
 const splitName = (name: string) => {
   const parts = name.trim().split(/\s+/).filter(Boolean);

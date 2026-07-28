@@ -10,7 +10,8 @@ import { getDashboardRoute } from "@/utils";
 const navItems = [
   { label: "Shop", href: "/shop" },
   { label: "Services", href: "/services" },
-  { label: "Trainers", href: "/trainers" },
+  // Trainers do not book other trainers, so this entry is hidden for them.
+  { label: "Trainers", href: "/trainers", hideForRoles: ["trainer"] },
   { label: "Gyms", href: "/find-gyms" },
 ];
 
@@ -32,9 +33,14 @@ export function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const navbarRef = useRef<HTMLElement>(null);
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout, role } = useAuth();
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
+
+  // Trainers shop, compare and use the wishlist exactly like customers, so they keep the full
+  // storefront toolbar. Only admins, who work solely inside the console, lose it.
+  const isShopper = role !== "admin";
+  const visibleNavItems = navItems.filter((item) => !item.hideForRoles?.includes(role ?? ""));
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
@@ -98,7 +104,7 @@ export function Navbar() {
       </Link>
 
       <nav className="primary-nav" aria-label="Primary navigation">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <Link href={item.href} key={item.label}>
             {item.label}
           </Link>
@@ -119,12 +125,14 @@ export function Navbar() {
             <path d="m8 10-3-3-3 3" />
           </svg>
         </Link>
-        <Link className="nav-icon-button" href="/wishlist" aria-label="Wishlist">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
-          </svg>
-          {wishlistCount > 0 ? <span className="nav-count-badge">{wishlistCount}</span> : null}
-        </Link>
+        {isShopper ? (
+          <Link className="nav-icon-button" href="/wishlist" aria-label="Wishlist">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
+            </svg>
+            {wishlistCount > 0 ? <span className="nav-count-badge">{wishlistCount}</span> : null}
+          </Link>
+        ) : null}
         <IconButton label="Toggle color theme" onClick={toggleTheme}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
@@ -148,23 +156,19 @@ export function Navbar() {
             <div className="account-dropdown" role="menu">
               {isAuthenticated ? (
                 <>
-                  <Link
-                    href={getDashboardRoute(user?.role)}
-                    role="menuitem"
-                    onClick={() => setIsAccountMenuOpen(false)}
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M3 13h8V3H3zM13 21h8V11h-8zM13 9h8V3h-8zM3 21h8v-6H3z" />
-                    </svg>
-                    Dashboard
-                  </Link>
-                  {user?.role === "admin" ? (
-                    <Link href="/admin/dashboard" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                  {/* The storefront dropdown never links into the admin console: admins work
+                      only inside /admin, and surfacing that entry here previously let a stale
+                      session offer an admin route to a non-admin user. */}
+                  {role === "customer" || role === "trainer" ? (
+                    <Link
+                      href={getDashboardRoute(role)}
+                      role="menuitem"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                    >
                       <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-                        <path d="m9 12 2 2 4-5" />
+                        <path d="M3 13h8V3H3zM13 21h8V11h-8zM13 9h8V3h-8zM3 21h8v-6H3z" />
                       </svg>
-                      Admin
+                      Dashboard
                     </Link>
                   ) : null}
                   <button className="account-dropdown-button" type="button" role="menuitem" onClick={handleLogout}>
@@ -197,14 +201,16 @@ export function Navbar() {
             </div>
           ) : null}
         </div>
-        <Link className="nav-icon-button" href="/cart" aria-label="Cart">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6h15l-1.5 8.5H8L6 3H3" />
-            <circle cx="9" cy="20" r="1.5" />
-            <circle cx="18" cy="20" r="1.5" />
-          </svg>
-          {cartCount > 0 ? <span className="nav-count-badge">{cartCount}</span> : null}
-        </Link>
+        {isShopper ? (
+          <Link className="nav-icon-button" href="/cart" aria-label="Cart">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6h15l-1.5 8.5H8L6 3H3" />
+              <circle cx="9" cy="20" r="1.5" />
+              <circle cx="18" cy="20" r="1.5" />
+            </svg>
+            {cartCount > 0 ? <span className="nav-count-badge">{cartCount}</span> : null}
+          </Link>
+        ) : null}
       </div>
     </header>
   );

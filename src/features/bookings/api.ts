@@ -47,6 +47,9 @@ export interface BackendBooking {
   trainerNotes?: string;
   clientRating?: number;
   clientComment?: string;
+  /** Admin moderation of the session review shown on the homepage. */
+  reviewIsFeatured?: boolean;
+  reviewModerationStatus?: "approved" | "removed";
   createdAt: string;
   updatedAt: string;
 }

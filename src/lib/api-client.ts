@@ -1,15 +1,18 @@
 import { API_BASE_URL, API_ENDPOINTS, API_HEADERS } from '@/constants/api';
 import { ApiResponse } from '@/types';
+import { sessionStore, type SessionEnvelope, type SessionTokens } from './session-store';
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined | null>;
 }
 
-export type StoredTokens = {
-  accessToken: string;
-  refreshToken?: string;
-  remember: boolean;
-};
+/** Shape shared by every backend response, success or failure. */
+type RawPayload<T = unknown> = Partial<ApiResponse<T>> & { code?: string };
+
+type RefreshPayload = RawPayload<{ tokens?: SessionTokens; session?: SessionEnvelope }>;
+
+/** Server error codes that must end the session outright rather than trigger a refresh. */
+const FATAL_SESSION_CODES = new Set(['SESSION_TAMPERED', 'ROLE_CHANGED', 'SESSION_EXPIRED']);
 
 class ApiClient {
   private baseUrl: string;
@@ -35,56 +38,39 @@ class ApiClient {
   }
 
   getAuthToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-  }
-
-  getStoredTokens(): StoredTokens | null {
-    if (typeof window === 'undefined') return null;
-
-    const sessionAccessToken = sessionStorage.getItem('authToken');
-    if (sessionAccessToken) {
-      return {
-        accessToken: sessionAccessToken,
-        refreshToken: sessionStorage.getItem('refreshToken') || undefined,
-        remember: false,
-      };
-    }
-
-    const localAccessToken = localStorage.getItem('authToken');
-    if (!localAccessToken) return null;
-
-    return {
-      accessToken: localAccessToken,
-      refreshToken: localStorage.getItem('refreshToken') || undefined,
-      remember: true,
-    };
+    return sessionStore.getAccessToken();
   }
 
   private getRefreshToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
+    return sessionStore.getRefreshToken();
   }
 
   private getHeaders(overrideToken?: string): HeadersInit {
     const token = overrideToken !== undefined ? overrideToken : this.getAuthToken();
+
     return {
       ...this.headers,
       ...(token && { Authorization: `Bearer ${token}` }),
+      // Mirrors the session cookie so the server can detect client-side tampering.
+      ...sessionStore.getIntegrityHeaders(),
     };
   }
 
-  // Dispatches a custom event that AuthContext listens to in order to clear
-  // the user state and redirect via React Router (no hard navigation).
-  private signalUnauthorized(): void {
+  // Dispatched when a 401 cannot be recovered. AuthContext listens and clears state,
+  // so redirects happen through the router rather than a hard navigation.
+  private signalUnauthorized(reason?: string): void {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { reason } }));
     }
   }
 
-  // Attempts to exchange the stored refresh token for a new access token.
-  // Concurrent calls are deduplicated: only one network request is made and
-  // all callers awaiting the result share the same outcome.
+  private endSession(reason: string): void {
+    sessionStore.clear();
+    this.signalUnauthorized(reason);
+  }
+
+  // Exchanges the stored refresh token for a new access token. Concurrent callers are
+  // deduplicated: one network request, shared outcome.
   private async attemptRefresh(): Promise<string | null> {
     if (this.isRefreshing) {
       return new Promise<string | null>((resolve) => {
@@ -94,11 +80,17 @@ class ApiClient {
 
     const storedRefreshToken = this.getRefreshToken();
     if (!storedRefreshToken) {
-      this.signalUnauthorized();
+      this.endSession('Your session has ended. Please sign in again.');
       return null;
     }
 
     this.isRefreshing = true;
+
+    const settle = (token: string | null) => {
+      this.pendingRefreshResolvers.forEach((resolve) => resolve(token));
+      this.pendingRefreshResolvers = [];
+      this.isRefreshing = false;
+    };
 
     try {
       const url = this.buildUrl(API_ENDPOINTS.auth.refresh);
@@ -108,37 +100,42 @@ class ApiClient {
         body: JSON.stringify({ refreshToken: storedRefreshToken }),
       });
 
-      let responseData: any;
+      let responseData: RefreshPayload;
       try {
-        responseData = await response.json();
+        responseData = (await response.json()) as RefreshPayload;
       } catch {
         responseData = {};
       }
 
       if (!response.ok) {
-        throw new Error(responseData.message || 'Refresh failed');
+        settle(null);
+
+        // Only an actually rejected refresh token means the session is over. Rate limiting,
+        // server faults and outages are transient — ending the session on those is what
+        // produced a spurious bounce back to the login form mid-session.
+        if (response.status === 401 || response.status === 403) {
+          this.endSession(responseData.message || 'Your session has expired. Please sign in again.');
+        }
+
+        return null;
       }
 
-      const newTokens = responseData?.data?.tokens;
-      if (!newTokens?.accessToken) {
-        throw new Error('Invalid refresh response');
+      const newTokens = responseData.data?.tokens;
+      const newSession = responseData.data?.session;
+
+      if (!newTokens?.accessToken || !newSession?.state || !newSession?.signature) {
+        settle(null);
+        return null;
       }
 
-      const stored = this.getStoredTokens();
-      const remember = stored?.remember ?? true;
-      this.setTokens(newTokens, remember);
+      // Rotate the cookie in step with the token so the envelope stays token-bound.
+      sessionStore.updateTokens(newTokens, newSession);
 
-      this.pendingRefreshResolvers.forEach((resolve) => resolve(newTokens.accessToken));
-      this.pendingRefreshResolvers = [];
-      this.isRefreshing = false;
-
-      return newTokens.accessToken as string;
+      settle(newTokens.accessToken);
+      return newTokens.accessToken;
     } catch {
-      this.clearAuthToken();
-      this.pendingRefreshResolvers.forEach((resolve) => resolve(null));
-      this.pendingRefreshResolvers = [];
-      this.isRefreshing = false;
-      this.signalUnauthorized();
+      // Network or parse failure: transient, so the stored session is left intact.
+      settle(null);
       return null;
     }
   }
@@ -155,40 +152,53 @@ class ApiClient {
       headers: this.getHeaders(),
     });
 
-    let data: any;
+    let data: RawPayload<T>;
     try {
-      data = await response.json();
+      data = (await response.json()) as RawPayload<T>;
     } catch {
       data = {};
     }
 
     if (!response.ok) {
       if (response.status === 401) {
+        // A tampered or repudiated session is never recoverable by refreshing.
+        if (typeof data.code === 'string' && FATAL_SESSION_CODES.has(data.code)) {
+          this.endSession(data.message || 'Your session has ended. Please sign in again.');
+          throw new Error(data.message || 'Your session has ended. Please sign in again.');
+        }
+
         const newAccessToken = await this.attemptRefresh();
         if (newAccessToken) {
-          // Retry the original request with the fresh access token
           const retryResponse = await fetch(url, {
             ...fetchOptions,
             headers: this.getHeaders(newAccessToken),
           });
-          let retryData: any;
+          let retryData: RawPayload<T>;
           try {
-            retryData = await retryResponse.json();
+            retryData = (await retryResponse.json()) as RawPayload<T>;
           } catch {
             retryData = {};
           }
           if (!retryResponse.ok) {
+            // End the session only when the server explicitly says it is dead. A bare 401
+            // from one endpoint (a route this role may not touch, say) must not sign the
+            // user out everywhere.
+            if (typeof retryData.code === 'string' && FATAL_SESSION_CODES.has(retryData.code)) {
+              this.endSession(retryData.message || 'Your session has ended. Please sign in again.');
+            }
             throw new Error(retryData.message || 'API request failed');
           }
-          return retryData;
+          return retryData as ApiResponse<T>;
         }
-        // attemptRefresh already cleared tokens and dispatched auth:unauthorized
-        throw new Error(data.message || 'Session expired. Please sign in again.');
+
+        // Refresh did not yield a token. If it was fatal the session is already gone;
+        // otherwise this was transient and the caller just sees the original failure.
+        throw new Error(data.message || 'Request failed. Please try again.');
       }
       throw new Error(data.message || 'API request failed');
     }
 
-    return data;
+    return data as ApiResponse<T>;
   }
 
   async get<T = unknown>(endpoint: string, options?: FetchOptions): Promise<ApiResponse<T>> {
@@ -235,41 +245,8 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' });
   }
 
-  setAuthToken(token: string, remember = false): void {
-    if (typeof window !== 'undefined') {
-      const primaryStorage = remember ? localStorage : sessionStorage;
-      const secondaryStorage = remember ? sessionStorage : localStorage;
-
-      secondaryStorage.removeItem('authToken');
-      primaryStorage.setItem('authToken', token);
-    }
-  }
-
-  setRefreshToken(token: string, remember = false): void {
-    if (typeof window !== 'undefined') {
-      const primaryStorage = remember ? localStorage : sessionStorage;
-      const secondaryStorage = remember ? sessionStorage : localStorage;
-
-      secondaryStorage.removeItem('refreshToken');
-      primaryStorage.setItem('refreshToken', token);
-    }
-  }
-
-  setTokens(tokens: { accessToken: string; refreshToken?: string }, remember = false): void {
-    this.setAuthToken(tokens.accessToken, remember);
-
-    if (tokens.refreshToken) {
-      this.setRefreshToken(tokens.refreshToken, remember);
-    }
-  }
-
   clearAuthToken(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
-      sessionStorage.removeItem('authToken');
-      sessionStorage.removeItem('refreshToken');
-    }
+    sessionStore.clear();
   }
 }
 

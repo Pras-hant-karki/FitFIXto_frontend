@@ -65,6 +65,199 @@ a {
   padding-top: var(--navbar-height);
 }
 
+/* Routes rendered without global chrome (auth pages, admin console) own the full viewport. */
+.site-main-bare {
+  min-height: 100vh;
+  padding-top: 0;
+}
+
+/* ── Admin analytics charts ────────────────────────────────────────────────────
+   One shared component renders every admin chart, so overview and analytics stay
+   visually identical. Grid and axes are deliberately recessive; the single series
+   carries the accent colour and text stays in ink tokens. */
+.admin-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  color: #e11d2e;
+}
+
+.admin-chart-plot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.admin-chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 44px;
+  padding: 2px 0 26px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted, #6b7280);
+}
+
+.admin-chart-canvas {
+  position: relative;
+  min-width: 0;
+}
+
+.admin-chart-canvas svg {
+  display: block;
+  width: 100%;
+  height: 230px;
+  overflow: visible;
+}
+
+.admin-chart-grid {
+  stroke: var(--line, #e5e7eb);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.admin-chart-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.admin-chart-area {
+  stroke: none;
+}
+
+.admin-chart-dot {
+  fill: currentColor;
+  /* A surface ring keeps overlapping markers separable. */
+  stroke: var(--panel, #ffffff);
+  stroke-width: 2;
+  transition: r 120ms ease;
+}
+
+.admin-chart-bar {
+  fill: currentColor;
+  opacity: 0.85;
+  transition: opacity 120ms ease;
+}
+
+.admin-chart-bar.active,
+.admin-chart-dot.active {
+  opacity: 1;
+}
+
+.admin-chart-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.admin-chart-tooltip {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 8px;
+  background: var(--panel, #ffffff);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.admin-chart-tooltip strong {
+  color: var(--text, #0f172a);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-chart-tooltip span {
+  color: var(--muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-chart-x-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  padding-left: 54px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #6b7280);
+}
+
+.admin-chart-x-axis span {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Thinned labels keep their slot so the remaining ones stay aligned to their marks. */
+.admin-chart-x-axis span.hidden {
+  visibility: hidden;
+}
+
+.admin-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 230px;
+  padding: 20px;
+  border: 1px dashed var(--line, #e5e7eb);
+  border-radius: 10px;
+  color: var(--muted, #6b7280);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Shown when Google rejects the Maps API key. The map still renders (greyed out) and pinning
+   still works, so this is an inline banner rather than a blocking overlay. */
+.admin-gym-map-warning,
+.public-gyms-map-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 11px 14px;
+  border: 1px solid #f5c86b;
+  border-radius: 10px;
+  background: #fff8e8;
+  color: #7a5406;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-gym-map-warning svg,
+.public-gyms-map-warning svg {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+}
+
+:root[data-theme="dark"] .admin-gym-map-warning,
+:root[data-theme="dark"] .public-gyms-map-warning,
+.dark .admin-gym-map-warning,
+.dark .public-gyms-map-warning {
+  border-color: #6b5312;
+  background: #2a2109;
+  color: #f0cf85;
+}
+
 .site-navbar {
   position: fixed;
   top: 0;
@@ -2593,6 +2786,25 @@ a {
   background-image: url("/signup.png");
 }
 
+/* Admin and trainer sign-in use the same permanent background treatment as the customer
+   pages, so the imagery survives navigation and reloads instead of being set per-render. */
+.auth-admin-visual {
+  background-image: url("/admin_signin.png");
+}
+
+.auth-trainer-visual {
+  background-image: url("/trainer_signin.png");
+}
+
+/* The two portals keep their brand tint over the photo: navy for admin, green for trainer. */
+.auth-admin-visual::before {
+  background: linear-gradient(160deg, rgba(9, 14, 28, 0.82) 0%, rgba(16, 27, 56, 0.7) 55%, rgba(8, 18, 40, 0.84) 100%);
+}
+
+.auth-trainer-visual::before {
+  background: linear-gradient(160deg, rgba(5, 20, 12, 0.82) 0%, rgba(9, 38, 24, 0.68) 55%, rgba(4, 22, 14, 0.85) 100%);
+}
+
 .auth-visual-copy {
   position: absolute;
   right: 48px;
@@ -5043,11 +5255,15 @@ a {
   color: #09090d;
 }
 
+/*
+ * Sticky rather than fixed: .admin-shell sets `overflow-x: clip`, which clips
+ * fixed-position descendants and let the topbar scroll out of view. `clip` does not force a
+ * scroll container on the block axis, so sticky still resolves against the viewport and the
+ * bar stays pinned — matching the storefront navbar.
+ */
 .admin-topbar {
-  position: fixed;
+  position: sticky;
   top: 0;
-  right: 0;
-  left: 0;
   z-index: 70;
   display: flex;
   align-items: center;
@@ -5139,7 +5355,7 @@ a {
   max-width: 100%;
   min-width: 0;
   min-height: max(760px, calc(100vh - var(--admin-topbar-height)));
-  padding-top: var(--admin-topbar-height);
+  /* The sticky topbar occupies flow space, so no offset padding is needed here. */
   background: #ffffff;
 }
 
@@ -8240,18 +8456,25 @@ a {
 }
 
 .admin-gym-map-canvas {
+  position: relative;
   width: 100%;
   min-height: 520px;
   background: #efeff3;
 }
 
+.admin-gym-map-inner {
+  position: absolute;
+  inset: 0;
+}
+
 .admin-gym-map-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  width: 100%;
-  min-height: 520px;
   padding: 32px;
   background:
     linear-gradient(45deg, transparent 0 44%, rgba(5, 5, 7, 0.04) 44% 47%, transparent 47% 100%),
@@ -9556,7 +9779,16 @@ a {
   color: #030213;
 }
 
+.public-gyms-map-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
 .public-gyms-map-center {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   gap: 6px;
@@ -10403,7 +10635,6 @@ a {
     font-size: 15px;
   }
 
-  .admin-gym-map-placeholder,
   .admin-gym-list-panel {
     min-height: 360px;
   }

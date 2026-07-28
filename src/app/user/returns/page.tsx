@@ -6,6 +6,7 @@ import { CustomerDashboardShell } from "@/components/shared/customer";
 import { BackendOrder, BackendOrderItem, cancelOrder, fetchMyOrders } from "@/features/orders";
 import { useToast } from "@/contexts";
 import type { BackendProduct } from "@/features/products";
+import { productImageUrl } from "@/utils/assets";
 import { resolveAssetUrl } from "@/constants/api";
 
 const RETURN_REASONS = [
@@ -23,7 +24,8 @@ const formatOrderId = (id: string) => `ORD-${id.slice(-4).toUpperCase()}`;
 const getItemImage = (item: BackendOrderItem): string | null => {
   if (typeof item.productId === "object" && item.productId !== null) {
     const prod = item.productId as BackendProduct;
-    return prod.images?.[0] ?? null;
+    // Uploads live on the backend origin, so the stored path must be resolved.
+    return productImageUrl(prod) || null;
   }
   return null;
 };

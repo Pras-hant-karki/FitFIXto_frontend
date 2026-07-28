@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Edit2, Plus, Search, Trash2, X, XCircle } from "lucide-react";
+import { assetUrl } from "@/utils/assets";
 import {
   BackendService,
   ServicePayload,
@@ -469,9 +470,9 @@ export default function AdminServicesPage() {
               </button>
             </div>
 
-            {form.image ? (
+            {assetUrl(form.image) ? (
               <div className="admin-product-image-preview">
-                <img src={form.image} alt="" />
+                <img src={assetUrl(form.image)} alt="" />
                 <span>Current service image</span>
               </div>
             ) : null}
@@ -572,8 +573,8 @@ export default function AdminServicesPage() {
             filtered.map((s) => (
               <div className="admin-services-row" key={s._id}>
                 <div className="admin-service-cell">
-                  {s.image ? (
-                    <img src={s.image} alt={s.name} />
+                  {assetUrl(s.image) ? (
+                    <img src={assetUrl(s.image)} alt={s.name} />
                   ) : (
                     <span className="admin-product-no-image">No image</span>
                   )}

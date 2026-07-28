@@ -26,14 +26,16 @@ const WishlistContext = createContext<WishlistContextValue | undefined>(undefine
 const emptyWishlist: BackendWishlist = { items: [] };
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, role } = useAuth();
   const { toast } = useToast();
   const [wishlist, setWishlist] = useState<BackendWishlist>(emptyWishlist);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const [wishlistError, setWishlistError] = useState("");
+  // Customers and trainers both shop and keep a wishlist; see the note in CartContext.
+  const ownsWishlist = !isAuthLoading && isAuthenticated && role !== "admin";
 
   const refreshWishlist = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!ownsWishlist) {
       setWishlist(emptyWishlist);
       setWishlistError("");
       return emptyWishlist;
@@ -53,7 +55,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsWishlistLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [ownsWishlist]);
 
   useEffect(() => {
     refreshWishlist().catch(() => setWishlist(emptyWishlist));

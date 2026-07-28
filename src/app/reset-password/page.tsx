@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -57,7 +57,6 @@ export default function ResetPasswordPage() {
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <section className="forgot-page">
         <div className="forgot-card">
           <Link className="forgot-back" href="/login">

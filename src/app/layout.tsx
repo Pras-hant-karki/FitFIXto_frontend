@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { Viewport } from "next";
 import { Inter } from "next/font/google";
-import { Footer, Navbar } from "@/components/layout";
+import { SiteChrome } from "@/components/layout";
 import { AuthProvider, CartProvider, PreferencesProvider, ToastProvider, WishlistProvider } from "@/contexts";
 import "@/styles/globals.css";
 
@@ -35,9 +35,7 @@ export default function RootLayout({
           <AuthProvider>
             <CartProvider>
               <WishlistProvider>
-                <Navbar />
-                <main className="site-main">{children}</main>
-                <Footer />
+                <SiteChrome>{children}</SiteChrome>
               </WishlistProvider>
             </CartProvider>
           </AuthProvider>

@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
 import { useAuth } from "@/contexts";
+import { resolvePostLoginRedirect } from "@/utils/redirect";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -20,13 +21,8 @@ export default function AdminLoginPage() {
     setIsSubmitting(true);
 
     try {
-      await adminLogin(formData, rememberMe);
-      const rawRedirect =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("redirect")
-          : null;
-      const redirectTo = rawRedirect?.startsWith("/") ? rawRedirect : null;
-      router.push(redirectTo || "/admin/dashboard");
+      const loggedInAdmin = await adminLogin(formData, rememberMe);
+      router.push(resolvePostLoginRedirect(loggedInAdmin.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in as admin.");
     } finally {
@@ -36,14 +32,8 @@ export default function AdminLoginPage() {
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <section className="auth-split-page">
-        <aside
-          className="auth-visual"
-          style={{
-            background: "linear-gradient(145deg, #0c1220 0%, #1a2540 55%, #0f1e38 100%)",
-          }}
-        >
+        <aside className="auth-visual auth-admin-visual">
           <div className="auth-visual-copy">
             <span
               className="auth-dumbbell-icon"
@@ -55,6 +45,7 @@ export default function AdminLoginPage() {
                 <path d="m9 12 2 2 4-5" />
               </svg>
             </span>
+            {/* The shield SVG above already carries the meaning, so the badge is text-only. */}
             <div
               style={{
                 display: "inline-flex",
@@ -71,7 +62,7 @@ export default function AdminLoginPage() {
                 marginBottom: "18px",
               }}
             >
-              <span>🛡</span> RESTRICTED ACCESS
+              RESTRICTED ACCESS
             </div>
             <h2 style={{ color: "#f1f5f9" }}>Admin<br />Command Center.</h2>
             <p style={{ color: "#94a3b8" }}>

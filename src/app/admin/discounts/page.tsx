@@ -441,7 +441,7 @@ function BundleCard({ data, allProducts, onSaved }: { data: DiscountData; allPro
                 <div className="dsc-bundle-img-upload">
                   {form.image ? (
                     <div className="dsc-bundle-img-preview">
-                      <img src={form.image} alt="Bundle preview" />
+                      <img src={resolveProductImageUrl(form.image)} alt="Bundle preview" />
                       <button type="button" className="dsc-bundle-img-remove" onClick={() => setForm((f) => ({ ...f, image: "" }))}>
                         <X size={12} /> Remove
                       </button>

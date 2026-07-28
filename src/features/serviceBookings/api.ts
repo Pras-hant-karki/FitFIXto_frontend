@@ -17,6 +17,9 @@ export interface BackendServiceBooking {
   adminNotes?: string;
   clientRating?: number;
   clientComment?: string;
+  /** Admin moderation of the service review shown on the homepage. */
+  reviewIsFeatured?: boolean;
+  reviewModerationStatus?: "approved" | "removed";
   createdAt: string;
   updatedAt: string;
 }

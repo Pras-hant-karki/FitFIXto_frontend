@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -71,7 +71,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <div className="admin-shell">
         <header className="admin-topbar">
           <Link href="/admin/dashboard" className="admin-brand" aria-label="FitFIXto admin dashboard">

@@ -5,8 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Banknote, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
 import { AdminAnalytics, AnalyticsRange, fetchAdminAnalytics } from "@/features/admin-analytics/api";
 import { usePreferences } from "@/contexts";
-
-const getAxisStep = (range: AnalyticsRange) => (range === "today" ? 4 : range === "monthly" ? 5 : 1);
+import { AnalyticsChart } from "@/components/admin";
 import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
 
 const RANGE_OPTIONS: Array<{ label: string; value: AnalyticsRange }> = [
@@ -38,15 +37,6 @@ const getOrderCustomer = (order: BackendOrder) => {
 
   return `${order.userId.firstName || ""} ${order.userId.lastName || ""}`.trim() || order.userId.email;
 };
-
-const buildLinePoints = (values: number[], maxValue: number) =>
-  values
-    .map((value, index) => {
-      const x = values.length <= 1 ? 260 : 24 + index * (496 / (values.length - 1));
-      const y = 260 - (value / Math.max(maxValue, 1)) * 220;
-      return `${x},${y}`;
-    })
-    .join(" ");
 
 export default function AdminDashboardPage() {
   const { formatPrice } = usePreferences();
@@ -98,14 +88,13 @@ export default function AdminDashboardPage() {
     { label: "Customers", value: String(analytics.summary.customerCount ?? 0), note: "Registered customer accounts", Icon: Users },
   ];
 
-  const revenueSeries = analytics.series.map((point) => point.revenue);
-  const orderSeries = analytics.series.map((point) => point.orders);
-  const hasRevenueData = revenueSeries.some((value) => value > 0);
-  const hasOrderData = orderSeries.some((value) => value > 0);
-  const maxRevenue = useMemo(() => Math.max(...revenueSeries, 1), [revenueSeries]);
-  const maxOrders = useMemo(() => Math.max(...orderSeries, 1), [orderSeries]);
-  const revenuePoints = buildLinePoints(revenueSeries, maxRevenue);
-  const orderPoints = buildLinePoints(orderSeries, maxOrders);
+  const chartPoints = useMemo(
+    () => ({
+      revenue: analytics.series.map((point) => ({ label: point.label, value: point.revenue })),
+      orders: analytics.series.map((point) => ({ label: point.label, value: point.orders })),
+    }),
+    [analytics.series]
+  );
 
   return (
     <section className="admin-overview">
@@ -152,64 +141,22 @@ export default function AdminDashboardPage() {
       <div className="admin-chart-grid">
         <article className="admin-dashboard-card">
           <h2>Revenue Trend</h2>
-          {hasRevenueData ? (
-            <div className="admin-line-chart" aria-label="Revenue trend chart">
-              <div className="admin-line-y-axis">
-                {[maxRevenue, maxRevenue * 0.75, maxRevenue * 0.5, maxRevenue * 0.25, 0].map((label) => (
-                  <span key={label}>{Math.round(label)}</span>
-                ))}
-              </div>
-              <svg viewBox="0 0 540 300" role="img" aria-hidden="true">
-                {[40, 95, 150, 205, 260].map((y) => (
-                  <line x1="24" x2="520" y1={y} y2={y} key={`rh-${y}`} />
-                ))}
-                <polyline points={revenuePoints} />
-              </svg>
-              <div className="admin-line-x-axis">
-                {analytics.series
-                  .filter((_, i) => i % getAxisStep(range) === 0)
-                  .map((item, index) => (
-                    <span key={`${item.label}-revenue-${index}`}>{item.label}</span>
-                  ))}
-              </div>
-            </div>
-          ) : (
-            <div className="admin-dashboard-empty">Waiting for revenue data from orders.</div>
-          )}
+          <AnalyticsChart
+            points={chartPoints.revenue}
+            format="currency"
+            label="Revenue trend"
+            emptyMessage="Waiting for revenue data from orders."
+          />
         </article>
 
         <article className="admin-dashboard-card">
           <h2>Order Volume</h2>
-          {hasOrderData ? (
-            <div className="admin-line-chart" aria-label="Order volume chart">
-              <div className="admin-line-y-axis">
-                {[maxOrders, maxOrders * 0.75, maxOrders * 0.5, maxOrders * 0.25, 0].map((label) => (
-                  <span key={label}>{Math.round(label)}</span>
-                ))}
-              </div>
-              <svg viewBox="0 0 540 300" role="img" aria-hidden="true">
-                {[40, 95, 150, 205, 260].map((y) => (
-                  <line x1="24" x2="520" y1={y} y2={y} key={`oh-${y}`} />
-                ))}
-                <polyline points={orderPoints} />
-                {orderPoints
-                  ? orderPoints.split(" ").map((point) => {
-                      const [cx, cy] = point.split(",");
-                      return <circle cx={cx} cy={cy} r="7" key={point} />;
-                    })
-                  : null}
-              </svg>
-              <div className="admin-line-x-axis">
-                {analytics.series
-                  .filter((_, i) => i % getAxisStep(range) === 0)
-                  .map((item, index) => (
-                    <span key={`${item.label}-orders-${index}`}>{item.label}</span>
-                  ))}
-              </div>
-            </div>
-          ) : (
-            <div className="admin-dashboard-empty">Waiting for order data.</div>
-          )}
+          <AnalyticsChart
+            points={chartPoints.orders}
+            format="number"
+            label="Order volume"
+            emptyMessage="Waiting for order data."
+          />
         </article>
       </div>
 

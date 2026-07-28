@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { AdminAnalytics, AnalyticsRange, fetchAdminAnalytics } from "@/features/admin-analytics/api";
 import { normalizeTrainerPhotoUrl } from "@/features/trainers";
+import { AnalyticsChart } from "@/components/admin";
 
 const ranges: Array<{ label: string; value: AnalyticsRange }> = [
   { label: "Today", value: "today" },
@@ -26,21 +27,6 @@ const emptyAnalytics: AdminAnalytics = {
   series: [],
   topProducts: [],
   topTrainers: [],
-};
-
-const buildLinePoints = (values: number[], maxValue: number) =>
-  values
-    .map((value, index) => {
-      const x = values.length <= 1 ? 260 : 24 + index * (496 / (values.length - 1));
-      const y = 250 - (value / Math.max(maxValue, 1)) * 210;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-const getLabelStep = (range: AnalyticsRange, total: number): number => {
-  if (range === "today") return 4;
-  if (range === "monthly") return 5;
-  return 1;
 };
 
 export default function AdminAnalyticsPage() {
@@ -67,10 +53,14 @@ export default function AdminAnalyticsPage() {
     loadAnalytics();
   }, [range]);
 
-  const maxRevenue = useMemo(() => Math.max(...analytics.series.map((point) => point.revenue), 1), [analytics.series]);
-  const maxOrders = useMemo(() => Math.max(...analytics.series.map((point) => point.orders), 1), [analytics.series]);
   const maxProductRevenue = useMemo(() => Math.max(...analytics.topProducts.map((product) => product.revenue), 1), [analytics.topProducts]);
-  const orderPoints = buildLinePoints(analytics.series.map((point) => point.orders), maxOrders);
+  const chartPoints = useMemo(
+    () => ({
+      revenue: analytics.series.map((point) => ({ label: point.label, value: point.revenue })),
+      orders: analytics.series.map((point) => ({ label: point.label, value: point.orders })),
+    }),
+    [analytics.series]
+  );
 
   return (
     <section className="admin-analytics-page">
@@ -120,70 +110,23 @@ export default function AdminAnalyticsPage() {
         <div className="admin-analytics-grid">
           <article className="admin-analytics-card">
             <h2>Revenue (Npr)</h2>
-            <div className="admin-analytics-chart">
-              <svg viewBox="0 0 540 300" aria-label="Revenue bar chart">
-                {[40, 92, 145, 198, 250].map((y) => (
-                  <line x1="24" x2="520" y1={y} y2={y} key={`rh-${y}`} />
-                ))}
-                {(() => {
-                  const count = analytics.series.length;
-                  if (count === 0) return null;
-                  const totalWidth = 496;
-                  const slotWidth = totalWidth / count;
-                  const barWidth = Math.max(4, slotWidth * 0.65);
-                  const gap = (slotWidth - barWidth) / 2;
-                  return analytics.series.map((point, index) => {
-                    const barHeight = (point.revenue / Math.max(maxRevenue, 1)) * 210;
-                    const x = 24 + index * slotWidth + gap;
-                    const y = 250 - barHeight;
-                    return (
-                      <rect
-                        key={`rev-bar-${index}`}
-                        x={x}
-                        y={barHeight > 0 ? y : 250}
-                        width={barWidth}
-                        height={Math.max(0, barHeight)}
-                        rx={4}
-                        ry={4}
-                        className="revenue-bar"
-                      />
-                    );
-                  });
-                })()}
-              </svg>
-              <div className="admin-analytics-x-axis">
-                {analytics.series
-                  .filter((_, i) => i % getLabelStep(range, analytics.series.length) === 0)
-                  .map((point, index) => (
-                    <span key={`${point.label}-revenue-${index}`}>{point.label}</span>
-                  ))}
-              </div>
-            </div>
+            <AnalyticsChart
+              points={chartPoints.revenue}
+              variant="bar"
+              format="currency"
+              label="Revenue per period"
+              emptyMessage="No revenue recorded in this period."
+            />
           </article>
 
           <article className="admin-analytics-card">
             <h2>Orders</h2>
-            <div className="admin-analytics-chart dark-line">
-              <svg viewBox="0 0 540 300" aria-label="Orders chart">
-                {[40, 92, 145, 198, 250].map((y) => (
-                  <line x1="24" x2="520" y1={y} y2={y} key={`oh-${y}`} />
-                ))}
-                <polyline points={orderPoints} />
-                {orderPoints
-                  ? orderPoints.split(" ").map((point) => {
-                      const [cx, cy] = point.split(",");
-                      return <circle cx={cx} cy={cy} r="5" key={point} />;
-                    })
-                  : null}
-              </svg>
-              <div className="admin-analytics-x-axis">
-                {analytics.series
-                  .filter((_, i) => i % getLabelStep(range, analytics.series.length) === 0)
-                  .map((point, index) => (
-                    <span key={`${point.label}-orders-${index}`}>{point.label}</span>
-                  ))}
-              </div>
-            </div>
+            <AnalyticsChart
+              points={chartPoints.orders}
+              format="number"
+              label="Orders per period"
+              emptyMessage="No orders recorded in this period."
+            />
           </article>
 
           <article className="admin-analytics-card">

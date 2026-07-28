@@ -41,6 +41,8 @@ export const API_ENDPOINTS = {
     login: '/auth/login',
     signup: '/auth/register',
     me: '/auth/me',
+    // Authoritative access-token + role check
+    session: '/auth/session',
     refresh: '/auth/refresh',
     profile: '/auth/profile',
     uploadProfileImage: '/auth/profile/upload-image',
@@ -83,6 +85,9 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/reviews/${id}`,
     moderate: (id: string) => `/reviews/admin/${id}/moderation`,
     feature: (id: string) => `/reviews/admin/${id}/feature`,
+    // Trainer-session and service reviews live on their booking documents.
+    featureBooking: (kind: string, bookingId: string) => `/reviews/admin/booking/${kind}/${bookingId}/feature`,
+    moderateBooking: (kind: string, bookingId: string) => `/reviews/admin/booking/${kind}/${bookingId}/moderation`,
   },
 
   // Orders

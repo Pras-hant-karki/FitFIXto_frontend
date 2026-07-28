@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, X, CheckCircle, Clock, XCircle, User } from "lucide-react";
+import { avatarUrl } from "@/utils/assets";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
 import { useToast } from "@/contexts";
 import {
@@ -136,8 +137,8 @@ export default function TrainerBookingsPage() {
                 <article className="trainer-booking-card" key={booking._id}>
                   <div className="trainer-booking-client">
                     <div className="trainer-booking-avatar">
-                      {client?.profilePicture ? (
-                        <img src={client.profilePicture} alt={client.firstName} />
+                      {avatarUrl(client) ? (
+                        <img src={avatarUrl(client)} alt={client?.firstName ?? "Client"} />
                       ) : (
                         <User aria-hidden="true" />
                       )}

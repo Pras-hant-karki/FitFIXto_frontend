@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
 import { useAuth, useToast } from "@/contexts";
+import { resolvePostLoginRedirect } from "@/utils/redirect";
 
 export default function TrainerLoginPage() {
   const router = useRouter();
@@ -29,12 +30,7 @@ export default function TrainerLoginPage() {
         });
       }
 
-      const rawRedirect =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("redirect")
-          : null;
-      const redirectTo = rawRedirect?.startsWith("/") ? rawRedirect : null;
-      router.push(redirectTo || "/trainer/dashboard");
+      router.push(resolvePostLoginRedirect(loggedInTrainer.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in. Please try again.");
     } finally {
@@ -44,14 +40,8 @@ export default function TrainerLoginPage() {
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <section className="auth-split-page">
-        <aside
-          className="auth-visual"
-          style={{
-            background: "linear-gradient(145deg, #052e16 0%, #14532d 55%, #166534 100%)",
-          }}
-        >
+        <aside className="auth-visual auth-trainer-visual">
           <div className="auth-visual-copy">
             <span
               className="auth-dumbbell-icon"
@@ -86,7 +76,7 @@ export default function TrainerLoginPage() {
                 marginBottom: "18px",
               }}
             >
-              <span>⚡</span> TRAINER PORTAL
+              TRAINER PORTAL
             </div>
             <h2 style={{ color: "#f0fdf4" }}>Train. Inspire.<br />Transform.</h2>
             <p style={{ color: "#bbf7d0" }}>

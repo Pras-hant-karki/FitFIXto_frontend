@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -49,7 +49,6 @@ export default function SignupPage() {
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <section className="auth-split-page">
         <aside className="auth-visual auth-signup-visual">
           <div className="auth-visual-copy">
