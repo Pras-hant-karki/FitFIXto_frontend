@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
   products: {
     list: '/products',
     detail: (id: string) => `/products/${id}`,
+    compare: '/products/compare',
     uploadImages: '/products/upload-images',
   },
 
@@ -58,6 +59,7 @@ export const API_ENDPOINTS = {
     myOrders: '/orders/my-orders',
     adminAll: '/orders/admin/all',
     create: '/orders',
+    cancel: (id: string) => `/orders/${id}/cancel`,
   },
 
   // User

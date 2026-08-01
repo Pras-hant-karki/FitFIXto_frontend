@@ -5,6 +5,9 @@ export interface BackendProduct {
   _id: string;
   name: string;
   description: string;
+  specifications?: string;
+  importedFrom?: string;
+  warrantyMonths?: number;
   price: number;
   stock: number;
   category: string;
@@ -14,6 +17,7 @@ export interface BackendProduct {
   sku?: string;
   discountPercentage?: number;
   weight?: number;
+  weightUnit?: "gm" | "kg";
   dimensions?: {
     length?: number;
     width?: number;
@@ -70,9 +74,19 @@ export const fetchProduct = async (productId: string) => {
   return response.data?.product;
 };
 
+export const fetchComparedProducts = async (productIds: string[]) => {
+  const response = await apiClient.get<{ products: BackendProduct[]; comparedCount: number }>(API_ENDPOINTS.products.compare, {
+    params: { ids: productIds.join(",") },
+  });
+  return response.data?.products || [];
+};
+
 export type ProductPayload = {
   name: string;
   description: string;
+  specifications?: string;
+  importedFrom?: string;
+  warrantyMonths?: number;
   price: number;
   stock: number;
   category: "gym_equipment" | "supplements" | "accessories";
@@ -81,6 +95,13 @@ export type ProductPayload = {
   tags?: string[];
   sku?: string;
   discountPercentage?: number;
+  weight?: number;
+  weightUnit?: "gm" | "kg";
+  dimensions?: {
+    length?: number;
+    width?: number;
+    height?: number;
+  };
   isFeatured?: boolean;
   isActive?: boolean;
   verifiedBadge?: boolean;

@@ -17,6 +17,13 @@ import {
 type ProductFormState = {
   name: string;
   description: string;
+  importedFrom: string;
+  warrantyMonths: string;
+  weight: string;
+  weightUnit: "gm" | "kg";
+  dimensionLength: string;
+  dimensionWidth: string;
+  dimensionHeight: string;
   price: string;
   stock: string;
   category: ProductPayload["category"];
@@ -31,6 +38,13 @@ type ProductFormState = {
 const emptyForm: ProductFormState = {
   name: "",
   description: "",
+  importedFrom: "",
+  warrantyMonths: "",
+  weight: "",
+  weightUnit: "kg",
+  dimensionLength: "",
+  dimensionWidth: "",
+  dimensionHeight: "",
   price: "",
   stock: "",
   category: "gym_equipment",
@@ -51,6 +65,13 @@ const categoryOptions: Array<{ label: string; value: ProductPayload["category"] 
 const toFormState = (product: BackendProduct): ProductFormState => ({
   name: product.name,
   description: product.description,
+  importedFrom: product.importedFrom || product.specifications || "",
+  warrantyMonths: product.warrantyMonths !== undefined ? String(product.warrantyMonths) : "",
+  weight: product.weight !== undefined ? String(product.weight) : "",
+  weightUnit: product.weightUnit || "kg",
+  dimensionLength: product.dimensions?.length !== undefined ? String(product.dimensions.length) : "",
+  dimensionWidth: product.dimensions?.width !== undefined ? String(product.dimensions.width) : "",
+  dimensionHeight: product.dimensions?.height !== undefined ? String(product.dimensions.height) : "",
   price: String(product.price),
   stock: String(product.stock),
   category: product.category as ProductPayload["category"],
@@ -65,6 +86,18 @@ const toFormState = (product: BackendProduct): ProductFormState => ({
 const toPayload = (form: ProductFormState): ProductPayload => ({
   name: form.name.trim(),
   description: form.description.trim(),
+  importedFrom: form.importedFrom.trim() || undefined,
+  warrantyMonths: form.warrantyMonths.trim() ? Number(form.warrantyMonths) : undefined,
+  weight: form.weight.trim() ? Number(form.weight) : undefined,
+  weightUnit: form.weightUnit,
+  dimensions:
+    form.dimensionLength.trim() || form.dimensionWidth.trim() || form.dimensionHeight.trim()
+      ? {
+          length: form.dimensionLength.trim() ? Number(form.dimensionLength) : undefined,
+          width: form.dimensionWidth.trim() ? Number(form.dimensionWidth) : undefined,
+          height: form.dimensionHeight.trim() ? Number(form.dimensionHeight) : undefined,
+        }
+      : undefined,
   price: Number(form.price),
   stock: Number(form.stock),
   category: form.category,
@@ -374,6 +407,80 @@ export default function AdminProductsPage() {
                 >
                   {isUploading ? "Uploading..." : "Upload Picture"}
                 </button>
+              </div>
+              <div className="admin-product-extra-fields">
+                <label className="admin-product-imported-field">
+                  Imported from
+                  <textarea
+                    placeholder="Seller company name, address and import details"
+                    value={form.importedFrom}
+                    onChange={(event) => setForm((current) => ({ ...current, importedFrom: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Warranty
+                  <input
+                    min="0"
+                    step="1"
+                    type="number"
+                    placeholder="Months"
+                    value={form.warrantyMonths}
+                    onChange={(event) => setForm((current) => ({ ...current, warrantyMonths: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Product weight
+                  <span className="admin-product-weight-field">
+                    <input
+                      min="0"
+                      step="0.01"
+                      type="number"
+                      placeholder="Weight"
+                      value={form.weight}
+                      onChange={(event) => setForm((current) => ({ ...current, weight: event.target.value }))}
+                    />
+                    <select
+                      value={form.weightUnit}
+                      onChange={(event) => setForm((current) => ({ ...current, weightUnit: event.target.value as "gm" | "kg" }))}
+                      aria-label="Weight unit"
+                    >
+                      <option value="gm">gm</option>
+                      <option value="kg">kg</option>
+                    </select>
+                  </span>
+                </label>
+                <label className="admin-product-dimensions-field">
+                  Dimension
+                  <span>
+                    <input
+                      min="0"
+                      step="0.01"
+                      type="number"
+                      placeholder={"l''"}
+                      title="Enter length in inches"
+                      value={form.dimensionLength}
+                      onChange={(event) => setForm((current) => ({ ...current, dimensionLength: event.target.value }))}
+                    />
+                    <input
+                      min="0"
+                      step="0.01"
+                      type="number"
+                      placeholder={"b''"}
+                      title="Enter breadth in inches"
+                      value={form.dimensionWidth}
+                      onChange={(event) => setForm((current) => ({ ...current, dimensionWidth: event.target.value }))}
+                    />
+                    <input
+                      min="0"
+                      step="0.01"
+                      type="number"
+                      placeholder={"h''"}
+                      title="Enter height in inches"
+                      value={form.dimensionHeight}
+                      onChange={(event) => setForm((current) => ({ ...current, dimensionHeight: event.target.value }))}
+                    />
+                  </span>
+                </label>
               </div>
 
             </div>
