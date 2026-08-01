@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { Viewport } from "next";
 import { Inter } from "next/font/google";
-import { Footer, Navbar } from "@/components/layout";
-import { AuthProvider } from "@/contexts";
+import { SiteChrome } from "@/components/layout";
+import { AuthProvider, CartProvider, PreferencesProvider, ToastProvider, WishlistProvider } from "@/contexts";
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -28,13 +28,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} scroll-smooth`}>
-      <body>
-        <AuthProvider>
-          <Navbar />
-          <main className="site-main">{children}</main>
-          <Footer />
-        </AuthProvider>
+    <html lang="en" className={`${inter.variable} scroll-smooth`} data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body style={{ overscrollBehaviorX: "contain", overscrollBehaviorY: "contain" }} suppressHydrationWarning>
+        <ToastProvider>
+          <PreferencesProvider>
+          <AuthProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <SiteChrome>{children}</SiteChrome>
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
+          </PreferencesProvider>
+        </ToastProvider>
       </body>
     </html>
   );

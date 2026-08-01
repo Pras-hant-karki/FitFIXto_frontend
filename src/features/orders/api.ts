@@ -1,0 +1,181 @@
+import { API_ENDPOINTS } from "@/constants/api";
+import { apiClient } from "@/lib";
+import type { BackendProduct } from "@/features/products";
+
+export interface DeliveryAddress {
+  _id: string;
+  recipientName: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface BackendOrderItem {
+  productId: string | BackendProduct;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface BackendOrder {
+  _id: string;
+  userId?: string | {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  items: BackendOrderItem[];
+  deliveryAddressId: DeliveryAddress;
+  paymentMethod: "cash_on_delivery" | "esewa" | "khalti" | "card";
+  paymentStatus: string;
+  status: string;
+  subtotal: number;
+  discountAmount: number;
+  shippingMethod?: "standard" | "express" | "overnight";
+  shippingAmount?: number;
+  taxAmount?: number;
+  totalAmount: number;
+  estimatedDeliveryDate?: string | null;
+  deliveredAt?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendOrderTracking {
+  orderId: string;
+  status: string;
+  paymentStatus: string;
+  placedAt: string;
+  lastUpdated: string;
+  estimatedDeliveryDate: string | null;
+  daysUntilDelivery: number | null;
+  deliveredAt: string | null;
+  cancelledAt: string | null;
+  timeline: Array<{
+    status: string;
+    timestamp?: string;
+    label: string;
+  }>;
+}
+
+export const fetchDeliveryAddresses = async () => {
+  const response = await apiClient.get<{ addresses: DeliveryAddress[] }>(API_ENDPOINTS.user.addresses);
+  return response.data?.addresses || [];
+};
+
+export const createDeliveryAddress = async (payload: Omit<DeliveryAddress, "_id">) => {
+  const response = await apiClient.post<{ address: DeliveryAddress }>(API_ENDPOINTS.user.addresses, payload);
+  return response.data?.address;
+};
+
+export const fetchMyOrders = async () => {
+  const response = await apiClient.get<{ orders: BackendOrder[] }>(API_ENDPOINTS.orders.myOrders);
+  return response.data?.orders || [];
+};
+
+export type PaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
+
+export type AdminOrdersResponse = {
+  orders: BackendOrder[];
+  pagination: PaginationMeta;
+};
+
+const DEFAULT_ORDERS_PAGINATION: PaginationMeta = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
+export const fetchAdminOrders = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}): Promise<AdminOrdersResponse> => {
+  const response = await apiClient.get<{ orders: BackendOrder[]; pagination?: PaginationMeta }>(
+    API_ENDPOINTS.orders.adminAll,
+    { params }
+  );
+  return {
+    orders: response.data?.orders || [],
+    pagination: response.data?.pagination || DEFAULT_ORDERS_PAGINATION,
+  };
+};
+
+export const fetchOrder = async (orderId: string) => {
+  const response = await apiClient.get<{ order: BackendOrder }>(API_ENDPOINTS.orders.detail(orderId));
+  return response.data?.order;
+};
+
+export const fetchOrderTracking = async (orderId: string) => {
+  const response = await apiClient.get<{ tracking: BackendOrderTracking }>(API_ENDPOINTS.orders.track(orderId));
+  return response.data?.tracking;
+};
+
+export const placeOrder = async (payload: {
+  deliveryAddressId: string;
+  paymentMethod: "cash_on_delivery" | "esewa" | "khalti" | "card";
+  shippingMethod?: "standard" | "express" | "overnight";
+  selectedProductIds?: string[];
+  notes?: string;
+  estimatedDeliveryDate?: string;
+  stripePaymentIntentId?: string;
+}) => {
+  const response = await apiClient.post<{ order: BackendOrder }>(API_ENDPOINTS.orders.create, payload);
+  return response.data?.order;
+};
+
+export const createStripePaymentIntent = async (payload: {
+  deliveryAddressId: string;
+  shippingMethod?: "standard" | "express" | "overnight";
+  selectedProductIds?: string[];
+  voucherCode?: string;
+}) => {
+  const response = await apiClient.post<{ clientSecret: string; paymentIntentId: string }>(
+    API_ENDPOINTS.payments.stripeIntent,
+    payload
+  );
+  return response.data;
+};
+
+export const cancelOrder = async (orderId: string, reason: string) => {
+  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.cancel(orderId), {
+    reason,
+  });
+  return response.data?.order;
+};
+
+export type AdminOrderStatusUpdate = "confirmed" | "shipped" | "delivered";
+
+export const updateAdminOrderStatus = async (orderId: string, status: AdminOrderStatusUpdate) => {
+  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.updateStatus(orderId), {
+    status,
+  });
+  return response.data?.order;
+};
+
+export const processAdminReturn = async (orderId: string) => {
+  const response = await apiClient.patch<{ order: BackendOrder }>(API_ENDPOINTS.orders.updatePayment(orderId), {
+    paymentStatus: "refunded",
+  });
+  return response.data?.order;
+};

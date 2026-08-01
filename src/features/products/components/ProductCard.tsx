@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui";
+import { AddToCartButton } from "@/features/cart";
 import { Product } from "@/types";
 
 interface ProductCardProps {
@@ -48,12 +49,13 @@ export const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
         </div>
       </div>
 
-      <button
-        onClick={() => onAddToCart?.(product)}
+      <AddToCartButton
+        productId={product.id}
+        stock={product.stock}
+        onAdded={() => onAddToCart?.(product)}
         className="mt-auto w-full bg-white dark:bg-zinc-800 text-black dark:text-white border border-gray-200 dark:border-zinc-600 py-2 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition font-bold"
-      >
-        Add to Cart
-      </button>
+        showIcon={false}
+      />
     </Card>
   );
 };

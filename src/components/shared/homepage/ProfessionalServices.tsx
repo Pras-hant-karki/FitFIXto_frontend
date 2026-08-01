@@ -1,28 +1,26 @@
-const services = [
-  {
-    title: "Full Gym Setup",
-    price: "From $4,999",
-    image: "/service-gym-setup.png",
-    copy: "End-to-end commercial and home gym design, equipment delivery and installation.",
-    features: ["Custom layout design", "Equipment sourcing", "Professional installation", "30-day support"],
-  },
-  {
-    title: "Sauna & Steam Room",
-    price: "From $7,499",
-    image: "/service-sauna.png",
-    copy: "Premium sauna and steam room installation with electrical and ventilation.",
-    features: ["Cedar / hemlock options", "Digital control panel", "Ventilation system", "2-year warranty"],
-  },
-  {
-    title: "Equipment Maintenance",
-    price: "From $199/mo",
-    image: "/service-maintenance.png",
-    copy: "Scheduled preventative maintenance for your commercial fitness equipment.",
-    features: ["Quarterly inspections", "Lubrication & belts", "Cable & pulley check", "Same-week response"],
-  },
-];
+"use client";
+
+import { useEffect, useState } from "react";
+import { BackendService, fetchPublicServices } from "@/features/services";
+import { resolveAssetUrl } from "@/constants/api";
+
+function serviceImage(service: BackendService) {
+  if (!service.image) return "/ctabanner.png";
+  if (service.image.startsWith("http://") || service.image.startsWith("https://")) return service.image;
+  return resolveAssetUrl(service.image);
+}
 
 export function ProfessionalServices() {
+  const [services, setServices] = useState<BackendService[]>([]);
+
+  useEffect(() => {
+    fetchPublicServices()
+      .then(setServices)
+      .catch(() => {});
+  }, []);
+
+  if (services.length === 0) return null;
+
   return (
     <section className="home-section" id="services">
       <div className="section-inner">
@@ -34,20 +32,22 @@ export function ProfessionalServices() {
 
         <div className="service-grid">
           {services.map((service) => (
-            <article className="service-card" key={service.title}>
-              <img src={service.image} alt={service.title} />
+            <article className="service-card" key={service._id}>
+              <img src={serviceImage(service)} alt={service.name} />
               <div className="service-body">
                 <div className="service-title-row">
-                  <h3>{service.title}</h3>
-                  <strong>{service.price}</strong>
+                  <h3>{service.name}</h3>
+                  {service.priceLabel && <strong>{service.priceLabel}</strong>}
                 </div>
-                <p>{service.copy}</p>
-                <ul>
-                  {service.features.map((feature) => (
-                    <li key={feature}>{feature}</li>
-                  ))}
-                </ul>
-                <a href="#">
+                <p>{service.description}</p>
+                {service.features.length > 0 && (
+                  <ul>
+                    {service.features.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                )}
+                <a href="/services">
                   Learn More <span aria-hidden="true">-&gt;</span>
                 </a>
               </div>
