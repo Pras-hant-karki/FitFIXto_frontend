@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Heart, ShoppingCart, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Heart, Star } from "lucide-react";
+import { AddToCartButton } from "@/features/cart";
 import {
   BackendProduct,
   fetchProduct,
@@ -201,10 +202,7 @@ export default function ProductDetailsPage() {
           </div>
           <p className="product-detail-description">{product.description}</p>
           <div className="product-detail-actions">
-            <button type="button" disabled={product.stock <= 0}>
-              <ShoppingCart aria-hidden="true" />
-              Add to Cart
-            </button>
+            <AddToCartButton productId={product._id} stock={product.stock} />
             <button type="button">
               <Heart aria-hidden="true" />
             </button>

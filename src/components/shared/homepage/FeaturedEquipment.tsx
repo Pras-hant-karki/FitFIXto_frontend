@@ -8,6 +8,7 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { AddToCartButton } from "@/features/cart";
 
 export function FeaturedEquipment() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
@@ -86,14 +87,7 @@ export function FeaturedEquipment() {
                       <strong>${product.price}</strong>
                       {originalPrice ? <del>${originalPrice}</del> : null}
                     </div>
-                    <button className="cart-button" type="button">
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M6 6h15l-1.5 8.5H8L6 3H3" />
-                        <circle cx="9" cy="20" r="1.5" />
-                        <circle cx="18" cy="20" r="1.5" />
-                      </svg>
-                      Add to Cart
-                    </button>
+                    <AddToCartButton productId={product._id} stock={product.stock} className="cart-button" />
                   </div>
                 </article>
               );

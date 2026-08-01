@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Box, RotateCcw, Settings, Star, CalendarDays, RefreshCw, UserRound } from "lucide-react";
-import { useAuth } from "@/contexts";
-import { BackendOrder, fetchMyOrders } from "@/features/orders";
+import { useAuth, useCart } from "@/contexts";
+import { BackendOrder, BackendOrderItem, fetchMyOrders } from "@/features/orders";
 
 const dashboardNav = [
   { label: "Orders", Icon: Box, active: true },
@@ -35,11 +36,22 @@ const getUserName = (email?: string) => {
   return email.split("@")[0] || "customer";
 };
 
+const getOrderProductId = (item: BackendOrderItem) => {
+  if (typeof item.productId === "string") return item.productId;
+  return item.productId?._id || "";
+};
+
 export default function UserDashboardPage() {
+  const router = useRouter();
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [isReordering, setIsReordering] = useState(false);
   const [error, setError] = useState("");
+  const [reorderError, setReorderError] = useState("");
 
   const username = useMemo(() => getUserName(user?.email), [user?.email]);
 
@@ -73,6 +85,57 @@ export default function UserDashboardPage() {
     };
   }, []);
 
+  const toggleSelectedOrder = (orderId: string) => {
+    setReorderError("");
+    setSelectedOrderIds((current) =>
+      current.includes(orderId) ? current.filter((id) => id !== orderId) : [...current, orderId]
+    );
+  };
+
+  const handleReorder = async () => {
+    setReorderError("");
+
+    if (!isReorderMode) {
+      setIsReorderMode(true);
+      return;
+    }
+
+    if (selectedOrderIds.length === 0) {
+      setReorderError("Select at least one order to reorder.");
+      return;
+    }
+
+    const productQuantities = new Map<string, number>();
+    orders
+      .filter((order) => selectedOrderIds.includes(order._id))
+      .flatMap((order) => order.items)
+      .forEach((item) => {
+        const productId = getOrderProductId(item);
+        if (!productId) return;
+        productQuantities.set(productId, (productQuantities.get(productId) || 0) + item.quantity);
+      });
+
+    if (productQuantities.size === 0) {
+      setReorderError("This order no longer has products available to reorder.");
+      return;
+    }
+
+    setIsReordering(true);
+
+    try {
+      for (const [productId, quantity] of productQuantities) {
+        await addToCart(productId, quantity);
+      }
+
+      const checkoutItems = Array.from(productQuantities.keys()).join(",");
+      router.push(`/checkout?items=${encodeURIComponent(checkoutItems)}`);
+    } catch (err) {
+      setReorderError(err instanceof Error ? err.message : "Unable to prepare reorder checkout.");
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
   return (
     <section className="customer-dashboard-page">
       <header className="customer-dashboard-header">
@@ -105,11 +168,18 @@ export default function UserDashboardPage() {
         <div className="customer-orders-panel">
           <div className="customer-orders-heading">
             <h2>Your Orders</h2>
-            <Link href="/shop" className="customer-reorder-button">
+            <button type="button" className="customer-reorder-button" onClick={handleReorder} disabled={isLoading || isReordering || orders.length === 0}>
               <RefreshCw aria-hidden="true" />
-              Reorder
-            </Link>
+              {isReordering ? "Preparing..." : "Reorder"}
+            </button>
           </div>
+          {isReorderMode ? (
+            <p className="customer-reorder-hint">
+              Select the order you want to reorder, then click Reorder again.
+              {selectedOrderIds.length > 0 ? ` ${selectedOrderIds.length} selected.` : ""}
+            </p>
+          ) : null}
+          {reorderError ? <p className="customer-reorder-error">{reorderError}</p> : null}
 
           {isLoading ? (
             <div className="customer-orders-empty">Loading your orders...</div>
@@ -120,7 +190,17 @@ export default function UserDashboardPage() {
           ) : (
             <div className="customer-orders-list">
               {orders.map((order) => (
-                <article className="customer-order-card" key={order._id}>
+                <article className={`customer-order-card ${isReorderMode ? "customer-order-card-selectable" : ""}`} key={order._id}>
+                  {isReorderMode ? (
+                    <label className="customer-order-select" aria-label={`Select order ${formatOrderId(order._id)} to reorder`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedOrderIds.includes(order._id)}
+                        onChange={() => toggleSelectedOrder(order._id)}
+                      />
+                      <span />
+                    </label>
+                  ) : null}
                   <div>
                     <time dateTime={order.createdAt}>{formatDate(order.createdAt)}</time>
                     <strong>Order #{formatOrderId(order._id)}</strong>

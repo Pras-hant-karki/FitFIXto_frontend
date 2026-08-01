@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, ShoppingCart } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { AddToCartButton } from "@/features/cart";
 import {
   BackendProduct,
   fetchComparedProducts,
@@ -81,10 +82,7 @@ const CompareProductCard = ({ product }: { product: BackendProduct }) => (
       {product.verifiedBadge ? <span>Verified</span> : null}
     </div>
     <strong>{product.name}</strong>
-    <button type="button">
-      <ShoppingCart aria-hidden="true" />
-      Add to Cart
-    </button>
+    <AddToCartButton productId={product._id} stock={product.stock} />
   </article>
 );
 

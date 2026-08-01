@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useAuth, useWishlist } from "@/contexts";
+import { useAuth, useCart, useWishlist } from "@/contexts";
 
 const navItems = [
   { label: "Shop", href: "/shop" },
@@ -31,6 +31,7 @@ export function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated, logout, user } = useAuth();
+  const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
 
   useEffect(() => {
@@ -179,6 +180,7 @@ export function Navbar() {
             <circle cx="9" cy="20" r="1.5" />
             <circle cx="18" cy="20" r="1.5" />
           </svg>
+          {cartCount > 0 ? <span className="nav-count-badge">{cartCount}</span> : null}
         </Link>
       </div>
     </header>
