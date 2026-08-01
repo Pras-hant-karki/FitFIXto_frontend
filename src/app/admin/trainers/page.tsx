@@ -1,17 +1,23 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Plus, Star, Trash2, X } from "lucide-react";
+import { Check, Eye, EyeOff, Plus, Star, Trash2, X } from "lucide-react";
 import {
+  approveTrainerApplication,
+  BackendTrainerApplication,
   BackendTrainer,
   TrainerPayload,
   createTrainer,
   deleteTrainer,
   fetchAdminTrainers,
+  fetchTrainerApplications,
   normalizeTrainerPhotoUrl,
+  rejectTrainerApplication,
   updateTrainer,
   uploadTrainerPhoto,
 } from "@/features/trainers";
+
+type TrainerTab = "created" | "applications" | "approved" | "rejected";
 
 type TrainerFormState = {
   firstName: string;
@@ -27,6 +33,7 @@ type TrainerFormState = {
   bio: string;
   profilePicture: string;
   isFeatured: boolean;
+  applicationId?: string;
 };
 
 const emptyForm: TrainerFormState = {
@@ -43,6 +50,7 @@ const emptyForm: TrainerFormState = {
   bio: "",
   profilePicture: "",
   isFeatured: false,
+  applicationId: undefined,
 };
 
 const toList = (value: string) =>
@@ -65,6 +73,7 @@ const toFormState = (trainer: BackendTrainer): TrainerFormState => ({
   bio: trainer.userId.bio || "",
   profilePicture: normalizeTrainerPhotoUrl(trainer.userId.profilePicture),
   isFeatured: trainer.isFeatured,
+  applicationId: undefined,
 });
 
 const toPayload = (form: TrainerFormState, isEditing: boolean): TrainerPayload & { password?: string } => ({
@@ -81,14 +90,40 @@ const toPayload = (form: TrainerFormState, isEditing: boolean): TrainerPayload &
   bio: form.bio.trim() || undefined,
   profilePicture: form.profilePicture.trim() || undefined,
   isFeatured: form.isFeatured,
+  applicationId: form.applicationId,
+});
+
+const generateTrainerPassword = () => {
+  const randomPart = Math.random().toString(36).slice(2, 8);
+  return `Fit${randomPart}#${Math.floor(100 + Math.random() * 900)}`;
+};
+
+const applicationToFormState = (application: BackendTrainerApplication): TrainerFormState => ({
+  firstName: application.firstName,
+  lastName: application.lastName,
+  email: application.email,
+  phone: application.phone || "",
+  password: generateTrainerPassword(),
+  location: application.location || "",
+  sessionRate: String(application.sessionRate || 0),
+  experienceYears: String(application.experienceYears || 0),
+  specialties: application.specialties.join(", "),
+  certifications: application.certifications.join(", "),
+  bio: application.bio || "",
+  profilePicture: normalizeTrainerPhotoUrl(application.profilePicture),
+  isFeatured: false,
+  applicationId: application._id,
 });
 
 export default function AdminTrainersPage() {
   const [trainers, setTrainers] = useState<BackendTrainer[]>([]);
+  const [applications, setApplications] = useState<BackendTrainerApplication[]>([]);
+  const [activeTab, setActiveTab] = useState<TrainerTab>("created");
   const [form, setForm] = useState<TrainerFormState>(emptyForm);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [editingTrainer, setEditingTrainer] = useState<BackendTrainer | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showTrainerPassword, setShowTrainerPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -96,6 +131,10 @@ export default function AdminTrainersPage() {
   const [error, setError] = useState("");
   const trainerPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const selectedPhotoLabel = selectedPhotoFile?.name || "No file chosen";
+  const pendingApplications = applications.filter((application) => application.status === "pending");
+  const approvedApplications = applications.filter((application) => application.status === "approved");
+  const rejectedApplications = applications.filter((application) => application.status === "rejected");
+  const featuredCount = trainers.filter((trainer) => trainer.isFeatured).length;
 
   const loadTrainers = async () => {
     setIsLoading(true);
@@ -110,16 +149,39 @@ export default function AdminTrainersPage() {
     }
   };
 
+  const loadApplications = async () => {
+    setError("");
+
+    try {
+      setApplications(await fetchTrainerApplications());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load trainer applications.");
+    }
+  };
+
   useEffect(() => {
     loadTrainers();
+    loadApplications();
   }, []);
 
   const openCreateForm = () => {
     setEditingTrainer(null);
     setForm(emptyForm);
     setSelectedPhotoFile(null);
+    setShowTrainerPassword(false);
     setIsFormOpen(true);
     setMessage("");
+    setError("");
+  };
+
+  const openCreateFormFromApplication = (application: BackendTrainerApplication) => {
+    setEditingTrainer(null);
+    setForm(applicationToFormState(application));
+    setSelectedPhotoFile(null);
+    setShowTrainerPassword(false);
+    setIsFormOpen(true);
+    setActiveTab("created");
+    setMessage("Trainer form filled from approved application. The password will be emailed after account creation.");
     setError("");
   };
 
@@ -127,6 +189,7 @@ export default function AdminTrainersPage() {
     setEditingTrainer(trainer);
     setForm(toFormState(trainer));
     setSelectedPhotoFile(null);
+    setShowTrainerPassword(false);
     setIsFormOpen(true);
     setMessage("");
     setError("");
@@ -136,6 +199,7 @@ export default function AdminTrainersPage() {
     setEditingTrainer(null);
     setForm(emptyForm);
     setSelectedPhotoFile(null);
+    setShowTrainerPassword(false);
     if (trainerPhotoInputRef.current) {
       trainerPhotoInputRef.current.value = "";
     }
@@ -186,10 +250,31 @@ export default function AdminTrainersPage() {
 
       closeForm();
       await loadTrainers();
+      await loadApplications();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save trainer.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleApplicationStatus = async (application: BackendTrainerApplication, status: "approved" | "rejected") => {
+    setError("");
+    setMessage("");
+
+    try {
+      const updated =
+        status === "approved"
+          ? await approveTrainerApplication(application._id)
+          : await rejectTrainerApplication(application._id);
+
+      if (updated) {
+        setApplications((current) => current.map((item) => (item._id === updated._id ? updated : item)));
+      }
+
+      setMessage(status === "approved" ? "Trainer application approved." : "Trainer application rejected.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update trainer application.");
     }
   };
 
@@ -223,12 +308,70 @@ export default function AdminTrainersPage() {
     }
   };
 
+  const renderApplicationCard = (application: BackendTrainerApplication) => {
+    const fullName = `${application.firstName} ${application.lastName}`;
+    const initials = `${application.firstName[0] ?? ""}${application.lastName[0] ?? ""}`;
+    const canCreateTrainer = application.status === "approved" && !application.createdTrainerId;
+
+    return (
+      <article className="admin-trainer-card admin-trainer-application-card" key={application._id}>
+        <div className="admin-trainer-card-main">
+          {normalizeTrainerPhotoUrl(application.profilePicture) ? (
+            <img src={normalizeTrainerPhotoUrl(application.profilePicture)} alt="" />
+          ) : (
+            <span className="admin-trainer-avatar">{initials}</span>
+          )}
+          <div>
+            <h2>{fullName}</h2>
+            <p>{application.email}</p>
+            <span>
+              {application.location || "Location not set"} · {application.experienceYears}y exp · Npr {application.sessionRate}/session
+            </span>
+            <div className="admin-trainer-tags">
+              {application.specialties.slice(0, 4).map((item) => (
+                <strong key={item}>{item}</strong>
+              ))}
+            </div>
+          </div>
+        </div>
+        <p className="admin-trainer-bio">{application.bio || "No application bio added."}</p>
+        <div className="admin-trainer-certs">
+          {application.certifications.length ? application.certifications.join(" · ") : "No certifications listed"}
+        </div>
+        <div className="admin-trainer-actions application-actions">
+          {application.status === "pending" ? (
+            <>
+              <button type="button" className="approve" onClick={() => handleApplicationStatus(application, "approved")}>
+                <Check aria-hidden="true" />
+                Approve
+              </button>
+              <button type="button" onClick={() => handleApplicationStatus(application, "rejected")}>
+                <X aria-hidden="true" />
+                Reject
+              </button>
+            </>
+          ) : null}
+          {canCreateTrainer ? (
+            <button type="button" className="approve" onClick={() => openCreateFormFromApplication(application)}>
+              <Plus aria-hidden="true" />
+              Create Trainer
+            </button>
+          ) : null}
+          {application.status === "approved" && application.createdTrainerId ? <span>Trainer account created</span> : null}
+          {application.status === "rejected" ? <span>Application rejected</span> : null}
+        </div>
+      </article>
+    );
+  };
+
   return (
     <section className="admin-trainers-page">
       <header className="admin-trainers-header">
         <div>
           <h1>Trainers</h1>
-          <p>{trainers.length} Trainers created</p>
+          <p>
+            {trainers.length} created · {approvedApplications.length} approved · {pendingApplications.length} pending · {featuredCount}/6 featured on homepage
+          </p>
         </div>
         <button type="button" className="admin-create-button" onClick={openCreateForm}>
           <Plus aria-hidden="true" />
@@ -236,10 +379,25 @@ export default function AdminTrainersPage() {
         </button>
       </header>
 
+      <div className="admin-trainer-tabs" role="tablist" aria-label="Trainer management tabs">
+        <button type="button" className={activeTab === "created" ? "active" : ""} onClick={() => setActiveTab("created")}>
+          Created {trainers.length}
+        </button>
+        <button type="button" className={activeTab === "applications" ? "active" : ""} onClick={() => setActiveTab("applications")}>
+          Applications {pendingApplications.length}
+        </button>
+        <button type="button" className={activeTab === "approved" ? "active" : ""} onClick={() => setActiveTab("approved")}>
+          Approved {approvedApplications.length}
+        </button>
+        <button type="button" className={activeTab === "rejected" ? "active" : ""} onClick={() => setActiveTab("rejected")}>
+          Rejected {rejectedApplications.length}
+        </button>
+      </div>
+
       {message ? <p className="admin-products-message success">{message}</p> : null}
       {error ? <p className="admin-products-message error">{error}</p> : null}
 
-      {isFormOpen ? (
+      {isFormOpen && activeTab === "created" ? (
         <div className="admin-trainer-form-panel">
           <div className="admin-card-header">
             <h2>{editingTrainer ? "Edit Trainer" : "Add Trainer"}</h2>
@@ -266,14 +424,24 @@ export default function AdminTrainersPage() {
             </label>
             <label>
               Password
-              <input
-                required={!editingTrainer}
-                minLength={6}
-                type="password"
-                placeholder={editingTrainer ? "Leave blank to keep current" : ""}
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              />
+              <span className="admin-trainer-password-field">
+                <input
+                  required={!editingTrainer}
+                  minLength={6}
+                  type={showTrainerPassword ? "text" : "password"}
+                  placeholder={editingTrainer ? "Leave blank to keep current" : ""}
+                  value={form.password}
+                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowTrainerPassword((isVisible) => !isVisible)}
+                  aria-label={showTrainerPassword ? "Hide password" : "Show password"}
+                >
+                  {showTrainerPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </button>
+              </span>
+              {!editingTrainer ? <small>This password will be emailed to the trainer after account creation.</small> : null}
             </label>
             <label>
               Location
@@ -348,11 +516,11 @@ export default function AdminTrainersPage() {
         </div>
       ) : null}
 
-      {isLoading ? (
+      {activeTab === "created" && isLoading ? (
         <div className="admin-products-empty">Loading trainers...</div>
-      ) : trainers.length === 0 ? (
+      ) : activeTab === "created" && trainers.length === 0 ? (
         <div className="admin-products-empty">No trainers found.</div>
-      ) : (
+      ) : activeTab === "created" ? (
         <div className="admin-trainer-grid">
           {trainers.map((trainer) => {
             const fullName = `${trainer.userId.firstName} ${trainer.userId.lastName}`;
@@ -408,7 +576,31 @@ export default function AdminTrainersPage() {
             );
           })}
         </div>
-      )}
+      ) : null}
+
+      {activeTab === "applications" ? (
+        pendingApplications.length ? (
+          <div className="admin-trainer-grid">{pendingApplications.map(renderApplicationCard)}</div>
+        ) : (
+          <div className="admin-products-empty">No pending trainer applications.</div>
+        )
+      ) : null}
+
+      {activeTab === "approved" ? (
+        approvedApplications.length ? (
+          <div className="admin-trainer-grid">{approvedApplications.map(renderApplicationCard)}</div>
+        ) : (
+          <div className="admin-products-empty">No approved trainer applications.</div>
+        )
+      ) : null}
+
+      {activeTab === "rejected" ? (
+        rejectedApplications.length ? (
+          <div className="admin-trainer-grid">{rejectedApplications.map(renderApplicationCard)}</div>
+        ) : (
+          <div className="admin-products-empty">No rejected trainer applications.</div>
+        )
+      ) : null}
     </section>
   );
 }

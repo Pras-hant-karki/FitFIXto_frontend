@@ -13,6 +13,12 @@ export interface BackendProduct {
   tags?: string[];
   sku?: string;
   discountPercentage?: number;
+  weight?: number;
+  dimensions?: {
+    length?: number;
+    width?: number;
+    height?: number;
+  };
   isFeatured: boolean;
   isActive: boolean;
   verifiedBadge: boolean;
@@ -57,6 +63,11 @@ export const getOriginalPrice = (product: BackendProduct) => {
 export const fetchProducts = async (params?: Record<string, string | number | boolean>) => {
   const response = await apiClient.get<ProductListResponse>(API_ENDPOINTS.products.list, { params });
   return response.data;
+};
+
+export const fetchProduct = async (productId: string) => {
+  const response = await apiClient.get<{ product: BackendProduct }>(API_ENDPOINTS.products.detail(productId));
+  return response.data?.product;
 };
 
 export type ProductPayload = {

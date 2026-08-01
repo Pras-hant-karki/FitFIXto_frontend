@@ -41,11 +41,38 @@ export type TrainerPayload = {
   certifications: string[];
   isFeatured?: boolean;
   isSuspended?: boolean;
+  applicationId?: string;
+};
+
+export type TrainerApplicationStatus = "pending" | "approved" | "rejected";
+
+export type BackendTrainerApplication = {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  bio?: string;
+  profilePicture?: string | null;
+  location?: string;
+  sessionRate: number;
+  experienceYears: number;
+  specialties: string[];
+  certifications: string[];
+  status: TrainerApplicationStatus;
+  createdTrainerId?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export const fetchAdminTrainers = async () => {
   const response = await apiClient.get<{ trainers: BackendTrainer[] }>(API_ENDPOINTS.trainers.list);
   return response.data?.trainers || [];
+};
+
+export const fetchTrainerApplications = async () => {
+  const response = await apiClient.get<{ applications: BackendTrainerApplication[] }>(API_ENDPOINTS.trainers.applications);
+  return response.data?.applications || [];
 };
 
 export const createTrainer = async (payload: TrainerPayload & { password: string }) => {
@@ -61,6 +88,16 @@ export const updateTrainer = async (trainerId: string, payload: Partial<TrainerP
 export const deleteTrainer = async (trainerId: string) => {
   const response = await apiClient.delete<{ trainerId: string }>(API_ENDPOINTS.trainers.detail(trainerId));
   return response.data;
+};
+
+export const approveTrainerApplication = async (applicationId: string) => {
+  const response = await apiClient.patch<{ application: BackendTrainerApplication }>(API_ENDPOINTS.trainers.approveApplication(applicationId));
+  return response.data?.application;
+};
+
+export const rejectTrainerApplication = async (applicationId: string) => {
+  const response = await apiClient.patch<{ application: BackendTrainerApplication }>(API_ENDPOINTS.trainers.rejectApplication(applicationId));
+  return response.data?.application;
 };
 
 export const normalizeTrainerPhotoUrl = (url?: string | null) => {

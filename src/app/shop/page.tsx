@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Heart, ShoppingCart, Star } from "lucide-react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle2, Heart, Search, ShoppingCart, Star } from "lucide-react";
 import {
   BackendProduct,
   fetchProducts,
@@ -9,14 +11,19 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
-
-interface Filters {
-  categories: string[];
-  priceRange: [number, number];
-  brands: string[];
-}
+import { useAuth, useWishlist } from "@/contexts";
 
 const DEFAULT_MAX_PRICE = 3000;
+const PRODUCT_PAGE_SIZE = 6;
+
+type ProductPagination = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
 
 interface DualRangeSliderProps {
   min: number;
@@ -25,14 +32,19 @@ interface DualRangeSliderProps {
   onChange: (value: [number, number]) => void;
 }
 
+const parseListParam = (value: string | null) =>
+  value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onChange }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<"min" | "max" | null>(null);
 
-  const getPercentage = useCallback(
-    (val: number) => ((val - min) / (max - min || 1)) * 100,
-    [min, max]
-  );
+  const getPercentage = useCallback((val: number) => ((val - min) / (max - min || 1)) * 100, [min, max]);
 
   const getValueFromPosition = useCallback(
     (clientX: number) => {
@@ -45,9 +57,9 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (event: MouseEvent) => {
       if (!dragging) return;
-      const newValue = getValueFromPosition(e.clientX);
+      const newValue = getValueFromPosition(event.clientX);
       if (dragging === "min") {
         onChange([Math.min(newValue, value[1] - 50), value[1]]);
       } else {
@@ -61,6 +73,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     }
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
@@ -92,8 +105,8 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
         onMouseDown={() => setDragging("max")}
       />
       <div className="flex justify-between mt-4 text-sm text-gray-600">
-        <span>${value[0]}</span>
-        <span>${value[1]}</span>
+        <span>Npr {value[0]}</span>
+        <span>Npr {value[1]}</span>
       </div>
     </div>
   );
@@ -107,14 +120,16 @@ interface FilterCheckboxProps {
 
 const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChange }) => (
   <label className="flex items-center space-x-3 cursor-pointer group">
-    <div
+    <button
+      type="button"
       className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
         checked ? "bg-black border-black" : "border-gray-300 group-hover:border-gray-400"
       }`}
       onClick={onChange}
+      aria-label={label}
     >
       {checked && <CheckCircle2 className="w-3 h-3 text-white" />}
-    </div>
+    </button>
     <span className="text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
   </label>
 );
@@ -122,28 +137,52 @@ const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChang
 const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
   const discount = product.discountPercentage || 0;
   const originalPrice = getOriginalPrice(product);
+  const { isAuthenticated } = useAuth();
+  const { wishlistProductIds, toggleWishlistItem } = useWishlist();
+  const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const isWishlisted = wishlistProductIds.has(product._id);
+
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setIsUpdatingWishlist(true);
+
+    try {
+      await toggleWishlistItem(product._id);
+    } finally {
+      setIsUpdatingWishlist(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
       <div className="relative h-56 bg-gray-50">
-        {getProductImage(product) ? (
-          <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="product-no-image">No image</div>
-        )}
+        <Link href={`/products/${product._id}`} className="block h-full">
+          {getProductImage(product) ? (
+            <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="product-no-image">No image</div>
+          )}
+        </Link>
         {product.verifiedBadge && (
           <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
             <CheckCircle2 className="w-3 h-3" />
             <span>VERIFIED</span>
           </div>
         )}
-        {discount > 0 ? (
-          <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
-            -{discount}%
-          </div>
-        ) : null}
-        <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors">
-          <Heart className="w-4 h-4 text-gray-600" />
+        {discount > 0 ? <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div> : null}
+        <button
+          type="button"
+          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-60"
+          onClick={handleWishlistToggle}
+          disabled={isUpdatingWishlist}
+          aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+          aria-pressed={isWishlisted}
+        >
+          <Heart className={`w-4 h-4 ${isWishlisted ? "fill-black text-black" : "text-gray-600"}`} />
         </button>
       </div>
 
@@ -151,15 +190,17 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
         <div className="text-xs text-gray-500 mb-1">
           {formatCategory(product.category)} - {product.brand || "FitFIXto"}
         </div>
-        <h3 className="font-semibold text-gray-900 mb-2 leading-tight">{product.name}</h3>
+        <Link href={`/products/${product._id}`} className="block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
+          {product.name}
+        </Link>
         <div className="flex items-center space-x-1 mb-3">
           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
           <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
           <span className="text-sm text-gray-500">({product.ratingCount})</span>
         </div>
         <div className="flex items-baseline space-x-2 mb-4">
-          <span className="text-xl font-bold text-gray-900">${product.price}</span>
-          {originalPrice ? <span className="text-sm text-gray-400 line-through">${originalPrice}</span> : null}
+          <span className="text-xl font-bold text-gray-900">Npr {product.price}</span>
+          {originalPrice ? <span className="text-sm text-gray-400 line-through">Npr {originalPrice}</span> : null}
         </div>
         <button className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium">
           <ShoppingCart className="w-4 h-4" />
@@ -170,15 +211,136 @@ const ProductCard: React.FC<{ product: BackendProduct }> = ({ product }) => {
   );
 };
 
-const Shop: React.FC = () => {
+const ProductGridSkeleton = () => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+    {Array.from({ length: PRODUCT_PAGE_SIZE }, (_, item) => (
+      <div className="overflow-hidden rounded-lg border border-gray-100 bg-white" key={item}>
+        <div className="h-56 animate-pulse bg-gray-100" />
+        <div className="space-y-4 p-4">
+          <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
+          <div className="h-6 w-5/6 animate-pulse rounded bg-gray-100" />
+          <div className="h-4 w-24 animate-pulse rounded bg-gray-100" />
+          <div className="h-7 w-28 animate-pulse rounded bg-gray-100" />
+          <div className="h-12 animate-pulse rounded-lg bg-gray-100" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const getPaginationPages = (currentPage: number, totalPages: number) => {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  return Array.from({ length: 5 }, (_, index) => start + index);
+};
+
+const ShopContent: React.FC = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamString = searchParams.toString();
   const [products, setProducts] = useState<BackendProduct[]>([]);
+  const [facetProducts, setFacetProducts] = useState<BackendProduct[]>([]);
+  const [pagination, setPagination] = useState<ProductPagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filters, setFilters] = useState<Filters>({
-    categories: [],
-    priceRange: [0, DEFAULT_MAX_PRICE],
-    brands: [],
-  });
+
+  const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
+  const selectedBrands = useMemo(() => parseListParam(searchParams.get("brand")), [searchParamString]);
+  const searchQuery = searchParams.get("search") || "";
+  const [searchInput, setSearchInput] = useState(searchQuery);
+  const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
+  const minPrice = Number.isFinite(parsedMinPrice) ? parsedMinPrice : 0;
+  const selectedMaxPrice = searchParams.get("maxPrice");
+  const parsedPage = Number(searchParams.get("page") || 1);
+  const currentPage = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1;
+
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const loadFacets = async () => {
+      try {
+        const data = await fetchProducts({ limit: 100, sortBy: "createdAt", order: "desc" });
+        setFacetProducts(data?.products || []);
+      } catch {
+        setFacetProducts([]);
+      }
+    };
+
+    loadFacets();
+  }, []);
+
+  const maxPrice = useMemo(() => {
+    const highestPrice = Math.max(...facetProducts.map((product) => product.price), DEFAULT_MAX_PRICE);
+    return Math.ceil(highestPrice / 100) * 100;
+  }, [facetProducts]);
+
+  const parsedMaxPrice = Number(selectedMaxPrice);
+  const priceRange: [number, number] = [minPrice, selectedMaxPrice && Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : maxPrice];
+
+  const categories = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.category))).filter(Boolean), [facetProducts]);
+  const brands = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.brand).filter(Boolean))) as string[], [facetProducts]);
+
+  const updateUrl = useCallback((updates: Record<string, string | null>, mode: "push" | "replace" = "push") => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        nextParams.set(key, value);
+      } else {
+        nextParams.delete(key);
+      }
+    });
+
+    const nextQuery = nextParams.toString();
+    const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+
+    if (mode === "replace") {
+      router.replace(nextUrl);
+    } else {
+      router.push(nextUrl);
+    }
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    const normalizedInput = searchInput.trim();
+
+    if (normalizedInput === searchQuery) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      updateUrl({ search: normalizedInput || null, page: null }, "replace");
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput, searchQuery, updateUrl]);
+
+  const toggleFilter = (key: "category" | "brand", value: string) => {
+    const current = key === "category" ? selectedCategories : selectedBrands;
+    const updated = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+    updateUrl({ [key]: updated.length ? updated.join(",") : null, page: null });
+  };
+
+  const updatePriceRange = (range: [number, number]) => {
+    updateUrl({
+      minPrice: range[0] > 0 ? String(range[0]) : null,
+      maxPrice: range[1] < maxPrice ? String(range[1]) : null,
+      page: null,
+    });
+  };
+
+  const resetFilters = () => router.push(pathname);
+
+  const goToPage = (page: number) => {
+    updateUrl({ page: page > 1 ? String(page) : null });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -186,61 +348,36 @@ const Shop: React.FC = () => {
       setError("");
 
       try {
-        const data = await fetchProducts({ isActive: true, limit: 100 });
+        const params: Record<string, string | number | boolean> = {
+          page: currentPage,
+          limit: PRODUCT_PAGE_SIZE,
+          sortBy: "createdAt",
+          order: "desc",
+        };
+
+        if (selectedCategories.length) params.category = selectedCategories.join(",");
+        if (selectedBrands.length) params.brand = selectedBrands.join(",");
+        if (searchQuery.trim()) params.search = searchQuery.trim();
+        if (priceRange[0] > 0) params.minPrice = priceRange[0];
+        if (selectedMaxPrice) params.maxPrice = priceRange[1];
+
+        const data = await fetchProducts(params);
         setProducts(data?.products || []);
+        setPagination(data?.pagination || null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load products.");
+        setPagination(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadProducts();
-  }, []);
+  }, [searchParamString, selectedCategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1], currentPage]);
 
-  const maxPrice = useMemo(() => {
-    const highestPrice = Math.max(...products.map((product) => product.price), DEFAULT_MAX_PRICE);
-    return Math.ceil(highestPrice / 100) * 100;
-  }, [products]);
-
-  useEffect(() => {
-    setFilters((current) => ({
-      ...current,
-      priceRange: [current.priceRange[0], Math.max(current.priceRange[1], maxPrice)],
-    }));
-  }, [maxPrice]);
-
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((product) => product.category))).filter(Boolean),
-    [products]
-  );
-
-  const brands = useMemo(
-    () => Array.from(new Set(products.map((product) => product.brand).filter(Boolean))) as string[],
-    [products]
-  );
-
-  const toggleFilter = (key: "categories" | "brands", value: string) => {
-    setFilters((prev) => {
-      const current = prev[key];
-      const updated = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
-      return { ...prev, [key]: updated };
-    });
-  };
-
-  const filteredProducts = products.filter((product) => {
-    if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false;
-    if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) return false;
-    if (filters.brands.length > 0 && (!product.brand || !filters.brands.includes(product.brand))) return false;
-    return true;
-  });
-
-  const resetFilters = () =>
-    setFilters({
-      categories: [],
-      priceRange: [0, maxPrice],
-      brands: [],
-    });
+  const totalProducts = pagination?.total ?? products.length;
+  const totalPages = pagination?.totalPages ?? 1;
+  const paginationPages = getPaginationPages(currentPage, totalPages);
 
   return (
     <div className="min-h-screen bg-white">
@@ -248,13 +385,32 @@ const Shop: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop Your Needs</h1>
           <p className="text-sm text-gray-500">
-            {isLoading ? "Loading products..." : `Showing ${filteredProducts.length} of ${products.length} products`}
+            {isLoading
+              ? "Loading products..."
+              : searchQuery
+                ? `Showing ${products.length} of ${totalProducts} products for "${searchQuery}"`
+                : `Showing ${products.length} of ${totalProducts} products`}
           </p>
+          <label className="relative mt-5 block w-full max-w-xl">
+            <span className="sr-only">Search products</span>
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search products..."
+              className="w-full rounded-lg border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm font-semibold text-gray-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
+            />
+          </label>
         </div>
 
         {error ? (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            {error}
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm font-semibold text-red-700">
+            <strong className="block text-base text-red-800">Unable to load products.</strong>
+            <span className="mt-1 block">{error}</span>
+            <button type="button" onClick={() => window.location.reload()} className="mt-3 rounded-md bg-red-700 px-4 py-2 text-white">
+              Try Again
+            </button>
           </div>
         ) : null}
 
@@ -266,12 +422,7 @@ const Shop: React.FC = () => {
                 <div className="space-y-3">
                   {categories.length > 0 ? (
                     categories.map((cat) => (
-                      <FilterCheckbox
-                        key={cat}
-                        label={formatCategory(cat)}
-                        checked={filters.categories.includes(cat)}
-                        onChange={() => toggleFilter("categories", cat)}
-                      />
+                      <FilterCheckbox key={cat} label={formatCategory(cat)} checked={selectedCategories.includes(cat)} onChange={() => toggleFilter("category", cat)} />
                     ))
                   ) : (
                     <p className="text-sm text-gray-500">No categories yet.</p>
@@ -281,13 +432,8 @@ const Shop: React.FC = () => {
 
               <div>
                 <h3 className="font-bold text-gray-900 mb-4">Price Range</h3>
-                <DualRangeSlider
-                  min={0}
-                  max={maxPrice}
-                  value={filters.priceRange}
-                  onChange={(range) => setFilters((prev) => ({ ...prev, priceRange: range }))}
-                />
-                <p className="text-xs text-gray-500 mt-2">Up to ${maxPrice}</p>
+                <DualRangeSlider min={0} max={maxPrice} value={priceRange} onChange={updatePriceRange} />
+                <p className="text-xs text-gray-500 mt-2">Up to Npr {maxPrice}</p>
               </div>
 
               <div>
@@ -295,12 +441,7 @@ const Shop: React.FC = () => {
                 <div className="space-y-3">
                   {brands.length > 0 ? (
                     brands.map((brand) => (
-                      <FilterCheckbox
-                        key={brand}
-                        label={brand}
-                        checked={filters.brands.includes(brand)}
-                        onChange={() => toggleFilter("brands", brand)}
-                      />
+                      <FilterCheckbox key={brand} label={brand} checked={selectedBrands.includes(brand)} onChange={() => toggleFilter("brand", brand)} />
                     ))
                   ) : (
                     <p className="text-sm text-gray-500">No brands yet.</p>
@@ -312,25 +453,60 @@ const Shop: React.FC = () => {
 
           <main className="flex-1">
             {isLoading ? (
-              <div className="text-center py-16">
-                <p className="text-gray-500 text-lg">Loading products...</p>
-              </div>
+              <ProductGridSkeleton />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <ProductCard key={product._id} product={product} />
                 ))}
               </div>
             )}
 
-            {!isLoading && filteredProducts.length === 0 && (
-              <div className="text-center py-16">
-                <p className="text-gray-500 text-lg">No products match your filters.</p>
-                <button onClick={resetFilters} className="mt-4 text-black font-semibold hover:underline">
+            {!isLoading && products.length === 0 && (
+              <div className="rounded-xl border border-gray-200 bg-white px-6 py-16 text-center">
+                <h2 className="text-2xl font-black text-gray-950">No products found</h2>
+                <p className="mt-3 text-lg text-gray-500">
+                  {searchQuery ? `No products match "${searchQuery}" with the current filters.` : "No products match your current filters."}
+                </p>
+                <button onClick={resetFilters} className="mt-6 rounded-md bg-[#020011] px-6 py-3 font-semibold text-white">
                   Clear all filters
                 </button>
               </div>
             )}
+
+            {!isLoading && !error && products.length > 0 && totalPages > 1 ? (
+              <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Shop pagination">
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={!pagination?.hasPrevPage}
+                  className="rounded-md border border-gray-200 px-4 py-2 text-sm font-bold text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                {paginationPages.map((page) => (
+                  <button
+                    type="button"
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    aria-current={page === currentPage ? "page" : undefined}
+                    className={`h-10 min-w-10 rounded-md border px-3 text-sm font-black ${
+                      page === currentPage ? "border-[#020011] bg-[#020011] text-white" : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={!pagination?.hasNextPage}
+                  className="rounded-md border border-gray-200 px-4 py-2 text-sm font-bold text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </nav>
+            ) : null}
           </main>
         </div>
       </div>
@@ -338,4 +514,16 @@ const Shop: React.FC = () => {
   );
 };
 
-export default Shop;
+export default function ShopPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-gray-500">Loading shop...</div>
+        </div>
+      }
+    >
+      <ShopContent />
+    </Suspense>
+  );
+}

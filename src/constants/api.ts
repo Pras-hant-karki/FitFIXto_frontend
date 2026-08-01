@@ -22,23 +22,18 @@ export const API_ENDPOINTS = {
   auth: {
     login: '/auth/login',
     signup: '/auth/register',
-    logout: '/auth/logout',
     me: '/auth/me',
     profile: '/auth/profile',
     uploadProfileImage: '/auth/profile/upload-image',
     verify: '/auth/verify-email',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
-    refresh: '/auth/refresh',
   },
 
   // Products
   products: {
     list: '/products',
     detail: (id: string) => `/products/${id}`,
-    search: '/products/search',
-    trending: '/products/trending',
-    featured: '/products/featured',
     uploadImages: '/products/upload-images',
   },
 
@@ -51,38 +46,32 @@ export const API_ENDPOINTS = {
     clear: '/cart/clear',
   },
 
+  // Wishlist
+  wishlist: {
+    get: '/wishlist',
+    add: '/wishlist',
+    remove: '/wishlist',
+  },
+
   // Orders
   orders: {
-    list: '/orders/my-orders',
     myOrders: '/orders/my-orders',
     adminAll: '/orders/admin/all',
-    detail: (id: string) => `/orders/${id}`,
     create: '/orders',
-    cancel: (id: string) => `/orders/${id}/cancel`,
-    track: (id: string) => `/orders/${id}/track`,
   },
 
   // User
   user: {
-    profile: '/auth/me',
-    update: '/auth/profile',
     addresses: '/delivery-addresses',
-    preferences: '/user/preferences',
-  },
-
-  // Reviews
-  reviews: {
-    list: (productId: string) => `/products/${productId}/reviews`,
-    create: (productId: string) => `/products/${productId}/reviews`,
-    update: (reviewId: string) => `/reviews/${reviewId}`,
-    delete: (reviewId: string) => `/reviews/${reviewId}`,
   },
 
   // Trainers
   trainers: {
     list: '/trainers',
     detail: (id: string) => `/trainers/${id}`,
-    search: '/trainers/search',
+    applications: '/trainers/applications',
+    approveApplication: (id: string) => `/trainers/applications/${id}/approve`,
+    rejectApplication: (id: string) => `/trainers/applications/${id}/reject`,
     uploadPhoto: '/trainers/upload-photo',
   },
 
@@ -95,11 +84,6 @@ export const API_ENDPOINTS = {
     uploadImage: '/homepage/upload-image',
   },
 
-  // Vouchers
-  vouchers: {
-    validate: '/vouchers/validate',
-    apply: '/cart/voucher',
-  },
 } as const;
 
 export const API_HEADERS = {

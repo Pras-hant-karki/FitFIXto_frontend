@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/contexts";
+import { useAuth, useWishlist } from "@/contexts";
 
 const navItems = [
   { label: "Shop", href: "/shop" },
@@ -31,6 +31,7 @@ export function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated, logout, user } = useAuth();
+  const { wishlistCount } = useWishlist();
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
@@ -72,6 +73,7 @@ export function Navbar() {
           height={58}
           priority
           className="site-logo"
+          style={{ width: "100%", height: "auto" }}
         />
       </Link>
 
@@ -101,6 +103,7 @@ export function Navbar() {
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
           </svg>
+          {wishlistCount > 0 ? <span className="nav-count-badge">{wishlistCount}</span> : null}
         </Link>
         <IconButton label="Toggle color theme" onClick={toggleTheme}>
           <svg viewBox="0 0 24 24" aria-hidden="true">

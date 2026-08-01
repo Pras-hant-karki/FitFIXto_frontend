@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, DollarSign, Package, ShoppingBag, UserCog, Users, type LucideIcon } from "lucide-react";
+import { ArrowRight, DollarSign, Package, ShoppingBag, Users, type LucideIcon } from "lucide-react";
 import { AdminAnalytics, fetchAdminAnalytics } from "@/features/admin-analytics/api";
 import { fetchAdminUsers } from "@/features/admin-users/api";
 import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
@@ -43,7 +43,6 @@ export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
   const [recentOrders, setRecentOrders] = useState<BackendOrder[]>([]);
   const [customerCount, setCustomerCount] = useState(0);
-  const [trainerCount, setTrainerCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -61,7 +60,6 @@ export default function AdminDashboardPage() {
 
         setAnalytics(analyticsData || emptyAnalytics);
         setCustomerCount(users.filter((user) => user.role === "customer").length);
-        setTrainerCount(users.filter((user) => user.role === "trainer").length);
         setRecentOrders(orders.slice(0, 5));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
@@ -83,7 +81,6 @@ export default function AdminDashboardPage() {
     { label: "Orders", value: String(analytics.summary.orders), note: "Total orders in selected period", Icon: Package },
     { label: "Sales", value: String(analytics.summary.productsSold), note: "Products sold from order items", Icon: ShoppingBag },
     { label: "Customers", value: String(customerCount), note: "Registered customer accounts", Icon: Users },
-    { label: "Trainers", value: String(trainerCount), note: "Registered trainer accounts", Icon: UserCog },
   ];
 
   const revenueSeries = analytics.series.map((point) => point.revenue);

@@ -25,3 +25,8 @@ export const fetchCart = async () => {
   const response = await apiClient.get<{ cart: BackendCart }>(API_ENDPOINTS.cart.get);
   return response.data?.cart || { items: [] };
 };
+
+export const addCartItem = async (productId: string, quantity = 1) => {
+  const response = await apiClient.post<{ cart: BackendCart }>(API_ENDPOINTS.cart.add, { productId, quantity });
+  return response.data?.cart || { items: [] };
+};
