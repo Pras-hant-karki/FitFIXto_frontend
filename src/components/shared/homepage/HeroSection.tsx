@@ -41,7 +41,7 @@ export function HeroSection() {
       className="hero-section"
       id="home"
       aria-label="FitFIXto hero"
-      style={{ backgroundImage: `linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.62) 40%, rgba(0, 0, 0, 0.14) 78%), url("${hero.imageUrl || defaultHero.imageUrl}")` }}
+      style={{ backgroundImage: `linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.62) 40%, rgba(0, 0, 0, 0.14) 78%), url("${encodeURI(hero.imageUrl || defaultHero.imageUrl).replace(/"/g, '%22')}")` }}
     >
       <div className="hero-content">
         {hero.eyebrow && hero.title ? (

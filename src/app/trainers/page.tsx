@@ -8,6 +8,7 @@ import {
   fetchPublicTrainers,
   normalizeTrainerPhotoUrl,
 } from "@/features/trainers";
+import { usePreferences } from "@/contexts";
 
 const SpecialtyTag = ({ label }: { label: string }) => (
   <span className="inline-block bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">
@@ -21,9 +22,16 @@ const getTrainerName = (trainer: BackendTrainer) =>
 const getTrainerPhoto = (trainer: BackendTrainer) =>
   normalizeTrainerPhotoUrl(trainer.userId.profilePicture);
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const isNewTrainer = (createdAt: string) => Date.now() - new Date(createdAt).getTime() < SEVEN_DAYS_MS;
+
 const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
   const trainerName = getTrainerName(trainer);
   const trainerPhoto = getTrainerPhoto(trainer);
+  const { formatPrice } = usePreferences();
+  const isNew = isNewTrainer(trainer.createdAt);
+  const averageRating = trainer.averageRating ?? 0;
+  const ratingCount = trainer.ratingCount ?? 0;
 
   return (
     <Link href={`/trainers/${trainer._id}`} className="block bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
@@ -47,10 +55,12 @@ const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
         <div className="flex items-center space-x-2 mb-3">
           <div className="flex items-center space-x-1">
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            <span className="text-sm font-semibold text-gray-900">New</span>
+            <span className="text-sm font-semibold text-gray-900">
+              {isNew ? "New" : averageRating.toFixed(1)}
+            </span>
           </div>
           <span className="text-sm text-gray-500">
-            0 reviews · {trainer.experienceYears}+ yrs
+            {ratingCount} {ratingCount === 1 ? "review" : "reviews"} · {trainer.experienceYears}+ yrs
           </span>
         </div>
 
@@ -67,7 +77,7 @@ const TrainerCard = ({ trainer }: { trainer: BackendTrainer }) => {
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xl font-bold text-gray-900">
-              Npr {Math.round(trainer.sessionRate).toLocaleString()}
+              {formatPrice(trainer.sessionRate)}
             </span>
             <span className="text-xs text-gray-500">/session</span>
           </div>
@@ -161,12 +171,14 @@ export default function TrainersPage() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">Loading trainers...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="skeleton skeleton-card" />
+            ))}
           </div>
         ) : error ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">{error}</p>
+          <div className="empty-state">
+            <p>{error}</p>
           </div>
         ) : filteredTrainers.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -175,8 +187,8 @@ export default function TrainersPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">No trainers found matching your search.</p>
+          <div className="empty-state">
+            <p>No trainers found matching your search.</p>
             {searchQuery ? (
               <button onClick={() => setSearchQuery("")} className="mt-4 text-black font-semibold hover:underline">
                 Clear search

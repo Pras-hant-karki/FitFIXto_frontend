@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { BackendService, fetchPublicServices } from "@/features/services";
+import { resolveAssetUrl } from "@/constants/api";
 
 function serviceImage(service: BackendService) {
-  if (!service.image) return "/assets/ctabanner.png";
-  if (service.image.startsWith("http") || service.image.startsWith("/")) return service.image;
-  return `/assets/${service.image}`;
+  if (!service.image) return "/ctabanner.png";
+  if (service.image.startsWith("http://") || service.image.startsWith("https://")) return service.image;
+  return resolveAssetUrl(service.image);
 }
 
 export function ProfessionalServices() {

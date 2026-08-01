@@ -3,23 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Star } from "lucide-react";
 import { CustomerDashboardShell } from "@/components/shared/customer";
+import { useToast } from "@/contexts";
 import { BackendOrder, BackendOrderItem, fetchMyOrders } from "@/features/orders";
 import { BackendProduct, getProductImage } from "@/features/products";
 import { BackendReview, createReview, fetchMyReviews } from "@/features/reviews";
+import { BackendBooking, fetchMyClientBookings, submitTrainerReview } from "@/features/bookings";
+import { BackendServiceBooking, fetchMyServiceBookings, submitServiceReview } from "@/features/serviceBookings";
 
-type ReviewDraft = {
-  rating: number;
-  comment: string;
-};
+type ReviewDraft = { rating: number; comment: string };
 
-type ReviewableItem = {
-  id: string;
-  orderId: string;
-  orderCode: string;
-  productId: string;
-  productName: string;
-  productImage: string;
-};
+const defaultDraft = (): ReviewDraft => ({ rating: 0, comment: "" });
 
 const formatOrderId = (id: string) => `ORD-${id.slice(-4).toUpperCase()}`;
 
@@ -27,132 +20,181 @@ const getProductFromOrderItem = (item: BackendOrderItem) => {
   if (typeof item.productId === "string") return null;
   return item.productId as BackendProduct;
 };
-
 const getProductIdFromOrderItem = (item: BackendOrderItem) => {
   if (typeof item.productId === "string") return item.productId;
-  return item.productId?._id || "";
+  return (item.productId as BackendProduct)?._id || "";
 };
 
-const getProductFromReview = (review: BackendReview) => {
-  if (typeof review.productId === "string") return null;
-  return review.productId as BackendProduct;
+const getTrainerName = (booking: BackendBooking): string => {
+  if (typeof booking.trainerId === "string") return "Trainer";
+  const t = booking.trainerId as { userId?: { firstName?: string; lastName?: string } };
+  return `${t.userId?.firstName || ""} ${t.userId?.lastName || ""}`.trim() || "Trainer";
 };
 
-const toReviewableItems = (orders: BackendOrder[], reviews: BackendReview[]) => {
-  const reviewedKeys = new Set(
-    reviews.map((review) => {
-      const product = getProductFromReview(review);
-      const productId = product?._id || (typeof review.productId === "string" ? review.productId : "");
-      return `${review.orderId}-${productId}`;
-    })
+const getServiceName = (booking: BackendServiceBooking): string => {
+  if (typeof booking.serviceId === "string") return "Service";
+  return (booking.serviceId as { name?: string }).name || "Service";
+};
+
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="customer-review-stars">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          type="button"
+          key={n}
+          className={n <= value ? "active" : undefined}
+          onClick={() => onChange(n)}
+          aria-label={`${n} star${n === 1 ? "" : "s"}`}
+        >
+          <Star aria-hidden="true" />
+        </button>
+      ))}
+      <small>{value > 0 ? `${value} / 5` : "Tap to rate"}</small>
+    </div>
   );
-
-  return orders
-    .filter((order) => order.status === "delivered")
-    .flatMap((order) =>
-      order.items.map((item) => {
-        const product = getProductFromOrderItem(item);
-        const productId = getProductIdFromOrderItem(item);
-
-        return {
-          id: `${order._id}-${productId}`,
-          orderId: order._id,
-          orderCode: formatOrderId(order._id),
-          productId,
-          productName: product?.name || item.productName,
-          productImage: product ? getProductImage(product) : "",
-        };
-      })
-    )
-    .filter((item) => item.productId && !reviewedKeys.has(`${item.orderId}-${item.productId}`));
-};
+}
 
 export default function UserToReviewPage() {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [bookings, setBookings] = useState<BackendBooking[]>([]);
+  const [serviceBookings, setServiceBookings] = useState<BackendServiceBooking[]>([]);
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
+  const [submitting, setSubmitting] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [submittingItemId, setSubmittingItemId] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let isActive = true;
-
-    const loadOrders = async () => {
+    const load = async () => {
       setIsLoading(true);
       setError("");
-      setMessage("");
-
       try {
-        const [nextOrders, nextReviews] = await Promise.all([fetchMyOrders(), fetchMyReviews()]);
-        if (isActive) {
-          setOrders(nextOrders);
-          setReviews(nextReviews);
-        }
+        const [nextOrders, nextReviews, nextBookings, nextServiceBookings] = await Promise.all([
+          fetchMyOrders(),
+          fetchMyReviews(),
+          fetchMyClientBookings(),
+          fetchMyServiceBookings(),
+        ]);
+        if (!isActive) return;
+        setOrders(nextOrders);
+        setReviews(nextReviews);
+        setBookings(nextBookings);
+        setServiceBookings(nextServiceBookings);
       } catch (err) {
-        if (isActive) {
-          setError(err instanceof Error ? err.message : "Unable to load products for review.");
-        }
+        if (isActive) setError(err instanceof Error ? err.message : "Unable to load data.");
       } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        if (isActive) setIsLoading(false);
       }
     };
-
-    loadOrders();
-
-    return () => {
-      isActive = false;
-    };
+    load();
+    return () => { isActive = false; };
   }, []);
 
-  const reviewItems = useMemo(() => toReviewableItems(orders, reviews), [orders, reviews]);
+  const getDraft = (id: string) => drafts[id] ?? defaultDraft();
+  const setDraft = (id: string, patch: Partial<ReviewDraft>) =>
+    setDrafts((cur) => ({ ...cur, [id]: { ...getDraft(id), ...patch } }));
 
-  const updateDraft = (itemId: string, nextDraft: Partial<ReviewDraft>) => {
-    setDrafts((current) => ({
-      ...current,
-      [itemId]: {
-        rating: current[itemId]?.rating || 0,
-        comment: current[itemId]?.comment || "",
-        ...nextDraft,
-      },
-    }));
+  // Product review items
+  const productItems = useMemo(() => {
+    const reviewedKeys = new Set(
+      reviews.map((r) => {
+        const prod = typeof r.productId === "string" ? r.productId : (r.productId as BackendProduct)?._id || "";
+        return `${r.orderId}-${prod}`;
+      })
+    );
+    return orders
+      .filter((o) => o.status === "delivered")
+      .flatMap((o) =>
+        o.items.map((item) => {
+          const product = getProductFromOrderItem(item);
+          const productId = getProductIdFromOrderItem(item);
+          const key = `${o._id}-${productId}`;
+          return {
+            key,
+            orderId: o._id,
+            orderCode: formatOrderId(o._id),
+            productId,
+            name: product?.name || item.productName,
+            image: product ? getProductImage(product) : "",
+            reviewed: reviewedKeys.has(key),
+          };
+        })
+      )
+      .filter((i) => i.productId && !i.reviewed);
+  }, [orders, reviews]);
+
+  // Completed trainer bookings not yet reviewed
+  const unreviewedBookings = useMemo(
+    () => bookings.filter((b) => b.status === "completed" && !b.clientRating),
+    [bookings]
+  );
+
+  // Completed service bookings not yet reviewed
+  const unreviewedServices = useMemo(
+    () => serviceBookings.filter((b) => b.status === "completed" && !b.clientRating),
+    [serviceBookings]
+  );
+
+  const hasAnything = productItems.length > 0 || unreviewedBookings.length > 0 || unreviewedServices.length > 0;
+
+  // Past trainer reviews
+  const reviewedBookings = useMemo(
+    () => bookings.filter((b) => b.clientRating),
+    [bookings]
+  );
+  const reviewedServices = useMemo(
+    () => serviceBookings.filter((b) => b.clientRating),
+    [serviceBookings]
+  );
+
+  const handleProductReview = async (item: (typeof productItems)[0]) => {
+    const draft = getDraft(item.key);
+    if (!draft.rating || !draft.comment.trim()) return;
+    setSubmitting(item.key);
+    try {
+      const review = await createReview({ productId: item.productId, orderId: item.orderId, rating: draft.rating, comment: draft.comment.trim() });
+      if (review) setReviews((cur) => [review, ...cur]);
+      setDrafts((cur) => { const n = { ...cur }; delete n[item.key]; return n; });
+      toast.success("Product review submitted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to submit review.");
+    } finally {
+      setSubmitting("");
+    }
   };
 
-  const handleSubmitReview = async (item: ReviewableItem) => {
-    const draft = drafts[item.id] || { rating: 0, comment: "" };
-    const comment = draft.comment.trim();
-
-    if (!draft.rating || !comment) return;
-
-    setSubmittingItemId(item.id);
-    setError("");
-    setMessage("");
-
+  const handleTrainerReview = async (booking: BackendBooking) => {
+    const draft = getDraft(booking._id);
+    if (!draft.rating || !draft.comment.trim()) return;
+    setSubmitting(booking._id);
     try {
-      const review = await createReview({
-        productId: item.productId,
-        orderId: item.orderId,
-        rating: draft.rating,
-        comment,
-      });
-
-      if (review) {
-        setReviews((current) => [review, ...current]);
-      }
-
-      setDrafts((current) => {
-        const nextDrafts = { ...current };
-        delete nextDrafts[item.id];
-        return nextDrafts;
-      });
-      setMessage("Review submitted successfully.");
+      const updated = await submitTrainerReview(booking._id, draft.rating, draft.comment.trim());
+      if (updated) setBookings((cur) => cur.map((b) => (b._id === updated._id ? updated : b)));
+      setDrafts((cur) => { const n = { ...cur }; delete n[booking._id]; return n; });
+      toast.success("Trainer review submitted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to submit review.");
+      toast.error(err instanceof Error ? err.message : "Unable to submit review.");
     } finally {
-      setSubmittingItemId("");
+      setSubmitting("");
+    }
+  };
+
+  const handleServiceReview = async (booking: BackendServiceBooking) => {
+    const draft = getDraft(booking._id);
+    if (!draft.rating || !draft.comment.trim()) return;
+    setSubmitting(booking._id);
+    try {
+      const updated = await submitServiceReview(booking._id, draft.rating, draft.comment.trim());
+      if (updated) setServiceBookings((cur) => cur.map((b) => (b._id === updated._id ? updated : b)));
+      setDrafts((cur) => { const n = { ...cur }; delete n[booking._id]; return n; });
+      toast.success("Service review submitted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to submit review.");
+    } finally {
+      setSubmitting("");
     }
   };
 
@@ -161,58 +203,116 @@ export default function UserToReviewPage() {
       <section className="customer-review-panel">
         <header className="customer-review-heading">
           <h2>To Review</h2>
-          <p>Share your experience for products you received.</p>
+          <p>Share your experience with products, trainers, and services.</p>
         </header>
 
-        {message ? <p className="customer-review-message">{message}</p> : null}
-
         {isLoading ? (
-          <div className="customer-orders-empty">Loading products to review...</div>
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton" style={{ width: 48, height: 48, borderRadius: 8, flexShrink: 0 }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                  <div className="skeleton skeleton-text short" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : error ? (
           <div className="customer-orders-empty">{error}</div>
-        ) : reviewItems.length === 0 ? (
-          <div className="customer-orders-empty">No products to review yet. Delivered order items will appear here.</div>
+        ) : !hasAnything ? (
+          <div className="customer-orders-empty">Nothing to review yet. Delivered orders and completed sessions will appear here.</div>
         ) : (
           <div className="customer-review-list">
-            {reviewItems.map((item) => {
-              const draft = drafts[item.id] || { rating: 0, comment: "" };
+            {/* Product reviews */}
+            {productItems.map((item) => {
+              const draft = getDraft(item.key);
               const canSubmit = draft.rating > 0 && draft.comment.trim().length > 0;
-
               return (
-                <article className="customer-review-card" key={item.id}>
+                <article className="customer-review-card" key={item.key}>
                   <div className="customer-review-product">
                     <div className="customer-review-image">
-                      {item.productImage ? <img src={item.productImage} alt={item.productName} /> : <span>No image</span>}
+                      {item.image ? <img src={item.image} alt={item.name} /> : <span>No image</span>}
                     </div>
                     <div>
-                      <span>Order #{item.orderCode}</span>
-                      <strong>{item.productName}</strong>
-                      <div className="customer-review-stars" aria-label={`Rate ${item.productName}`}>
-                        {[1, 2, 3, 4, 5].map((rating) => (
-                          <button
-                            type="button"
-                            className={rating <= draft.rating ? "active" : undefined}
-                            onClick={() => updateDraft(item.id, { rating })}
-                            aria-label={`${rating} star${rating === 1 ? "" : "s"}`}
-                            key={rating}
-                          >
-                            <Star aria-hidden="true" />
-                          </button>
-                        ))}
-                        <small>{draft.rating > 0 ? `${draft.rating} / 5` : "Tap to rate"}</small>
-                      </div>
+                      <span>Order #{item.orderCode} · Product</span>
+                      <strong>{item.name}</strong>
+                      <StarRating value={draft.rating} onChange={(v) => setDraft(item.key, { rating: v })} />
                     </div>
                   </div>
-
                   <textarea
                     value={draft.comment}
-                    onChange={(event) => updateDraft(item.id, { comment: event.target.value })}
+                    onChange={(e) => setDraft(item.key, { comment: e.target.value })}
                     placeholder="What did you like or dislike? How was the quality?"
                   />
-
                   <div className="customer-review-actions">
-                    <button type="button" disabled={!canSubmit || submittingItemId === item.id} onClick={() => handleSubmitReview(item)}>
-                      {submittingItemId === item.id ? "Submitting..." : "Submit Review"}
+                    <button type="button" disabled={!canSubmit || submitting === item.key} onClick={() => handleProductReview(item)}>
+                      {submitting === item.key ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+
+            {/* Trainer session reviews */}
+            {unreviewedBookings.map((booking) => {
+              const draft = getDraft(booking._id);
+              const canSubmit = draft.rating > 0 && draft.comment.trim().length > 0;
+              const trainerName = getTrainerName(booking);
+              const sessionDate = new Date(booking.slotDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              return (
+                <article className="customer-review-card" key={booking._id}>
+                  <div className="customer-review-product">
+                    <div className="customer-review-image" style={{ background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 900, color: "var(--muted)" }}>
+                      {trainerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <span>{sessionDate} · Trainer Session</span>
+                      <strong>{trainerName}</strong>
+                      <StarRating value={draft.rating} onChange={(v) => setDraft(booking._id, { rating: v })} />
+                    </div>
+                  </div>
+                  <textarea
+                    value={draft.comment}
+                    onChange={(e) => setDraft(booking._id, { comment: e.target.value })}
+                    placeholder="How was your session? Was the trainer helpful and professional?"
+                  />
+                  <div className="customer-review-actions">
+                    <button type="button" disabled={!canSubmit || submitting === booking._id} onClick={() => handleTrainerReview(booking)}>
+                      {submitting === booking._id ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+
+            {/* Service reviews */}
+            {unreviewedServices.map((booking) => {
+              const draft = getDraft(booking._id);
+              const canSubmit = draft.rating > 0 && draft.comment.trim().length > 0;
+              const serviceName = getServiceName(booking);
+              const scheduledDate = new Date(booking.scheduledDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              return (
+                <article className="customer-review-card" key={booking._id}>
+                  <div className="customer-review-product">
+                    <div className="customer-review-image" style={{ background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 900, color: "var(--muted)" }}>
+                      {serviceName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <span>{scheduledDate} · Service</span>
+                      <strong>{serviceName}</strong>
+                      <StarRating value={draft.rating} onChange={(v) => setDraft(booking._id, { rating: v })} />
+                    </div>
+                  </div>
+                  <textarea
+                    value={draft.comment}
+                    onChange={(e) => setDraft(booking._id, { comment: e.target.value })}
+                    placeholder="How was the service? Was everything as expected?"
+                  />
+                  <div className="customer-review-actions">
+                    <button type="button" disabled={!canSubmit || submitting === booking._id} onClick={() => handleServiceReview(booking)}>
+                      {submitting === booking._id ? "Submitting..." : "Submit Review"}
                     </button>
                   </div>
                 </article>
@@ -221,15 +321,16 @@ export default function UserToReviewPage() {
           </div>
         )}
 
-        {reviews.length ? (
+        {/* Past reviews */}
+        {(reviews.length > 0 || reviewedBookings.length > 0 || reviewedServices.length > 0) ? (
           <section className="customer-past-reviews">
             <h3>Your past reviews</h3>
             <div className="customer-past-review-list">
+              {/* Product reviews */}
               {reviews.map((review) => {
-                const product = getProductFromReview(review);
+                const product = typeof review.productId === "string" ? null : review.productId as BackendProduct;
                 const productName = product?.name || "Reviewed product";
                 const productImage = product ? getProductImage(product) : "";
-
                 return (
                   <article className="customer-past-review-card" key={review._id}>
                     <div className="customer-past-review-product">
@@ -238,20 +339,54 @@ export default function UserToReviewPage() {
                       </div>
                       <div>
                         <strong>{productName}</strong>
-                        <span>
-                          {new Intl.DateTimeFormat("en-CA").format(new Date(review.createdAt))} - Order #{formatOrderId(review.orderId)}
-                        </span>
+                        <span>{new Intl.DateTimeFormat("en-CA").format(new Date(review.createdAt))} · Product · Order #{formatOrderId(review.orderId)}</span>
                         {review.comment ? <p>{review.comment}</p> : null}
                       </div>
                     </div>
-                    <div className="customer-past-review-stars" aria-label={`${review.rating} out of 5 stars`}>
-                      {[1, 2, 3, 4, 5].map((rating) => (
-                        <Star className={rating <= review.rating ? "active" : undefined} aria-hidden="true" key={rating} />
-                      ))}
+                    <div className="customer-past-review-stars">
+                      {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={n <= review.rating ? "active" : undefined} aria-hidden="true" />)}
                     </div>
                   </article>
                 );
               })}
+
+              {/* Trainer reviews */}
+              {reviewedBookings.map((booking) => (
+                <article className="customer-past-review-card" key={`booking-${booking._id}`}>
+                  <div className="customer-past-review-product">
+                    <div className="customer-past-review-image" style={{ background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "var(--muted)" }}>
+                      {getTrainerName(booking).charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <strong>{getTrainerName(booking)}</strong>
+                      <span>{new Date(booking.slotDate).toLocaleDateString("en-CA")} · Trainer Session</span>
+                      {booking.clientComment ? <p>{booking.clientComment}</p> : null}
+                    </div>
+                  </div>
+                  <div className="customer-past-review-stars">
+                    {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={n <= (booking.clientRating || 0) ? "active" : undefined} aria-hidden="true" />)}
+                  </div>
+                </article>
+              ))}
+
+              {/* Service reviews */}
+              {reviewedServices.map((booking) => (
+                <article className="customer-past-review-card" key={`service-${booking._id}`}>
+                  <div className="customer-past-review-product">
+                    <div className="customer-past-review-image" style={{ background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "var(--muted)" }}>
+                      {getServiceName(booking).charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <strong>{getServiceName(booking)}</strong>
+                      <span>{new Date(booking.scheduledDate).toLocaleDateString("en-CA")} · Service</span>
+                      {booking.clientComment ? <p>{booking.clientComment}</p> : null}
+                    </div>
+                  </div>
+                  <div className="customer-past-review-stars">
+                    {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={n <= (booking.clientRating || 0) ? "active" : undefined} aria-hidden="true" />)}
+                  </div>
+                </article>
+              ))}
             </div>
           </section>
         ) : null}

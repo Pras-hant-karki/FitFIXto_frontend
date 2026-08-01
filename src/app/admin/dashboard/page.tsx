@@ -2,10 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, DollarSign, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
-import { AdminAnalytics, fetchAdminAnalytics } from "@/features/admin-analytics/api";
-import { fetchAdminUsers } from "@/features/admin-users/api";
+import { ArrowRight, Banknote, Package, Radio, ShoppingBag, Users, type LucideIcon } from "lucide-react";
+import { AdminAnalytics, AnalyticsRange, fetchAdminAnalytics } from "@/features/admin-analytics/api";
+import { usePreferences } from "@/contexts";
+import { AnalyticsChart } from "@/components/admin";
 import { BackendOrder, fetchAdminOrders } from "@/features/orders/api";
+
+const RANGE_OPTIONS: Array<{ label: string; value: AnalyticsRange }> = [
+  { label: "Today", value: "today" },
+  { label: "Weekly", value: "weekly" },
+  { label: "Monthly", value: "monthly" },
+  { label: "Half Yearly", value: "half-yearly" },
+  { label: "Yearly", value: "yearly" },
+];
 
 const emptyAnalytics: AdminAnalytics = {
   range: "yearly",
@@ -14,13 +23,12 @@ const emptyAnalytics: AdminAnalytics = {
     orders: 0,
     averageOrderValue: 0,
     productsSold: 0,
+    customerCount: 0,
   },
   series: [],
   topProducts: [],
   topTrainers: [],
 };
-
-const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
 
 const getOrderCustomer = (order: BackendOrder) => {
   if (!order.userId || typeof order.userId === "string") {
@@ -30,19 +38,11 @@ const getOrderCustomer = (order: BackendOrder) => {
   return `${order.userId.firstName || ""} ${order.userId.lastName || ""}`.trim() || order.userId.email;
 };
 
-const buildLinePoints = (values: number[], maxValue: number) =>
-  values
-    .map((value, index) => {
-      const x = values.length <= 1 ? 260 : 24 + index * (496 / (values.length - 1));
-      const y = 260 - (value / Math.max(maxValue, 1)) * 220;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
 export default function AdminDashboardPage() {
+  const { formatPrice } = usePreferences();
+  const [range, setRange] = useState<AnalyticsRange>("yearly");
   const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
   const [recentOrders, setRecentOrders] = useState<BackendOrder[]>([]);
-  const [customerCount, setCustomerCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -52,15 +52,20 @@ export default function AdminDashboardPage() {
       setError("");
 
       try {
-        const [analyticsData, users, orders] = await Promise.all([
-          fetchAdminAnalytics("yearly"),
-          fetchAdminUsers(),
+        const [analyticsResult, ordersResult] = await Promise.allSettled([
+          fetchAdminAnalytics(range),
           fetchAdminOrders(),
         ]);
 
-        setAnalytics(analyticsData || emptyAnalytics);
-        setCustomerCount(users.filter((user) => user.role === "customer").length);
-        setRecentOrders(orders.slice(0, 5));
+        if (analyticsResult.status === "fulfilled") {
+          setAnalytics(analyticsResult.value || emptyAnalytics);
+        } else {
+          setError(analyticsResult.reason instanceof Error ? analyticsResult.reason.message : "Unable to load analytics.");
+        }
+
+        if (ordersResult.status === "fulfilled") {
+          setRecentOrders(ordersResult.value.orders.slice(0, 5));
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
       } finally {
@@ -69,7 +74,7 @@ export default function AdminDashboardPage() {
     };
 
     loadDashboard();
-  }, []);
+  }, [range]);
 
   const statCards: Array<{
     label: string;
@@ -77,26 +82,39 @@ export default function AdminDashboardPage() {
     note: string;
     Icon: LucideIcon;
   }> = [
-    { label: "Revenue", value: formatMoney(analytics.summary.revenue), note: "From completed order records", Icon: DollarSign },
+    { label: "Revenue", value: formatPrice(analytics.summary.revenue), note: "From completed order records", Icon: Banknote },
     { label: "Orders", value: String(analytics.summary.orders), note: "Total orders in selected period", Icon: Package },
     { label: "Sales", value: String(analytics.summary.productsSold), note: "Products sold from order items", Icon: ShoppingBag },
-    { label: "Customers", value: String(customerCount), note: "Registered customer accounts", Icon: Users },
+    { label: "Customers", value: String(analytics.summary.customerCount ?? 0), note: "Registered customer accounts", Icon: Users },
   ];
 
-  const revenueSeries = analytics.series.map((point) => point.revenue);
-  const orderSeries = analytics.series.map((point) => point.orders);
-  const hasRevenueData = revenueSeries.some((value) => value > 0);
-  const hasOrderData = orderSeries.some((value) => value > 0);
-  const maxRevenue = useMemo(() => Math.max(...revenueSeries, 1), [revenueSeries]);
-  const maxOrders = useMemo(() => Math.max(...orderSeries, 1), [orderSeries]);
-  const revenuePoints = buildLinePoints(revenueSeries, maxRevenue);
-  const orderPoints = buildLinePoints(orderSeries, maxOrders);
+  const chartPoints = useMemo(
+    () => ({
+      revenue: analytics.series.map((point) => ({ label: point.label, value: point.revenue })),
+      orders: analytics.series.map((point) => ({ label: point.label, value: point.orders })),
+    }),
+    [analytics.series]
+  );
 
   return (
     <section className="admin-overview">
       <header className="admin-overview-heading">
-        <h1>Overview</h1>
-        <p>Snapshot of marketplace performance from real backend data.</p>
+        <div>
+          <h1>Overview</h1>
+          <p>Snapshot of marketplace performance from real backend data.</p>
+        </div>
+        <div className="admin-analytics-range">
+          {RANGE_OPTIONS.map((opt) => (
+            <button
+              type="button"
+              key={opt.value}
+              className={range === opt.value ? "active" : undefined}
+              onClick={() => setRange(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </header>
 
       {error ? <p className="admin-products-message error">{error}</p> : null}
@@ -123,60 +141,22 @@ export default function AdminDashboardPage() {
       <div className="admin-chart-grid">
         <article className="admin-dashboard-card">
           <h2>Revenue Trend</h2>
-          {hasRevenueData ? (
-            <div className="admin-line-chart" aria-label="Revenue trend chart">
-              <div className="admin-line-y-axis">
-                {[maxRevenue, maxRevenue * 0.75, maxRevenue * 0.5, maxRevenue * 0.25, 0].map((label) => (
-                  <span key={label}>{Math.round(label)}</span>
-                ))}
-              </div>
-              <svg viewBox="0 0 540 300" role="img" aria-hidden="true">
-                {[40, 95, 150, 205, 260].map((y) => (
-                  <line x1="24" x2="520" y1={y} y2={y} key={`rh-${y}`} />
-                ))}
-                <polyline points={revenuePoints} />
-              </svg>
-              <div className="admin-line-x-axis">
-                {analytics.series.map((item, index) => (
-                  <span key={`${item.label}-revenue-${index}`}>{item.label}</span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="admin-dashboard-empty">Waiting for revenue data from orders.</div>
-          )}
+          <AnalyticsChart
+            points={chartPoints.revenue}
+            format="currency"
+            label="Revenue trend"
+            emptyMessage="Waiting for revenue data from orders."
+          />
         </article>
 
         <article className="admin-dashboard-card">
           <h2>Order Volume</h2>
-          {hasOrderData ? (
-            <div className="admin-line-chart" aria-label="Order volume chart">
-              <div className="admin-line-y-axis">
-                {[maxOrders, maxOrders * 0.75, maxOrders * 0.5, maxOrders * 0.25, 0].map((label) => (
-                  <span key={label}>{Math.round(label)}</span>
-                ))}
-              </div>
-              <svg viewBox="0 0 540 300" role="img" aria-hidden="true">
-                {[40, 95, 150, 205, 260].map((y) => (
-                  <line x1="24" x2="520" y1={y} y2={y} key={`oh-${y}`} />
-                ))}
-                <polyline points={orderPoints} />
-                {orderPoints
-                  ? orderPoints.split(" ").map((point) => {
-                      const [cx, cy] = point.split(",");
-                      return <circle cx={cx} cy={cy} r="7" key={point} />;
-                    })
-                  : null}
-              </svg>
-              <div className="admin-line-x-axis">
-                {analytics.series.map((item, index) => (
-                  <span key={`${item.label}-orders-${index}`}>{item.label}</span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="admin-dashboard-empty">Waiting for order data.</div>
-          )}
+          <AnalyticsChart
+            points={chartPoints.orders}
+            format="number"
+            label="Order volume"
+            emptyMessage="Waiting for order data."
+          />
         </article>
       </div>
 
@@ -201,7 +181,7 @@ export default function AdminDashboardPage() {
                   <strong>{order._id.slice(-8).toUpperCase()}</strong>
                   <span>{getOrderCustomer(order)}</span>
                   <span className={`admin-status admin-status-${order.status}`}>{order.status}</span>
-                  <strong>{formatMoney(order.totalAmount)}</strong>
+                  <strong>{formatPrice(order.totalAmount)}</strong>
                 </div>
               ))}
             </div>
@@ -225,7 +205,7 @@ export default function AdminDashboardPage() {
                   <div>
                     <strong>{product.name}</strong>
                     <span>
-                      {product.sold} sold - {formatMoney(product.revenue)}
+                      {product.sold} sold - {formatPrice(product.revenue)}
                     </span>
                   </div>
                   <em>{index + 1}</em>

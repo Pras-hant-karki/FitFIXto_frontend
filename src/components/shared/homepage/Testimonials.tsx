@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchFeaturedReviews, BackendReview } from "@/features/reviews";
+import { fetchFeaturedReviews, type FeaturedReview } from "@/features/reviews";
 
 const starLabel = (n: number) => `${n} out of 5 stars`;
 
-const reviewerName = (review: BackendReview) => {
-  if (typeof review.userId === "string") return "Verified Customer";
-  const { firstName, lastName } = review.userId;
-  const full = `${firstName || ""} ${lastName || ""}`.trim();
+/** Shows a first name plus last initial ("Bishal R.") so testimonials stay semi-anonymous. */
+const reviewerName = (review: FeaturedReview) => {
+  const full = review.authorName.trim();
   if (!full) return "Verified Customer";
-  // Show first name + last initial for privacy: "Bishal R."
-  const parts = full.split(" ");
+
+  const parts = full.split(/\s+/);
   return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+};
+
+const kindLabel: Record<FeaturedReview["kind"], string> = {
+  product: "Verified purchase",
+  trainer: "Trainer session",
+  service: "Service",
 };
 
 const stars = (n: number) =>
@@ -23,7 +28,7 @@ const stars = (n: number) =>
   ));
 
 export function Testimonials() {
-  const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [reviews, setReviews] = useState<FeaturedReview[]>([]);
 
   useEffect(() => {
     fetchFeaturedReviews()
@@ -43,14 +48,17 @@ export function Testimonials() {
 
         <div className="testimonial-grid">
           {reviews.map((review) => (
-            <article className="testimonial-card" key={review._id}>
+            <article className="testimonial-card" key={`${review.kind}-${review.id}`}>
               <div className="stars" aria-label={starLabel(review.rating)}>
                 {stars(review.rating)}
               </div>
-              <p>&quot;{review.comment || review.title || ""}&quot;</p>
+              <p>&quot;{review.comment}&quot;</p>
               <div>
                 <strong>{reviewerName(review)}</strong>
-                <span>Verified</span>
+                <span>
+                  {kindLabel[review.kind]}
+                  {review.subject ? ` · ${review.subject}` : ""}
+                </span>
               </div>
             </article>
           ))}

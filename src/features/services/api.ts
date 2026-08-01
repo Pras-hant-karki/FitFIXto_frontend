@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS, resolveAssetUrl } from "@/constants/api";
 import { apiClient } from "@/lib";
 
 export interface BackendService {
@@ -62,7 +62,5 @@ export const uploadServiceImage = async (file: File): Promise<string> => {
   const result = await response.json();
   if (!response.ok) throw new Error(result.message || "Unable to upload image.");
 
-  const path: string = result.data?.image?.path || "";
-  const uploadsIndex = path.indexOf("/uploads/");
-  return uploadsIndex >= 0 ? `/assets/${path.slice(uploadsIndex + "/uploads/".length)}` : path;
+  return resolveAssetUrl(result.data?.image?.path || "");
 };

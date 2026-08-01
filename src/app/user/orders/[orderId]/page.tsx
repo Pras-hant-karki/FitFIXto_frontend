@@ -168,9 +168,14 @@ export default function TrackOrderPage() {
   if (isLoading) {
     return (
       <main className="track-order-page">
-        <section className="cart-state-card">
-          <strong>Loading order...</strong>
-          <span>Please wait while we fetch your order details.</span>
+        <section className="cart-state-card" aria-busy="true">
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="skeleton skeleton-text wide" style={{ height: 22 }} />
+            <div className="skeleton skeleton-text mid" />
+            <div className="skeleton skeleton-card" style={{ height: 100 }} />
+            <div className="skeleton skeleton-text short" />
+            <div className="skeleton skeleton-text mid" />
+          </div>
         </section>
       </main>
     );

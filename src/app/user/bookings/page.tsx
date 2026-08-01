@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle, Clock, User, X, XCircle } from "lucide-react";
+import { avatarUrl } from "@/utils/assets";
 import Link from "next/link";
 import { CustomerDashboardShell } from "@/components/shared/customer";
+import { useToast } from "@/contexts";
 import {
   BackendBooking,
   BookingStatus,
@@ -41,6 +43,7 @@ const getServiceName = (b: BackendServiceBooking) =>
 type MainTab = "trainer" | "service";
 
 export default function UserBookingsPage() {
+  const { toast } = useToast();
   const [tab, setTab] = useState<MainTab>("trainer");
 
   // Trainer bookings
@@ -48,22 +51,19 @@ export default function UserBookingsPage() {
   const [trainerFilter, setTrainerFilter] = useState<"all" | BookingStatus>("all");
   const [trainerLoading, setTrainerLoading] = useState(true);
   const [trainerProcessingId, setTrainerProcessingId] = useState("");
-  const [trainerError, setTrainerError] = useState("");
 
   // Service bookings
   const [svcBookings, setSvcBookings] = useState<BackendServiceBooking[]>([]);
   const [svcFilter, setSvcFilter] = useState<"all" | ServiceBookingStatus>("all");
   const [svcLoading, setSvcLoading] = useState(true);
   const [svcProcessingId, setSvcProcessingId] = useState("");
-  const [svcError, setSvcError] = useState("");
-  const [svcMessage, setSvcMessage] = useState("");
 
   useEffect(() => {
     let active = true;
     setTrainerLoading(true);
     fetchMyClientBookings()
       .then((d) => { if (active) setBookings(d); })
-      .catch((e) => { if (active) setTrainerError(e instanceof Error ? e.message : "Unable to load."); })
+      .catch((e) => { if (active) toast.error(e instanceof Error ? e.message : "Unable to load."); })
       .finally(() => { if (active) setTrainerLoading(false); });
     return () => { active = false; };
   }, []);
@@ -85,20 +85,19 @@ export default function UserBookingsPage() {
       const updated = await cancelClientBooking(id);
       if (updated) setBookings((cur) => cur.map((b) => (b._id === id ? updated : b)));
     } catch (e) {
-      setTrainerError(e instanceof Error ? e.message : "Unable to cancel.");
+      toast.error(e instanceof Error ? e.message : "Unable to cancel.");
     } finally { setTrainerProcessingId(""); }
   };
 
   const handleCancelService = async (id: string) => {
     if (!window.confirm("Cancel this service booking?")) return;
     setSvcProcessingId(id);
-    setSvcError(""); setSvcMessage("");
     try {
       await cancelMyServiceBooking(id);
       setSvcBookings((cur) => cur.map((b) => b._id === id ? { ...b, status: "cancelled" as ServiceBookingStatus } : b));
-      setSvcMessage("Booking cancelled.");
+      toast.success("Booking cancelled.");
     } catch (e) {
-      setSvcError(e instanceof Error ? e.message : "Unable to cancel.");
+      toast.error(e instanceof Error ? e.message : "Unable to cancel.");
     } finally { setSvcProcessingId(""); }
   };
 
@@ -147,9 +146,19 @@ export default function UserBookingsPage() {
                 </button>
               ))}
             </div>
-            {trainerError && <p className="auth-message error">{trainerError}</p>}
             {trainerLoading ? (
-              <div className="customer-orders-empty">Loading…</div>
+              <div className="customer-orders-empty">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                    <div className="skeleton skeleton-avatar" />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                      <div className="skeleton skeleton-text wide" />
+                      <div className="skeleton skeleton-text mid" />
+                      <div className="skeleton skeleton-text short" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : filteredTrainer.length === 0 ? (
               <div className="customer-orders-empty">
                 <CalendarDays style={{ width: 38, height: 38, opacity: 0.35, display: "block", margin: "0 auto 10px" }} />
@@ -166,8 +175,8 @@ export default function UserBookingsPage() {
                     <article className="trainer-booking-card" key={booking._id}>
                       <div className="trainer-booking-client">
                         <div className="trainer-booking-avatar">
-                          {trainerUser?.profilePicture ? (
-                            <img src={trainerUser.profilePicture} alt={trainerUser.firstName} />
+                          {avatarUrl(trainerUser) ? (
+                            <img src={avatarUrl(trainerUser)} alt={trainerUser?.firstName ?? "Trainer"} />
                           ) : <User />}
                         </div>
                         <div>
@@ -220,10 +229,19 @@ export default function UserBookingsPage() {
                 </button>
               ))}
             </div>
-            {svcMessage && <p className="customer-review-message">{svcMessage}</p>}
-            {svcError && <p className="auth-message error">{svcError}</p>}
             {svcLoading ? (
-              <div className="customer-orders-empty">Loading…</div>
+              <div className="customer-orders-empty">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                    <div className="skeleton skeleton-avatar" />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                      <div className="skeleton skeleton-text wide" />
+                      <div className="skeleton skeleton-text mid" />
+                      <div className="skeleton skeleton-text short" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : filteredSvc.length === 0 ? (
               <div className="customer-orders-empty">
                 <CalendarDays style={{ width: 38, height: 38, opacity: 0.35, display: "block", margin: "0 auto 10px" }} />
@@ -262,7 +280,7 @@ export default function UserBookingsPage() {
                       </div>
                       {b.notes && <p className="trainer-booking-notes"><strong>Your note:</strong> {b.notes}</p>}
                       {b.adminNotes && <p className="trainer-booking-notes trainer-booking-trainer-response"><strong>Admin note:</strong> {b.adminNotes}</p>}
-                      {b.status === "completed" && (
+                      {b.status === "completed" && !b.clientRating && (
                         <div className="trainer-booking-action-buttons">
                           <Link href={`/user/to-review?type=service&id=${b._id}&serviceId=${typeof b.serviceId === "string" ? b.serviceId : b.serviceId._id}`}
                             className="trainer-booking-confirm">

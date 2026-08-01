@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePreferences } from "@/contexts";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronRight, Heart, Search, Star } from "lucide-react";
@@ -15,7 +16,7 @@ import {
 } from "@/features/products";
 import { DiscountData, DiscountProduct, fetchPublicDiscounts } from "@/features/discounts";
 import { AddToCartButton } from "@/features/cart";
-import { useAuth, useWishlist } from "@/contexts";
+import { useAuth, useToast, useWishlist } from "@/contexts";
 
 const DEFAULT_MAX_PRICE = 3000;
 const PRODUCT_PAGE_SIZE = 6;
@@ -56,6 +57,7 @@ const parseCompareSlotCount = (value: string | null) => {
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onChange }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<"min" | "max" | null>(null);
+  const { formatPrice } = usePreferences();
 
   const getPercentage = useCallback((val: number) => ((val - min) / (max - min || 1)) * 100, [min, max]);
 
@@ -118,8 +120,8 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, value, onCh
         onMouseDown={() => setDragging("max")}
       />
       <div className="flex justify-between mt-4 text-sm text-gray-600">
-        <span>Npr {value[0]}</span>
-        <span>Npr {value[1]}</span>
+        <span>{formatPrice(value[0])}</span>
+        <span>{formatPrice(value[1])}</span>
       </div>
     </div>
   );
@@ -143,7 +145,7 @@ const FilterCheckbox: React.FC<FilterCheckboxProps> = ({ label, checked, onChang
     >
       {checked && <CheckCircle2 className="w-3 h-3 text-white" />}
     </button>
-    <span className="text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
+    <span className="shop-filter-label text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
   </label>
 );
 
@@ -163,7 +165,9 @@ const ProductCard: React.FC<{
   const showOriginalPrice = isFlashSale && flashSalePercent > 0 ? product.price : originalPrice;
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
+  const { formatPrice } = usePreferences();
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const isWishlisted = wishlistProductIds.has(product._id);
   const isOutOfStock = product.stock <= 0;
 
@@ -172,11 +176,14 @@ const ProductCard: React.FC<{
       window.location.href = "/login";
       return;
     }
-
+    const wasWishlisted = wishlistProductIds.has(product._id);
     setIsUpdatingWishlist(true);
-
     try {
       await toggleWishlistItem(product._id);
+      if (!wasWishlisted) {
+        setJustAdded(true);
+        window.setTimeout(() => setJustAdded(false), 300);
+      }
     } finally {
       setIsUpdatingWishlist(false);
     }
@@ -188,7 +195,7 @@ const ProductCard: React.FC<{
   };
 
   const cardClasses = [
-    "bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-shadow",
+    "shop-product-card rounded-lg overflow-hidden border hover:shadow-lg transition-shadow",
     compareMode ? "shop-compare-product-card" : "border-gray-100",
     isSelectedForCompare ? "selected" : "",
     isCompareSelectionDisabled ? "disabled" : "",
@@ -210,7 +217,7 @@ const ProductCard: React.FC<{
       }}
       aria-pressed={compareMode ? isSelectedForCompare : undefined}
     >
-      <div className="relative h-56 bg-gray-50">
+      <div className="shop-card-image relative h-56 bg-gray-50">
         {compareMode ? (
           <div className="block h-full">
             {getProductImage(product) ? (
@@ -249,7 +256,7 @@ const ProductCard: React.FC<{
         ) : (
           <button
             type="button"
-            className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-60"
+            className={`wishlist-button absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm disabled:opacity-60${justAdded ? " just-added" : ""}`}
             onClick={handleWishlistToggle}
             disabled={isUpdatingWishlist}
             aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
@@ -260,49 +267,51 @@ const ProductCard: React.FC<{
         )}
       </div>
 
-      <div className="p-4">
-        <div className="text-xs text-gray-500 mb-1">
+      <div className="shop-product-body p-4">
+        <div className="shop-card-meta text-xs text-gray-500 mb-1">
           {[formatCategory(product.category), product.subcategory, product.brand || "FitFIXto"].filter(Boolean).join(" - ")}
         </div>
         {compareMode ? (
-          <strong className="block font-semibold text-gray-900 mb-2 leading-tight">{product.name}</strong>
+          <strong className="shop-card-name block font-semibold text-gray-900 mb-2 leading-tight">{product.name}</strong>
         ) : (
-          <Link href={`/products/${product._id}`} className="block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
+          <Link href={`/products/${product._id}`} className="shop-card-name block font-semibold text-gray-900 mb-2 leading-tight hover:underline">
             {product.name}
           </Link>
         )}
-        <div className="flex items-center space-x-1 mb-3">
-          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-          <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
-          <span className="text-sm text-gray-500">({product.ratingCount})</span>
+        <div className="shop-card-bottom">
+          <div className="flex items-center space-x-1 mb-3">
+            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+            <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
+            <span className="text-sm text-gray-500">({product.ratingCount})</span>
+          </div>
+          <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mb-4">
+            <span className="text-xl font-bold text-gray-900">{formatPrice(effectivePrice)}</span>
+            {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">{formatPrice(showOriginalPrice)}</span> : null}
+            {isBestPrice && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded">Best Price</span>}
+          </div>
+          {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
+          {isOutOfStock ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                if (compareMode) event.stopPropagation();
+                handleWishlistToggle();
+              }}
+              disabled={isUpdatingWishlist}
+              className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium disabled:opacity-60"
+            >
+              <Heart className={`w-4 h-4 ${isWishlisted ? "fill-white text-white" : ""}`} />
+              <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+            </button>
+          ) : (
+            <AddToCartButton
+              productId={product._id}
+              stock={product.stock}
+              stopPropagation={compareMode}
+              className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
+            />
+          )}
         </div>
-        <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mb-4">
-          <span className="text-xl font-bold text-gray-900">Npr {effectivePrice}</span>
-          {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">Npr {showOriginalPrice}</span> : null}
-          {isBestPrice && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded">Best Price</span>}
-        </div>
-        {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
-        {isOutOfStock ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              if (compareMode) event.stopPropagation();
-              handleWishlistToggle();
-            }}
-            disabled={isUpdatingWishlist}
-            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium disabled:opacity-60"
-          >
-            <Heart className={`w-4 h-4 ${isWishlisted ? "fill-white text-white" : ""}`} />
-            <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
-          </button>
-        ) : (
-          <AddToCartButton
-            productId={product._id}
-            stock={product.stock}
-            stopPropagation={compareMode}
-            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
-          />
-        )}
       </div>
     </div>
   );
@@ -338,12 +347,13 @@ const ShopContent: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const { formatPrice } = usePreferences();
   const searchParamString = searchParams.toString();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [facetProducts, setFacetProducts] = useState<BackendProduct[]>([]);
   const [pagination, setPagination] = useState<ProductPagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [discounts, setDiscounts] = useState<DiscountData | null>(null);
 
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
@@ -513,7 +523,6 @@ const ShopContent: React.FC = () => {
   useEffect(() => {
     const loadProducts = async () => {
       setIsLoading(true);
-      setError("");
 
       try {
         const params: Record<string, string | number | boolean> = {
@@ -534,7 +543,7 @@ const ShopContent: React.FC = () => {
         setProducts(data?.products || []);
         setPagination(data?.pagination || null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load products.");
+        toast.error(err instanceof Error ? err.message : "Unable to load products.");
         setPagination(null);
       } finally {
         setIsLoading(false);
@@ -549,7 +558,7 @@ const ShopContent: React.FC = () => {
   const paginationPages = getPaginationPages(currentPage, totalPages);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="shop-page-root">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isComparePickMode ? (
           <div className="shop-compare-picker-bar">
@@ -567,8 +576,8 @@ const ShopContent: React.FC = () => {
         ) : null}
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">{isComparePickMode ? "Shop Equipment" : "Shop Your Needs"}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="shop-page-title">{isComparePickMode ? "Shop Equipment" : "Shop Your Needs"}</h1>
+          <p className="shop-page-subtitle">
             {isLoading
               ? "Loading products..."
               : searchQuery
@@ -583,26 +592,16 @@ const ShopContent: React.FC = () => {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search products..."
-              className="w-full rounded-lg border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm font-semibold text-gray-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
+              className="shop-search-input"
             />
           </label>
         </div>
-
-        {error ? (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm font-semibold text-red-700">
-            <strong className="block text-base text-red-800">Unable to load products.</strong>
-            <span className="mt-1 block">{error}</span>
-            <button type="button" onClick={() => window.location.reload()} className="mt-3 rounded-md bg-red-700 px-4 py-2 text-white">
-              Try Again
-            </button>
-          </div>
-        ) : null}
 
         <div className="flex flex-col lg:flex-row gap-8">
           <aside className="w-full lg:w-64 flex-shrink-0">
             <div className="space-y-8">
               <div>
-                <h3 className="font-bold text-gray-900 mb-4">Category</h3>
+                <h3 className="shop-filter-heading">Category</h3>
                 <div className="space-y-3">
                   {categories.length > 0 ? (
                     categories.map((category) => {
@@ -650,13 +649,13 @@ const ShopContent: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="font-bold text-gray-900 mb-4">Price Range</h3>
+                <h3 className="shop-filter-heading">Price Range</h3>
                 <DualRangeSlider min={0} max={maxPrice} value={priceRange} onChange={updatePriceRange} />
-                <p className="text-xs text-gray-500 mt-2">Up to Npr {maxPrice}</p>
+                <p className="text-xs text-gray-500 mt-2">Up to {formatPrice(maxPrice)}</p>
               </div>
 
               <div>
-                <h3 className="font-bold text-gray-900 mb-4">Brand</h3>
+                <h3 className="shop-filter-heading">Brand</h3>
                 <div className="space-y-3">
                   {brands.length > 0 ? (
                     brands.map((brand) => (
@@ -703,7 +702,7 @@ const ShopContent: React.FC = () => {
               </div>
             )}
 
-            {!isLoading && !error && products.length > 0 && totalPages > 1 ? (
+            {!isLoading && products.length > 0 && totalPages > 1 ? (
               <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Shop pagination">
                 <button
                   type="button"
@@ -747,8 +746,8 @@ export default function ShopPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-gray-500">Loading shop...</div>
+        <div className="shop-page-root">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 shop-page-subtitle">Loading shop...</div>
         </div>
       }
     >

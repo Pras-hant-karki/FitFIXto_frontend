@@ -1,25 +1,25 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/lib";
+import { useToast } from "@/contexts";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setSuccess("");
     setIsSubmitting(true);
 
     try {
       await apiClient.post(API_ENDPOINTS.auth.forgotPassword, { email });
-      setSuccess("Password reset link sent. Please check your email.");
+      toast.success("Password reset link sent. Please check your email.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to send reset link. Please try again.");
     } finally {
@@ -29,7 +29,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <section className="forgot-page">
         <div className="forgot-card">
           <Link className="forgot-back" href="/login">
@@ -58,7 +57,6 @@ export default function ForgotPasswordPage() {
               />
             </label>
             {error ? <p className="auth-message error">{error}</p> : null}
-            {success ? <p className="auth-message success">{success}</p> : null}
             <button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Sending..." : "Send reset link"}
             </button>

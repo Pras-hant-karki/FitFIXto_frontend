@@ -8,6 +8,24 @@ export const API_BASE_URL = normalizeApiBaseUrl(
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 );
 
+// Base URL for uploaded media files served by the backend at /assets/
+export const MEDIA_BASE_URL = (process.env.NEXT_PUBLIC_MEDIA_URL || API_BASE_URL).replace(/\/api\/v1$/, '').replace(/\/api$/, '');
+
+// Resolves any stored asset path to a full backend URL.
+// Handles new format ("products/img.jpg"), old /uploads/ format, and absolute URLs.
+export const resolveAssetUrl = (storedPath?: string | null): string => {
+  if (!storedPath) return '';
+  if (storedPath.startsWith('http://') || storedPath.startsWith('https://')) return storedPath;
+  const clean = storedPath.startsWith('/uploads/')
+    ? storedPath.slice('/uploads/'.length)
+    : storedPath.startsWith('/assets/')
+    ? storedPath.slice('/assets/'.length)
+    : storedPath.startsWith('/')
+    ? storedPath.slice(1)
+    : storedPath;
+  return `${MEDIA_BASE_URL}/assets/${clean}`;
+};
+
 export const API_ENDPOINTS = {
   // Admin
   admin: {
@@ -23,6 +41,9 @@ export const API_ENDPOINTS = {
     login: '/auth/login',
     signup: '/auth/register',
     me: '/auth/me',
+    // Authoritative access-token + role check
+    session: '/auth/session',
+    refresh: '/auth/refresh',
     profile: '/auth/profile',
     uploadProfileImage: '/auth/profile/upload-image',
     verify: '/auth/verify-email',
@@ -64,6 +85,9 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/reviews/${id}`,
     moderate: (id: string) => `/reviews/admin/${id}/moderation`,
     feature: (id: string) => `/reviews/admin/${id}/feature`,
+    // Trainer-session and service reviews live on their booking documents.
+    featureBooking: (kind: string, bookingId: string) => `/reviews/admin/booking/${kind}/${bookingId}/feature`,
+    moderateBooking: (kind: string, bookingId: string) => `/reviews/admin/booking/${kind}/${bookingId}/moderation`,
   },
 
   // Orders
@@ -75,6 +99,7 @@ export const API_ENDPOINTS = {
     track: (id: string) => `/orders/${id}/track`,
     cancel: (id: string) => `/orders/${id}/cancel`,
     updateStatus: (id: string) => `/orders/${id}/status`,
+    updatePayment: (id: string) => `/orders/${id}/payment`,
   },
 
   // User
@@ -89,11 +114,14 @@ export const API_ENDPOINTS = {
     publicDetail: (id: string) => `/trainers/public/${id}`,
     publicPrograms: (id: string) => `/trainers/public/${id}/programs`,
     publicAvailability: (id: string) => `/trainers/public/${id}/availability`,
+    publicReviews: (id: string) => `/trainers/public/${id}/reviews`,
     detail: (id: string) => `/trainers/${id}`,
     myPrograms: '/trainers/programs/me',
     programs: '/trainers/programs',
+    uploadProgramImage: '/trainers/programs/upload-image',
     programDetail: (id: string) => `/trainers/programs/${id}`,
     myAvailability: '/trainers/availability/me',
+    myAvailableDates: '/trainers/availability/dates',
     availability: '/trainers/availability',
     availabilityDetail: (id: string) => `/trainers/availability/${id}`,
     applications: '/trainers/applications',
@@ -146,16 +174,25 @@ export const API_ENDPOINTS = {
     adminAll: '/service-bookings',
     updateStatus: (id: string) => `/service-bookings/${id}/status`,
     cancel: (id: string) => `/service-bookings/${id}/cancel`,
+    review: (id: string) => `/service-bookings/${id}/review`,
+  },
+
+  // Payments
+  payments: {
+    stripeIntent: '/payments/stripe/intent',
+    stripeCheckout: '/payments/stripe/checkout',
   },
 
   // Bookings (trainer-client sessions)
   bookings: {
     create: '/bookings',
+    adminAll: '/bookings/admin/all',
     myClient: '/bookings/my',
     myTrainer: '/bookings/trainer',
     myClients: '/bookings/trainer/clients',
     updateStatus: (id: string) => `/bookings/${id}/status`,
     cancel: (id: string) => `/bookings/${id}/cancel`,
+    review: (id: string) => `/bookings/${id}/review`,
   },
 
 } as const;

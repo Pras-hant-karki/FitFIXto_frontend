@@ -3,7 +3,7 @@
 import { ButtonHTMLAttributes, MouseEvent, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
-import { useAuth, useCart } from "@/contexts";
+import { useAuth, useCart, useToast } from "@/contexts";
 import { BackendCart } from "../api";
 
 type AddToCartButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "disabled"> & {
@@ -40,6 +40,7 @@ export function AddToCartButton({
   const pathname = usePathname();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { addToCart } = useCart();
+  const { toast } = useToast();
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const isOutOfStock = stock !== undefined && stock <= 0;
@@ -72,16 +73,28 @@ export function AddToCartButton({
     try {
       const cart = await addToCart(productId, quantity);
       setStatus("success");
+      toast.success("Added to cart");
       onAdded?.(cart);
       window.setTimeout(() => setStatus("idle"), 1400);
-    } catch {
+    } catch (err) {
       setStatus("error");
+      toast.error(err instanceof Error ? err.message : "Could not add to cart");
     }
   };
 
+  const { className: passedClassName, ...restButtonProps } = buttonProps;
+  const mergedClassName = [
+    "cart-button",
+    status === "success" ? "added" : "",
+    passedClassName || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <button
-      {...buttonProps}
+      {...restButtonProps}
+      className={mergedClassName}
       type={type}
       disabled={isDisabled}
       onClick={handleClick}

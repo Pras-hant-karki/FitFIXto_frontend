@@ -1,189 +1,204 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
-import { Plus, Save, User } from "lucide-react";
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
-import { useAuth } from "@/contexts/AuthContext";
-import { apiClient } from "@/lib";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth, useToast } from "@/contexts";
 
-const normalizeProfileImageUrl = (path?: string | null) => {
-  if (!path) {
-    return "";
-  }
+const NOTIF_KEY = "fitfixto_notifications";
+const PREF_KEY = "fitfixto_preferences";
+const PRIVACY_KEY = "fitfixto_privacy";
 
-  const uploadsIndex = path.indexOf("/uploads/");
-  if (uploadsIndex >= 0) {
-    return `/assets/${path.slice(uploadsIndex + "/uploads/".length)}`;
-  }
+const DEFAULT_NOTIF = { orderUpdates: true, promotions: true, bookingReminders: true, smsAlerts: false, pushNotifications: true };
+const DEFAULT_PREF = { language: "", currency: "", units: "metric" as "metric" | "imperial" };
+const DEFAULT_PRIVACY = { publicProfile: false, showActivity: true, personalizedRecs: true };
 
-  return path;
+const load = <T,>(key: string, def: T): T => {
+  if (typeof window === "undefined") return def;
+  try { const r = localStorage.getItem(key); return r ? { ...def, ...JSON.parse(r) } : def; } catch { return def; }
 };
+const save = (key: string, val: unknown) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
 
-const splitDisplayName = (name: string) => {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return {
-    firstName: parts[0] || "",
-    lastName: parts.slice(1).join(" ") || "",
-  };
-};
+function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      className={`settings-toggle${on ? " on" : ""}`}
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={label}
+    />
+  );
+}
 
 export default function AdminSettingsPage() {
-  const { user, refreshUser } = useAuth();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [profilePicture, setProfilePicture] = useState("");
-  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { logout } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [notif, setNotif] = useState(DEFAULT_NOTIF);
+  const [pref, setPref] = useState(DEFAULT_PREF);
+  const [privacy, setPrivacy] = useState(DEFAULT_PRIVACY);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
+    const stored = localStorage.getItem("theme") as "light" | "dark" | null;
+    setTheme(stored ?? "light");
+    setNotif(load(NOTIF_KEY, DEFAULT_NOTIF));
+    setPref(load(PREF_KEY, DEFAULT_PREF));
+    setPrivacy(load(PRIVACY_KEY, DEFAULT_PRIVACY));
+  }, []);
 
-    setName(`${user.firstName || ""} ${user.lastName || ""}`.trim() || "admin");
-    setPhone(user.phone || "");
-    setProfilePicture(normalizeProfileImageUrl(user.profilePicture));
-  }, [user]);
-
-  const selectedPhotoLabel = selectedPhoto?.name || "No file chosen";
-
-  const handleProfileUpdate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSaving(true);
-    setError("");
-    setMessage("");
-
-    try {
-      const { firstName, lastName } = splitDisplayName(name);
-
-      await apiClient.put(API_ENDPOINTS.auth.profile, {
-        firstName,
-        ...(lastName ? { lastName } : {}),
-        ...(phone.trim() ? { phone: phone.trim() } : {}),
-      });
-
-      await refreshUser();
-      setMessage("Admin profile updated successfully.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update admin profile.");
-    } finally {
-      setIsSaving(false);
-    }
+  const toggleTheme = () => {
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    localStorage.setItem("theme", next);
   };
 
-  const handlePhotoUpload = async () => {
-    if (!selectedPhoto) {
-      setError("Please choose a profile picture before uploading.");
-      return;
-    }
+  const updateNotif = (key: keyof typeof DEFAULT_NOTIF) => {
+    const next = { ...notif, [key]: !notif[key] };
+    setNotif(next);
+    save(NOTIF_KEY, next);
+  };
 
-    setIsUploading(true);
-    setError("");
-    setMessage("");
+  const updatePrivacy = (key: keyof typeof DEFAULT_PRIVACY) => {
+    const next = { ...privacy, [key]: !privacy[key] };
+    setPrivacy(next);
+    save(PRIVACY_KEY, next);
+  };
 
-    try {
-      const formData = new FormData();
-      formData.append("profileImage", selectedPhoto);
+  const updatePref = (patch: Partial<typeof DEFAULT_PREF>) => {
+    const next = { ...pref, ...patch };
+    setPref(next);
+    save(PREF_KEY, next);
+  };
 
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.auth.uploadProfileImage}`, {
-        method: "POST",
-        headers: {
-          ...(apiClient.getAuthToken() ? { Authorization: `Bearer ${apiClient.getAuthToken()}` } : {}),
-        },
-        body: formData,
-      });
-      const result = await response.json();
+  const handleLogout = () => { logout(); router.push("/admin/login"); };
 
-      if (!response.ok) {
-        throw new Error(result.message || "Unable to upload profile picture.");
-      }
-
-      setProfilePicture(normalizeProfileImageUrl(result.data?.profilePicture));
-      setSelectedPhoto(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      await refreshUser();
-      setMessage("Profile picture uploaded successfully.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to upload profile picture.");
-    } finally {
-      setIsUploading(false);
-    }
+  const handleDeleteAccount = () => {
+    toast.info("To delete this account, please contact the system administrator.");
+    setShowDeleteModal(false);
   };
 
   return (
-    <section className="admin-settings-page">
-      <header className="admin-settings-header">
+    <section className="admin-orders-page">
+      <header className="admin-orders-header">
         <h1>Settings</h1>
-        <p>Manage your admin account.</p>
+        <p>Manage notifications, preferences, privacy and your account.</p>
       </header>
 
-      {message ? <p className="admin-products-message">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
-
-      <section className="admin-settings-card">
-        <h2>
-          <User aria-hidden="true" />
-          Admin Profile
-        </h2>
-
-        <div className="admin-settings-profile-layout">
-          <div className="admin-settings-photo-block">
-            <div className="admin-settings-avatar">
-              {profilePicture ? <img src={profilePicture} alt="" /> : <User aria-hidden="true" />}
+      <div className="settings-page" style={{ marginTop: 0 }}>
+        <div className="settings-card">
+          <h3 className="settings-card-title">Appearance</h3>
+          <p className="settings-card-sub">Customize how FitFIXto looks on your device.</p>
+          <div className="settings-toggle-row">
+            <div className="settings-row-text">
+              <strong>Theme</strong>
+              <span>Switch between light and dark mode.</span>
             </div>
-            <div className="admin-upload-field">
-              <span>Upload profile picture</span>
-              <button
-                type="button"
-                className="admin-upload-drop"
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Choose admin profile picture"
-              >
-                <Plus aria-hidden="true" />
-              </button>
-              <input
-                ref={fileInputRef}
-                className="admin-hidden-file-input"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                disabled={isUploading}
-                onChange={(event) => setSelectedPhoto(event.target.files?.[0] || null)}
-              />
-              <small>
-                Choose files <span>{selectedPhotoLabel}</span>
-              </small>
-              <button type="button" className="admin-upload-picture-button" disabled={isUploading} onClick={handlePhotoUpload}>
-                {isUploading ? "Uploading..." : "Upload Picture"}
-              </button>
+            <button type="button" className={`settings-theme-btn${theme === "dark" ? " active" : ""}`} onClick={toggleTheme}>
+              {theme === "light" ? "☀ Light" : "🌙 Dark"}
+            </button>
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <h3 className="settings-card-title">Notifications</h3>
+          <p className="settings-card-sub">Choose what we contact you about.</p>
+          {([
+            { key: "orderUpdates", label: "Order updates", desc: "Shipping, delivery and status changes." },
+            { key: "promotions", label: "Promotions & offers", desc: "Flash sales, bundles and discounts." },
+            { key: "bookingReminders", label: "Booking reminders", desc: "Reminders for your training sessions." },
+            { key: "smsAlerts", label: "SMS alerts", desc: "Text messages for time-sensitive updates." },
+            { key: "pushNotifications", label: "Push notifications", desc: "In-browser push notifications." },
+          ] as const).map(({ key, label, desc }) => (
+            <div className="settings-toggle-row" key={key}>
+              <div className="settings-row-text"><strong>{label}</strong><span>{desc}</span></div>
+              <ToggleSwitch on={notif[key]} onToggle={() => updateNotif(key)} label={label} />
+            </div>
+          ))}
+        </div>
+
+        <div className="settings-card">
+          <h3 className="settings-card-title">Preferences</h3>
+          <p className="settings-card-sub">Language, currency and measurement units.</p>
+          <div className="settings-pref-grid">
+            <label className="settings-pref-label">
+              Language
+              <select value={pref.language} onChange={(e) => updatePref({ language: e.target.value })} className="settings-pref-select">
+                <option value="">English (default)</option>
+                <option value="ne">Nepali</option>
+                <option value="hi">Hindi</option>
+              </select>
+            </label>
+            <label className="settings-pref-label">
+              Currency
+              <select value={pref.currency} onChange={(e) => updatePref({ currency: e.target.value })} className="settings-pref-select">
+                <option value="">NPR (default)</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="INR">INR — Indian Rupee</option>
+                <option value="AED">AED — UAE Dirham</option>
+                <option value="AUD">AUD — Australian Dollar</option>
+                <option value="CAD">CAD — Canadian Dollar</option>
+                <option value="GBP">GBP — British Pound</option>
+              </select>
+            </label>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <strong className="settings-pref-label" style={{ display: "block", marginBottom: 8 }}>Units</strong>
+            <div className="settings-units-btns">
+              <button type="button" className={`settings-unit-btn${pref.units === "metric" ? " active" : ""}`} onClick={() => updatePref({ units: "metric" })}>Metric</button>
+              <button type="button" className={`settings-unit-btn${pref.units === "imperial" ? " active" : ""}`} onClick={() => updatePref({ units: "imperial" })}>Imperial</button>
             </div>
           </div>
-
-          <form className="admin-settings-form" onSubmit={handleProfileUpdate}>
-            <label>
-              Name
-              <input value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <label>
-              Email
-              <input value={user?.email || ""} readOnly />
-            </label>
-            <label>
-              Phone
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} />
-            </label>
-            <button type="submit" disabled={isSaving}>
-              <Save aria-hidden="true" />
-              {isSaving ? "Updating..." : "Update Profile"}
-            </button>
-          </form>
         </div>
-      </section>
+
+        <div className="settings-card">
+          <h3 className="settings-card-title">Privacy</h3>
+          <p className="settings-card-sub">Control your data and visibility.</p>
+          {([
+            { key: "publicProfile", label: "Public profile", desc: "Let others see your profile and reviews." },
+            { key: "showActivity", label: "Show activity", desc: "Display your recent orders and bookings." },
+            { key: "personalizedRecs", label: "Personalized recommendations", desc: "Use my activity to suggest products." },
+          ] as const).map(({ key, label, desc }) => (
+            <div className="settings-toggle-row" key={key}>
+              <div className="settings-row-text"><strong>{label}</strong><span>{desc}</span></div>
+              <ToggleSwitch on={privacy[key]} onToggle={() => updatePrivacy(key)} label={label} />
+            </div>
+          ))}
+        </div>
+
+        <div className="settings-card settings-danger-zone">
+          <h3 className="settings-card-title">Danger zone</h3>
+          <p className="settings-card-sub">Irreversible and destructive actions.</p>
+          <div className="settings-danger-actions">
+            <button type="button" className="settings-logout-btn" onClick={handleLogout}>
+              Log out
+            </button>
+            <button type="button" className="settings-delete-btn" onClick={() => setShowDeleteModal(true)}>
+              Delete account
+            </button>
+          </div>
+        </div>
+
+        <p className="settings-autosave-note">✓ Your settings save automatically.</p>
+      </div>
+
+      {showDeleteModal ? (
+        <div className="user-order-modal-backdrop" role="presentation" onClick={() => setShowDeleteModal(false)}>
+          <section className="user-order-cancel-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h2>Delete account?</h2>
+            <p style={{ color: "var(--muted)", fontSize: 14, margin: "10px 0 20px" }}>
+              This action is permanent and cannot be undone. All admin access will be revoked.
+            </p>
+            <div className="user-order-modal-actions">
+              <button type="button" onClick={() => setShowDeleteModal(false)}>Cancel</button>
+              <button type="button" className="danger" onClick={handleDeleteAccount}>Delete account</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS, resolveAssetUrl } from "@/constants/api";
 import { apiClient } from "@/lib";
 import { getCategoryLabel } from "./categories";
 
@@ -48,13 +48,7 @@ export interface ProductListResponse {
 
 export const formatCategory = (category: string) => getCategoryLabel(category);
 
-export const resolveProductImageUrl = (img: string): string => {
-  if (!img) return "";
-  if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  // /assets/ and /uploads/ are both valid relative paths served by Next.js public dir
-  if (img.startsWith("/assets/") || img.startsWith("/uploads/")) return img;
-  return `/assets/${img}`;
-};
+export const resolveProductImageUrl = (img: string): string => resolveAssetUrl(img);
 
 export const getProductImage = (product: BackendProduct): string =>
   resolveProductImageUrl(product.images[0] || "");
@@ -136,11 +130,9 @@ type UploadedProductImage = {
 };
 
 const toFrontendAssetUrl = (image: UploadedProductImage) => {
-  // Files land in fitfixto_frontend/public/assets/ — serve via Next.js at /assets/
-  if (image.filename) return `/assets/${image.filename}`;
-  const pathStr = (image.path || "").replace(/\\/g, "/");
-  const last = pathStr.split("/").filter(Boolean).pop();
-  return last ? `/assets/${last}` : image.url || "";
+  if (image.path) return resolveAssetUrl(image.path);
+  if (image.filename) return resolveAssetUrl(image.filename);
+  return resolveAssetUrl(image.url) || "";
 };
 
 export const uploadProductImages = async (files: File[]) => {

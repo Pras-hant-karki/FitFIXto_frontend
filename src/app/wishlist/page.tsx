@@ -83,7 +83,11 @@ export default function WishlistPage() {
   const isLoading = isAuthLoading || isWishlistLoading;
 
   const handleRemove = async (productId: string) => {
-    await removeFromWishlist(productId);
+    try {
+      await removeFromWishlist(productId);
+    } catch {
+      // WishlistContext already surfaces errors via wishlistError; swallowing here prevents unhandled rejection
+    }
   };
 
   if (!isAuthenticated && !isAuthLoading) {
@@ -137,7 +141,7 @@ export default function WishlistPage() {
       {!isLoading && !wishlistError && wishlistCount > 0 ? (
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {wishlist.items.map((item) => (
-            <WishlistProductCard key={item.productId._id} item={item} onRemove={handleRemove} />
+            <WishlistProductCard key={item.productId?._id ?? item.addedAt} item={item} onRemove={handleRemove} />
           ))}
         </div>
       ) : null}

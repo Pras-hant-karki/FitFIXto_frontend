@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS, resolveAssetUrl } from "@/constants/api";
 import { apiClient } from "@/lib";
 
 export type BackendTrainerUser = {
@@ -22,6 +22,8 @@ export type BackendTrainer = {
   certifications: string[];
   isFeatured: boolean;
   isSuspended: boolean;
+  averageRating?: number;
+  ratingCount?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -31,6 +33,9 @@ export type BackendTrainerProgram = {
   trainerId: string;
   title: string;
   description?: string;
+  programType: string;
+  level: "beginner" | "intermediate" | "advanced";
+  image?: string | null;
   durationWeeks: number;
   sessions: number;
   price: number;
@@ -42,6 +47,9 @@ export type BackendTrainerProgram = {
 export type TrainerProgramPayload = {
   title: string;
   description?: string;
+  programType?: string;
+  level?: "beginner" | "intermediate" | "advanced";
+  image?: string;
   durationWeeks: number;
   sessions: number;
   price: number;
@@ -106,8 +114,8 @@ export type BackendTrainerApplication = {
   updatedAt: string;
 };
 
-export const fetchAdminTrainers = async () => {
-  const response = await apiClient.get<{ trainers: BackendTrainer[] }>(API_ENDPOINTS.trainers.list);
+export const fetchAdminTrainers = async (params?: { page?: number; limit?: number }) => {
+  const response = await apiClient.get<{ trainers: BackendTrainer[] }>(API_ENDPOINTS.trainers.list, { params });
   return response.data?.trainers || [];
 };
 
@@ -127,8 +135,34 @@ export const fetchPublicTrainerPrograms = async (trainerId: string) => {
 };
 
 export const fetchPublicTrainerAvailability = async (trainerId: string) => {
-  const response = await apiClient.get<{ availability: BackendTrainerAvailability[] }>(API_ENDPOINTS.trainers.publicAvailability(trainerId));
-  return response.data?.availability || [];
+  const response = await apiClient.get<{ availability: BackendTrainerAvailability[]; availableDates: { date: string }[] }>(API_ENDPOINTS.trainers.publicAvailability(trainerId));
+  return {
+    availability: response.data?.availability || [],
+    availableDates: (response.data?.availableDates || []).map((d) => d.date.slice(0, 10)),
+  };
+};
+
+export interface BackendTrainerReview {
+  _id: string;
+  clientRating: number;
+  clientComment?: string;
+  slotDate?: string;
+  timeLabel?: string;
+  clientId?: { _id: string; firstName?: string; lastName?: string; profilePicture?: string };
+}
+
+export const fetchPublicTrainerReviews = async (trainerId: string): Promise<BackendTrainerReview[]> => {
+  const response = await apiClient.get<{ reviews: BackendTrainerReview[] }>(API_ENDPOINTS.trainers.publicReviews(trainerId));
+  return response.data?.reviews || [];
+};
+
+export const fetchMyTrainerAvailableDates = async (): Promise<string[]> => {
+  const response = await apiClient.get<{ availableDates: { date: string }[] }>(API_ENDPOINTS.trainers.myAvailableDates);
+  return (response.data?.availableDates || []).map((d) => d.date.slice(0, 10));
+};
+
+export const saveMyTrainerAvailableDates = async (dates: string[]): Promise<void> => {
+  await apiClient.post(API_ENDPOINTS.trainers.myAvailableDates, { dates });
 };
 
 export const fetchMyTrainerPrograms = async () => {
@@ -144,6 +178,20 @@ export const fetchMyTrainerAvailability = async () => {
 export const createTrainerProgram = async (payload: TrainerProgramPayload) => {
   const response = await apiClient.post<{ program: BackendTrainerProgram }>(API_ENDPOINTS.trainers.programs, payload);
   return response.data?.program;
+};
+
+export const uploadTrainerProgramImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append("image", file);
+  const token = apiClient.getAuthToken();
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.trainers.uploadProgramImage}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || "Unable to upload program image.");
+  return normalizeTrainerPhotoUrl(result.data?.image);
 };
 
 export const updateTrainerProgram = async (programId: string, payload: Partial<TrainerProgramPayload>) => {
@@ -171,9 +219,42 @@ export const deleteTrainerAvailability = async (slotId: string) => {
   return response.data;
 };
 
-export const fetchTrainerApplications = async () => {
-  const response = await apiClient.get<{ applications: BackendTrainerApplication[] }>(API_ENDPOINTS.trainers.applications);
-  return response.data?.applications || [];
+export type TrainerApplicationPaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
+
+export type AdminTrainerApplicationsResponse = {
+  applications: BackendTrainerApplication[];
+  pagination: TrainerApplicationPaginationMeta;
+};
+
+const DEFAULT_APP_PAGINATION: TrainerApplicationPaginationMeta = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
+export const fetchTrainerApplications = async (params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<AdminTrainerApplicationsResponse> => {
+  const response = await apiClient.get<{ applications: BackendTrainerApplication[]; pagination?: TrainerApplicationPaginationMeta }>(
+    API_ENDPOINTS.trainers.applications,
+    { params }
+  );
+  return {
+    applications: response.data?.applications || [],
+    pagination: response.data?.pagination || DEFAULT_APP_PAGINATION,
+  };
 };
 
 export type TrainerApplicationPayload = {
@@ -240,24 +321,10 @@ export const rejectTrainerApplication = async (applicationId: string) => {
   return response.data?.application;
 };
 
-export const normalizeTrainerPhotoUrl = (url?: string | null) => {
-  if (!url) return "";
+export const normalizeTrainerPhotoUrl = (url?: string | null): string => resolveAssetUrl(url);
 
-  const uploadsIndex = url.indexOf("/uploads/");
-  if (uploadsIndex >= 0) {
-    return `/assets/${url.slice(uploadsIndex + "/uploads/".length)}`;
-  }
-
-  return url;
-};
-
-const toFrontendAssetUrl = (filename?: string, path?: string) => {
-  if (filename) {
-    return `/assets/${filename}`;
-  }
-
-  return normalizeTrainerPhotoUrl(path);
-};
+const toFrontendAssetUrl = (filename?: string, path?: string) =>
+  resolveAssetUrl(path || filename);
 
 export const uploadTrainerPhoto = async (file: File) => {
   const formData = new FormData();

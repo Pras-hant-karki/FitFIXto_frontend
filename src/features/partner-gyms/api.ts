@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS, resolveAssetUrl } from "@/constants/api";
 import { apiClient } from "@/lib";
 
 export type BackendPartnerGym = {
@@ -28,16 +28,7 @@ export type PartnerGymPayload = {
   isVisible?: boolean;
 };
 
-export const normalizeGymImageUrl = (url?: string | null) => {
-  if (!url) return "";
-
-  const uploadsIndex = url.indexOf("/uploads/");
-  if (uploadsIndex >= 0) {
-    return `/assets/${url.slice(uploadsIndex + "/uploads/".length)}`;
-  }
-
-  return url;
-};
+export const normalizeGymImageUrl = (url?: string | null): string => resolveAssetUrl(url);
 
 export const fetchPartnerGyms = async () => {
   const response = await apiClient.get<{ gyms: BackendPartnerGym[] }>(API_ENDPOINTS.partnerGyms.list);
@@ -71,18 +62,8 @@ type UploadedPartnerGymImage = {
   url?: string;
 };
 
-const toFrontendAssetUrl = (image: UploadedPartnerGymImage) => {
-  if (image.filename) {
-    return `/assets/${image.filename}`;
-  }
-
-  const uploadsIndex = image.path.indexOf("/uploads/");
-  if (uploadsIndex >= 0) {
-    return `/assets/${image.path.slice(uploadsIndex + "/uploads/".length)}`;
-  }
-
-  return image.url || image.path;
-};
+const toFrontendAssetUrl = (image: UploadedPartnerGymImage) =>
+  resolveAssetUrl(image.path || image.filename) || image.url || "";
 
 export const uploadPartnerGymImages = async (files: File[]) => {
   const formData = new FormData();

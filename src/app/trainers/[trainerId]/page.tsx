@@ -8,12 +8,55 @@ import {
   BackendTrainer,
   BackendTrainerAvailability,
   BackendTrainerProgram,
+  BackendTrainerReview,
   TrainerAvailabilityDay,
   fetchPublicTrainer,
   fetchPublicTrainerAvailability,
   fetchPublicTrainerPrograms,
+  fetchPublicTrainerReviews,
   normalizeTrainerPhotoUrl,
 } from "@/features/trainers";
+import { usePreferences } from "@/contexts";
+
+type Period = "this-week" | "next-week" | "next-month";
+
+const getWeekStart = (offsetWeeks: number): Date => {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysFromMonday + offsetWeeks * 7);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+};
+
+const getDatesForPeriod = (p: Period): string[] => {
+  const toStr = (d: Date) => d.toISOString().slice(0, 10);
+  if (p === "this-week" || p === "next-week") {
+    const start = getWeekStart(p === "this-week" ? 0 : 1);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return toStr(d);
+    });
+  }
+  const today = new Date();
+  const firstOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  const daysInNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0).getDate();
+  return Array.from({ length: daysInNextMonth }, (_, i) => {
+    const d = new Date(firstOfNextMonth);
+    d.setDate(i + 1);
+    return toStr(d);
+  });
+};
+
+const dayKeyFromDateStr = (dateStr: string): TrainerAvailabilityDay => {
+  const d = new Date(dateStr + "T12:00:00");
+  const map: Record<number, TrainerAvailabilityDay> = {
+    0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat",
+  };
+  return map[d.getDay()];
+};
 
 const getTrainerName = (trainer: BackendTrainer) =>
   `${trainer.userId.firstName || ""} ${trainer.userId.lastName || ""}`.trim() || "FitFIXto Trainer";
@@ -57,9 +100,14 @@ export default function TrainerDetailsPage() {
   const [trainer, setTrainer] = useState<BackendTrainer | null>(null);
   const [programs, setPrograms] = useState<BackendTrainerProgram[]>([]);
   const [availability, setAvailability] = useState<BackendTrainerAvailability[]>([]);
-  const [selectedAvailabilityId, setSelectedAvailabilityId] = useState("");
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [trainerReviews, setTrainerReviews] = useState<BackendTrainerReview[]>([]);
+  const [period, setPeriod] = useState<Period>("this-week");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedSlot, setSelectedSlot] = useState<BackendTrainerAvailability | null>(null);
   const [activeTab, setActiveTab] = useState<TrainerDetailTab>("about");
   const router = useRouter();
+  const { formatPrice } = usePreferences();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -71,10 +119,11 @@ export default function TrainerDetailsPage() {
       setError("");
 
       try {
-        const [nextTrainer, nextPrograms, nextAvailability] = await Promise.all([
+        const [nextTrainer, nextPrograms, nextAvailability, nextReviews] = await Promise.all([
           fetchPublicTrainer(trainerId),
           fetchPublicTrainerPrograms(trainerId),
           fetchPublicTrainerAvailability(trainerId),
+          fetchPublicTrainerReviews(trainerId),
         ]);
 
         if (!nextTrainer) {
@@ -85,13 +134,15 @@ export default function TrainerDetailsPage() {
           setTrainer(nextTrainer);
           setPrograms(nextPrograms.filter((program) => program.isActive));
           setAvailability(
-            nextAvailability
+            nextAvailability.availability
               .filter((slot) => slot.isActive)
               .sort((left, right) => {
                 const dayDiff = (dayOrder.get(left.dayOfWeek) ?? 0) - (dayOrder.get(right.dayOfWeek) ?? 0);
                 return dayDiff || left.timeLabel.localeCompare(right.timeLabel);
               })
           );
+          setAvailableDates(nextAvailability.availableDates);
+          setTrainerReviews(nextReviews);
         }
       } catch (err) {
         if (isActive) {
@@ -116,18 +167,41 @@ export default function TrainerDetailsPage() {
   const trainerPhoto = trainer ? getTrainerPhoto(trainer) : "";
   const trainerName = trainer ? getTrainerName(trainer) : "";
   const specialtyLine = useMemo(() => trainer?.specialties.join(" · ") || "Personal Training", [trainer?.specialties]);
-  const availabilityTimes = useMemo(
-    () => Array.from(new Set(availability.map((slot) => slot.timeLabel))).sort((a, b) => timeToMinutes(a) - timeToMinutes(b)),
-    [availability]
-  );
-  const selectedAvailability = availability.find((slot) => slot._id === selectedAvailabilityId);
+
+  const periodAvailableDates = useMemo(() => {
+    const availSet = new Set(availableDates);
+    return getDatesForPeriod(period).filter((d) => availSet.has(d));
+  }, [period, availableDates]);
+
+  const getSlotsForDate = (dateStr: string) => {
+    const dayKey = dayKeyFromDateStr(dateStr);
+    const seen = new Set<string>();
+    return availability
+      .filter((slot) => slot.dayOfWeek === dayKey)
+      .sort((a, b) => timeToMinutes(a.timeLabel) - timeToMinutes(b.timeLabel))
+      .filter((slot) => {
+        if (seen.has(slot.timeLabel)) return false;
+        seen.add(slot.timeLabel);
+        return true;
+      });
+  };
 
   if (isLoading) {
     return (
       <main className="trainer-detail-page">
-        <section className="cart-state-card">
-          <strong>Loading trainer...</strong>
-          <span>Please wait while we fetch trainer details.</span>
+        <section className="cart-state-card" aria-busy="true">
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+              <div className="skeleton skeleton-avatar" style={{ width: 72, height: 72 }} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="skeleton skeleton-text wide" style={{ height: 20 }} />
+                <div className="skeleton skeleton-text mid" />
+              </div>
+            </div>
+            <div className="skeleton skeleton-text wide" />
+            <div className="skeleton skeleton-text mid" />
+            <div className="skeleton skeleton-text short" />
+          </div>
         </section>
       </main>
     );
@@ -162,7 +236,7 @@ export default function TrainerDetailsPage() {
             </button>
             <div>
               <span>Per session</span>
-              <strong>Npr {Math.round(trainer.sessionRate).toLocaleString()}</strong>
+              <strong>{formatPrice(trainer.sessionRate)}</strong>
             </div>
             <div>
               <span>Location</span>
@@ -179,7 +253,9 @@ export default function TrainerDetailsPage() {
               <span>Rating</span>
               <strong>
                 <Star aria-hidden="true" />
-                New
+                {trainerReviews.length > 0
+                  ? `${(trainerReviews.reduce((sum, r) => sum + r.clientRating, 0) / trainerReviews.length).toFixed(1)} (${trainerReviews.length})`
+                  : "New"}
               </strong>
             </div>
           </div>
@@ -262,7 +338,7 @@ export default function TrainerDetailsPage() {
                       {program.description ? <span>{program.description}</span> : null}
                     </div>
                     <div>
-                      <strong>Npr {Math.round(program.price).toLocaleString()}</strong>
+                      <strong>{formatPrice(program.price)}</strong>
                       <button type="button">Select Program</button>
                     </div>
                   </article>
@@ -279,56 +355,69 @@ export default function TrainerDetailsPage() {
 
           {activeTab === "availability" ? (
             <section className="trainer-availability-section">
-              {availability.length ? (
-                <>
-                  <div className="trainer-availability-table" role="table" aria-label={`${trainerName} availability`}>
-                    <div className="trainer-availability-row trainer-availability-head" role="row">
-                      <strong role="columnheader">Time</strong>
-                      {dayOptions.map((day) => (
-                        <strong key={day.key} role="columnheader">
-                          {day.label}
-                        </strong>
-                      ))}
-                    </div>
-                    {availabilityTimes.map((timeLabel) => (
-                      <div className="trainer-availability-row" key={timeLabel} role="row">
-                        <span className="trainer-availability-time" role="cell">{formatAvailabilityTime(timeLabel)}</span>
-                        {dayOptions.map((day) => {
-                          const slot = availability.find((item) => item.dayOfWeek === day.key && item.timeLabel === timeLabel);
+              <div className="trainer-avail-period-switcher">
+                {(["this-week", "next-week", "next-month"] as const).map((p) => (
+                  <button
+                    type="button"
+                    key={p}
+                    className={period === p ? "active" : ""}
+                    onClick={() => { setPeriod(p); setSelectedDate(""); setSelectedSlot(null); }}
+                  >
+                    {p === "this-week" ? "This Week" : p === "next-week" ? "Next Week" : "Next Month"}
+                  </button>
+                ))}
+              </div>
 
-                          return (
-                            <span key={`${day.key}-${timeLabel}`} role="cell">
-                              {slot ? (
-                                <button
-                                  type="button"
-                                  className={selectedAvailabilityId === slot._id ? "selected" : ""}
-                                  onClick={() => setSelectedAvailabilityId(slot._id)}
-                                >
-                                  Book
-                                </button>
-                              ) : (
-                                <em>—</em>
-                              )}
-                            </span>
-                          );
-                        })}
+              {periodAvailableDates.length === 0 ? (
+                <section className="trainer-detail-empty-state">
+                  <Award aria-hidden="true" />
+                  <strong>No availability for this period</strong>
+                  <span>Try another period or check back when the trainer updates their schedule.</span>
+                </section>
+              ) : (
+                <>
+                  {periodAvailableDates.map((dateStr) => {
+                    const dateSlots = getSlotsForDate(dateStr);
+                    if (dateSlots.length === 0) return null;
+                    const dateLabel = new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
+                      weekday: "long", month: "long", day: "numeric",
+                    });
+                    return (
+                      <div key={dateStr} className="trainer-avail-date-row">
+                        <div className="trainer-avail-date-label">{dateLabel}</div>
+                        <div className="trainer-avail-time-slots">
+                          {dateSlots.map((slot) => {
+                            const selKey = `${dateStr}-${slot._id}`;
+                            const isSelected = selectedDate === dateStr && selectedSlot?._id === slot._id;
+                            return (
+                              <button
+                                type="button"
+                                key={selKey}
+                                className={isSelected ? "selected" : ""}
+                                onClick={() => { setSelectedDate(dateStr); setSelectedSlot(slot); }}
+                              >
+                                {formatAvailabilityTime(slot.timeLabel)}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
 
                   <div className="trainer-availability-actions">
                     <span>
-                      {selectedAvailability
-                        ? `${dayOptions.find((day) => day.key === selectedAvailability.dayOfWeek)?.label} · ${selectedAvailability.timeLabel}`
-                        : "Choose a day and time to continue."}
+                      {selectedSlot && selectedDate
+                        ? `${new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${formatAvailabilityTime(selectedSlot.timeLabel)}`
+                        : "Choose a date and time slot to continue."}
                     </span>
                     <button
                       type="button"
-                      disabled={!selectedAvailability}
+                      disabled={!selectedSlot || !selectedDate}
                       onClick={() => {
-                        if (!selectedAvailability) return;
+                        if (!selectedSlot || !selectedDate) return;
                         router.push(
-                          `/trainers/${trainerId}/book?day=${selectedAvailability.dayOfWeek}&time=${encodeURIComponent(selectedAvailability.timeLabel)}`
+                          `/trainers/${trainerId}/book?date=${selectedDate}&time=${encodeURIComponent(selectedSlot.timeLabel)}`
                         );
                       }}
                     >
@@ -336,21 +425,50 @@ export default function TrainerDetailsPage() {
                     </button>
                   </div>
                 </>
-              ) : (
-                <section className="trainer-detail-empty-state">
-                  <Award aria-hidden="true" />
-                  <strong>No availability added yet</strong>
-                  <span>Availability slots added by this trainer will appear here.</span>
-                </section>
               )}
             </section>
           ) : null}
 
           {activeTab === "reviews" ? (
-            <section className="trainer-detail-empty-state">
-              <Star aria-hidden="true" />
-              <strong>No reviews yet</strong>
-              <span>Customer reviews will appear after completed sessions.</span>
+            <section className="trainer-reviews-section">
+              {trainerReviews.length === 0 ? (
+                <section className="trainer-detail-empty-state">
+                  <Star aria-hidden="true" />
+                  <strong>No reviews yet</strong>
+                  <span>Customer reviews will appear after completed sessions.</span>
+                </section>
+              ) : (
+                <>
+                  <p className="trainer-reviews-count">{trainerReviews.length} review{trainerReviews.length === 1 ? "" : "s"}</p>
+                  {trainerReviews.map((review) => {
+                    const client = review.clientId;
+                    const clientName = client
+                      ? `${client.firstName || ""} ${client.lastName || ""}`.trim() || "Client"
+                      : "Client";
+                    const initial = clientName[0]?.toUpperCase() ?? "C";
+                    const dateLabel = review.slotDate
+                      ? new Date(review.slotDate + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+                      : "";
+                    return (
+                      <article className="trainer-review-card" key={review._id}>
+                        <div className="trainer-review-header">
+                          <div className="trainer-review-avatar">{initial}</div>
+                          <div>
+                            <strong>{clientName}</strong>
+                            {dateLabel ? <span>{dateLabel}{review.timeLabel ? ` · ${review.timeLabel}` : ""}</span> : null}
+                          </div>
+                          <div className="trainer-review-stars">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star key={i} aria-hidden="true" className={i < review.clientRating ? "filled" : ""} />
+                            ))}
+                          </div>
+                        </div>
+                        {review.clientComment ? <p>{review.clientComment}</p> : null}
+                      </article>
+                    );
+                  })}
+                </>
+              )}
             </section>
           ) : null}
         </section>

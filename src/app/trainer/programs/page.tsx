@@ -1,229 +1,166 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, X, Dumbbell } from "lucide-react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Clock3, ImagePlus, Layers3, Pencil, Plus, Trash2, X } from "lucide-react";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
-import { API_ENDPOINTS } from "@/constants/api";
-import { apiClient } from "@/lib";
+import {
+  BackendTrainerProgram,
+  createTrainerProgram,
+  deleteTrainerProgram,
+  fetchMyTrainerPrograms,
+  normalizeTrainerPhotoUrl,
+  updateTrainerProgram,
+  uploadTrainerProgramImage,
+} from "@/features/trainers";
 
-interface TrainerProgram {
-  _id: string;
-  title: string;
-  description?: string;
-  durationWeeks: number;
-  sessions: number;
-  price: number;
-  isActive: boolean;
-  createdAt: string;
-}
-
+type ProgramLevel = "beginner" | "intermediate" | "advanced";
 type ProgramForm = {
   title: string;
-  description: string;
-  durationWeeks: string;
+  programType: string;
+  level: ProgramLevel;
   sessions: string;
+  durationWeeks: string;
   price: string;
+  description: string;
+  image: string;
   isActive: boolean;
 };
 
 const emptyForm: ProgramForm = {
-  title: "",
-  description: "",
-  durationWeeks: "",
-  sessions: "",
-  price: "",
-  isActive: true,
+  title: "", programType: "1-on-1", level: "beginner", sessions: "", durationWeeks: "",
+  price: "", description: "", image: "", isActive: true,
 };
 
 export default function TrainerProgramsPage() {
-  const [programs, setPrograms] = useState<TrainerProgram[]>([]);
+  const [programs, setPrograms] = useState<BackendTrainerProgram[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [editingProgram, setEditingProgram] = useState<TrainerProgram | null>(null);
+  const [editingProgram, setEditingProgram] = useState<BackendTrainerProgram | null>(null);
   const [form, setForm] = useState<ProgramForm>(emptyForm);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [deletingId, setDeletingId] = useState("");
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadPrograms = async () => {
     setIsLoading(true);
     setError("");
-    try {
-      const res = await apiClient.get<{ programs: TrainerProgram[] }>(API_ENDPOINTS.trainers.myPrograms);
-      setPrograms(res.data?.programs || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load programs.");
-    } finally {
-      setIsLoading(false);
-    }
+    try { setPrograms(await fetchMyTrainerPrograms()); }
+    catch (err) { setError(err instanceof Error ? err.message : "Unable to load programs."); }
+    finally { setIsLoading(false); }
   };
 
   useEffect(() => { loadPrograms(); }, []);
 
   const openCreate = () => {
-    setEditingProgram(null);
-    setForm(emptyForm);
-    setFormError("");
-    setShowModal(true);
+    setEditingProgram(null); setForm(emptyForm); setImageFile(null); setFormError(""); setShowModal(true);
   };
 
-  const openEdit = (program: TrainerProgram) => {
+  const openEdit = (program: BackendTrainerProgram) => {
     setEditingProgram(program);
     setForm({
       title: program.title,
-      description: program.description || "",
-      durationWeeks: String(program.durationWeeks),
+      programType: program.programType || "1-on-1",
+      level: program.level || "beginner",
       sessions: String(program.sessions),
+      durationWeeks: String(program.durationWeeks),
       price: String(program.price),
+      description: program.description || "",
+      image: normalizeTrainerPhotoUrl(program.image),
       isActive: program.isActive,
     });
-    setFormError("");
-    setShowModal(true);
+    setImageFile(null); setFormError(""); setShowModal(true);
   };
 
   const closeModal = () => {
     if (isSubmitting) return;
-    setShowModal(false);
-    setEditingProgram(null);
-    setForm(emptyForm);
-    setFormError("");
+    setShowModal(false); setEditingProgram(null); setForm(emptyForm); setImageFile(null); setFormError("");
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setFormError("");
-
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
-      durationWeeks: Number(form.durationWeeks),
-      sessions: Number(form.sessions),
-      price: Number(form.price),
-      isActive: form.isActive,
-    };
-
-    if (!payload.title) { setFormError("Program title is required."); return; }
-    if (payload.durationWeeks < 1) { setFormError("Duration must be at least 1 week."); return; }
-    if (payload.sessions < 1) { setFormError("Sessions must be at least 1."); return; }
-    if (payload.price < 0) { setFormError("Price cannot be negative."); return; }
-
-    setIsSubmitting(true);
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setFormError(""); setIsSubmitting(true);
     try {
+      const image = imageFile ? await uploadTrainerProgramImage(imageFile) : form.image || undefined;
+      const payload = {
+        title: form.title.trim(),
+        programType: form.programType.trim(),
+        level: form.level,
+        sessions: Number(form.sessions),
+        durationWeeks: Number(form.durationWeeks),
+        price: Number(form.price),
+        description: form.description.trim() || undefined,
+        image,
+        isActive: form.isActive,
+      };
       if (editingProgram) {
-        const res = await apiClient.put<{ program: TrainerProgram }>(
-          API_ENDPOINTS.trainers.programDetail(editingProgram._id),
-          payload
-        );
-        if (res.data?.program) {
-          setPrograms((cur) => cur.map((p) => (p._id === editingProgram._id ? res.data!.program : p)));
-        }
+        const updated = await updateTrainerProgram(editingProgram._id, payload);
+        if (updated) setPrograms((current) => current.map((program) => program._id === updated._id ? updated : program));
         setMessage("Program updated successfully.");
       } else {
-        const res = await apiClient.post<{ program: TrainerProgram }>(
-          API_ENDPOINTS.trainers.programs,
-          payload
-        );
-        if (res.data?.program) {
-          setPrograms((cur) => [res.data!.program, ...cur]);
-        }
+        const created = await createTrainerProgram(payload);
+        if (created) setPrograms((current) => [created, ...current]);
         setMessage("Program created successfully.");
       }
       closeModal();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Unable to save program.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleDelete = async (program: TrainerProgram) => {
+  const handleDelete = async (program: BackendTrainerProgram) => {
     if (!window.confirm(`Delete "${program.title}"?`)) return;
-    setDeletingId(program._id);
-    setError(""); setMessage("");
-    try {
-      await apiClient.delete(API_ENDPOINTS.trainers.programDetail(program._id));
-      setPrograms((cur) => cur.filter((p) => p._id !== program._id));
-      setMessage("Program deleted.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete program.");
-    } finally {
-      setDeletingId("");
-    }
+    setDeletingId(program._id); setError("");
+    try { await deleteTrainerProgram(program._id); setPrograms((current) => current.filter((item) => item._id !== program._id)); setMessage("Program deleted."); }
+    catch (err) { setError(err instanceof Error ? err.message : "Unable to delete program."); }
+    finally { setDeletingId(""); }
   };
 
   return (
     <TrainerDashboardShell>
-      <div className="customer-orders-panel">
-        <div className="customer-orders-heading">
-          <h2>Programs</h2>
-          <button type="button" className="customer-reorder-button" onClick={openCreate}>
-            <Plus aria-hidden="true" />
-            New Program
-          </button>
+      <div className="customer-orders-panel trainer-programs-page">
+        <div className="trainer-programs-heading">
+          <div><h2>Programs</h2><p>{programs.length} program{programs.length === 1 ? "" : "s"} available for clients to book.</p></div>
+          <button type="button" className="customer-reorder-button" onClick={openCreate}><Plus />Create Program</button>
         </div>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 0, marginBottom: 20 }}>
-          Create and manage your training programs. Clients can enroll directly from your profile.
-        </p>
-
-        {message ? <p className="customer-review-message" style={{ marginBottom: 14 }}>{message}</p> : null}
-        {error ? <p className="auth-message error" style={{ marginBottom: 14 }}>{error}</p> : null}
+        {message ? <p className="customer-review-message">{message}</p> : null}
+        {error ? <p className="auth-message error">{error}</p> : null}
 
         {isLoading ? (
-          <div className="customer-orders-empty">Loading programs...</div>
-        ) : programs.length === 0 ? (
-          <div className="trainer-programs-empty">
-            <Dumbbell aria-hidden="true" />
-            <strong>No programs yet</strong>
-            <span>Create your first training program so clients can discover and book it.</span>
-            <button type="button" className="customer-reorder-button" onClick={openCreate}>
-              <Plus aria-hidden="true" />
-              Create Program
-            </button>
-          </div>
-        ) : (
-          <div className="trainer-program-list-page">
-            {programs.map((program) => (
-              <article className="trainer-program-list-card" key={program._id}>
-                <div className="trainer-program-list-info">
-                  <div className="trainer-program-list-meta">
-                    <strong>{program.title}</strong>
-                    <span className={`trainer-program-badge ${program.isActive ? "active" : "inactive"}`}>
-                      {program.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                  {program.description ? (
-                    <p>{program.description}</p>
-                  ) : null}
-                  <div className="trainer-program-list-stats">
-                    <span>{program.durationWeeks} week{program.durationWeeks === 1 ? "" : "s"}</span>
-                    <span>·</span>
-                    <span>{program.sessions} session{program.sessions === 1 ? "" : "s"}</span>
-                    <span>·</span>
-                    <strong>Npr {program.price.toLocaleString()}</strong>
-                  </div>
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton skeleton-image" style={{ width: 72, height: 72, margin: 0, flexShrink: 0, borderRadius: 8 }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                  <div className="skeleton skeleton-text short" />
                 </div>
-                <div className="trainer-program-list-actions">
-                  <button
-                    type="button"
-                    className="trainer-program-edit-btn"
-                    onClick={() => openEdit(program)}
-                    aria-label={`Edit ${program.title}`}
-                  >
-                    <Pencil aria-hidden="true" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="trainer-program-delete-btn"
-                    onClick={() => handleDelete(program)}
-                    disabled={deletingId === program._id}
-                    aria-label={`Delete ${program.title}`}
-                  >
-                    <Trash2 aria-hidden="true" />
-                    {deletingId === program._id ? "..." : "Delete"}
-                  </button>
+              </div>
+            ))}
+          </div>
+        ) : programs.length === 0 ? (
+          <div className="trainer-programs-empty"><Layers3 /><strong>No programs yet</strong><span>Create your first program so clients can discover and book it.</span><button type="button" className="customer-reorder-button" onClick={openCreate}><Plus />Create Program</button></div>
+        ) : (
+          <div className="trainer-program-large-grid">
+            {programs.map((program) => (
+              <article className="trainer-program-large-card" key={program._id}>
+                <div className="trainer-program-large-image">
+                  {program.image ? <img src={normalizeTrainerPhotoUrl(program.image)} alt="" /> : <ImagePlus aria-hidden="true" />}
+                </div>
+                <div className="trainer-program-large-body">
+                  <div className="trainer-program-tags"><span>{program.programType || "1-on-1"}</span><span>{program.level || "beginner"}</span></div>
+                  <h3>{program.title}</h3>
+                  <p>{program.description || "No program description added yet."}</p>
+                  <div className="trainer-program-large-stats"><span><Layers3 />{program.sessions} sessions</span><span><Clock3 />{program.durationWeeks} weeks</span></div>
+                  <div className="trainer-program-large-footer">
+                    <strong>Npr {program.price.toLocaleString()}</strong>
+                    <div><button type="button" onClick={() => openEdit(program)}><Pencil />Edit</button><button type="button" aria-label={`Delete ${program.title}`} onClick={() => handleDelete(program)} disabled={deletingId === program._id}><Trash2 /></button></div>
+                  </div>
                 </div>
               </article>
             ))}
@@ -231,108 +168,29 @@ export default function TrainerProgramsPage() {
         )}
       </div>
 
-      {/* Create / Edit Modal */}
       {showModal ? (
         <div className="trainer-modal-backdrop" role="presentation" onClick={closeModal}>
-          <section
-            className="trainer-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={editingProgram ? "Edit program" : "Create program"}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="trainer-modal-header">
-              <h2>{editingProgram ? "Edit Program" : "New Program"}</h2>
-              <button type="button" className="trainer-modal-close" onClick={closeModal} aria-label="Close modal">
-                <X aria-hidden="true" />
-              </button>
-            </div>
-
+          <section className="trainer-modal trainer-program-modal" role="dialog" aria-modal="true" aria-label={editingProgram ? "Edit program" : "Create program"} onClick={(event) => event.stopPropagation()}>
+            <div className="trainer-modal-header"><h2>{editingProgram ? "Edit Program" : "Create Program"}</h2><button type="button" className="trainer-modal-close" onClick={closeModal}><X /></button></div>
             <form className="trainer-modal-form" onSubmit={handleSubmit}>
-              <label>
-                Title *
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
-                  required
-                  disabled={isSubmitting}
-                  placeholder="e.g. 12-Week Strength Builder"
-                  maxLength={100}
-                />
-              </label>
-
-              <label>
-                Description
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
-                  disabled={isSubmitting}
-                  placeholder="What's included? Who is it for?"
-                  maxLength={500}
-                />
-              </label>
-
+              <label>Title *<input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required maxLength={100} /></label>
               <div className="trainer-modal-row">
-                <label>
-                  Duration (weeks) *
-                  <input
-                    type="number"
-                    value={form.durationWeeks}
-                    onChange={(e) => setForm((c) => ({ ...c, durationWeeks: e.target.value }))}
-                    required
-                    min={1}
-                    disabled={isSubmitting}
-                    placeholder="e.g. 8"
-                  />
-                </label>
-                <label>
-                  Total sessions *
-                  <input
-                    type="number"
-                    value={form.sessions}
-                    onChange={(e) => setForm((c) => ({ ...c, sessions: e.target.value }))}
-                    required
-                    min={1}
-                    disabled={isSubmitting}
-                    placeholder="e.g. 16"
-                  />
-                </label>
+                <label>Type<input value={form.programType} onChange={(event) => setForm((current) => ({ ...current, programType: event.target.value }))} required /></label>
+                <label>Level<select value={form.level} onChange={(event) => setForm((current) => ({ ...current, level: event.target.value as ProgramLevel }))}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label>
               </div>
-
-              <label>
-                Price (Npr) *
-                <input
-                  type="number"
-                  value={form.price}
-                  onChange={(e) => setForm((c) => ({ ...c, price: e.target.value }))}
-                  required
-                  min={0}
-                  disabled={isSubmitting}
-                  placeholder="e.g. 15000"
-                />
+              <div className="trainer-modal-row">
+                <label>Sessions<input type="number" min="1" value={form.sessions} onChange={(event) => setForm((current) => ({ ...current, sessions: event.target.value }))} required /></label>
+                <label>Weeks<input type="number" min="1" value={form.durationWeeks} onChange={(event) => setForm((current) => ({ ...current, durationWeeks: event.target.value }))} required /></label>
+              </div>
+              <label>Price (Npr)<input type="number" min="0" value={form.price} onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))} required /></label>
+              <label>Program image
+                <button type="button" className="trainer-program-image-picker" onClick={() => imageInputRef.current?.click()}><ImagePlus />{imageFile?.name || (form.image ? "Replace current image" : "Choose image")}</button>
+                <input ref={imageInputRef} hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => setImageFile(event.target.files?.[0] || null)} />
               </label>
-
-              <label className="trainer-modal-checkbox">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => setForm((c) => ({ ...c, isActive: e.target.checked }))}
-                  disabled={isSubmitting}
-                />
-                <span>Visible on public profile (active)</span>
-              </label>
-
+              <label>Description<textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={500} /></label>
+              <label className="trainer-modal-checkbox"><input type="checkbox" checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} /><span>Visible on public profile</span></label>
               {formError ? <p className="auth-message error">{formError}</p> : null}
-
-              <div className="trainer-modal-actions">
-                <button type="button" className="trainer-modal-cancel-btn" onClick={closeModal} disabled={isSubmitting}>
-                  Cancel
-                </button>
-                <button type="submit" className="trainer-modal-submit-btn" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : editingProgram ? "Save Changes" : "Create Program"}
-                </button>
-              </div>
+              <div className="trainer-modal-actions"><button type="button" className="trainer-modal-cancel-btn" onClick={closeModal}>Cancel</button><button type="submit" className="trainer-modal-submit-btn" disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save Program"}</button></div>
             </form>
           </section>
         </div>

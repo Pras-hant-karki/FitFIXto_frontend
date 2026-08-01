@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Check, X, CheckCircle, Clock, XCircle, User } from "lucide-react";
+import { avatarUrl } from "@/utils/assets";
 import { TrainerDashboardShell } from "@/components/shared/trainer";
+import { useToast } from "@/contexts";
 import {
   BackendBooking,
   BookingStatus,
@@ -31,24 +33,22 @@ const getClient = (booking: BackendBooking): PopulatedClient | null => {
 type FilterType = "all" | BookingStatus;
 
 export default function TrainerBookingsPage() {
+  const { toast } = useToast();
   const [bookings, setBookings] = useState<BackendBooking[]>([]);
   const [filter, setFilter] = useState<FilterType>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       setIsLoading(true);
-      setError("");
       try {
         const data = await fetchMyTrainerBookings();
         if (isActive) setBookings(data);
       } catch (err) {
-        if (isActive) setError(err instanceof Error ? err.message : "Unable to load bookings.");
+        if (isActive) toast.error(err instanceof Error ? err.message : "Unable to load bookings.");
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -62,16 +62,14 @@ export default function TrainerBookingsPage() {
     status: "confirmed" | "cancelled" | "completed"
   ) => {
     setProcessingId(bookingId);
-    setError("");
-    setMessage("");
     try {
       const updated = await updateBookingStatus(bookingId, status, notesMap[bookingId]);
       if (updated) {
         setBookings((cur) => cur.map((b) => (b._id === bookingId ? updated : b)));
       }
-      setMessage(`Booking ${status} successfully.`);
+      toast.success(`Booking ${status} successfully.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update booking.");
+      toast.error(err instanceof Error ? err.message : "Unable to update booking.");
     } finally {
       setProcessingId("");
     }
@@ -111,11 +109,19 @@ export default function TrainerBookingsPage() {
           ))}
         </div>
 
-        {message ? <p className="customer-review-message" style={{ marginBottom: 12 }}>{message}</p> : null}
-        {error ? <p className="auth-message error" style={{ marginBottom: 12 }}>{error}</p> : null}
-
         {isLoading ? (
-          <div className="customer-orders-empty">Loading bookings...</div>
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton skeleton-avatar" />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                  <div className="skeleton skeleton-text short" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           <div className="customer-orders-empty">
             {filter === "all" ? "No bookings yet. Clients will appear here once they book your slots." : `No ${filter} bookings.`}
@@ -131,8 +137,8 @@ export default function TrainerBookingsPage() {
                 <article className="trainer-booking-card" key={booking._id}>
                   <div className="trainer-booking-client">
                     <div className="trainer-booking-avatar">
-                      {client?.profilePicture ? (
-                        <img src={client.profilePicture} alt={client.firstName} />
+                      {avatarUrl(client) ? (
+                        <img src={avatarUrl(client)} alt={client?.firstName ?? "Client"} />
                       ) : (
                         <User aria-hidden="true" />
                       )}

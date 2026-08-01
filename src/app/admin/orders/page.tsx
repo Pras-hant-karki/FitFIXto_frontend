@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Eye, Search, X } from "lucide-react";
-import { AdminOrderStatusUpdate, BackendOrder, fetchAdminOrders, updateAdminOrderStatus } from "@/features/orders";
+import { useEffect, useRef, useState } from "react";
+import { Eye, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { AdminOrderStatusUpdate, BackendOrder, PaginationMeta, fetchAdminOrders, updateAdminOrderStatus } from "@/features/orders";
+import { useToast } from "@/contexts";
 
 type OrderTab = "all" | "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 
@@ -21,11 +22,20 @@ const adminStatusOptions: Array<{ value: AdminOrderStatusUpdate; label: string }
   { value: "delivered", label: "Delivered" },
 ];
 
+// Maps frontend display tab to backend status query value
+const TAB_TO_BACKEND_STATUS: Record<OrderTab, string | undefined> = {
+  all: undefined,
+  pending: "pending",
+  processing: "confirmed",
+  shipped: "shipped",
+  delivered: "delivered",
+  cancelled: "cancelled",
+};
+
 const getCustomer = (order: BackendOrder) => {
   if (!order.userId || typeof order.userId === "string") {
     return { name: "Customer", email: "No email" };
   }
-
   return {
     name: `${order.userId.firstName} ${order.userId.lastName}`.trim() || "Customer",
     email: order.userId.email,
@@ -58,10 +68,7 @@ const getAvailableStatusUpdates = (status: string): AdminOrderStatusUpdate[] => 
   return [];
 };
 
-const formatOrderId = (id: string, index: number) => {
-  const shortId = id.slice(-4).toUpperCase();
-  return shortId ? `ORD-${shortId}` : `ORD-${3201 - index}`;
-};
+const formatOrderId = (id: string) => `ORD-${id.slice(-4).toUpperCase()}`;
 
 const formatDate = (date: string) =>
   new Intl.DateTimeFormat("en-CA", {
@@ -72,95 +79,89 @@ const formatDate = (date: string) =>
 
 const formatCustomerEmail = (email: string) => {
   if (email.length <= 22) return email;
-
   const [localPart] = email.split("@");
   if (!localPart) return email;
-
   return `${localPart.slice(0, 24)}@...........`;
 };
 
+const DEFAULT_PAGINATION: PaginationMeta = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
+const PAGE_LIMIT = 20;
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<BackendOrder[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>(DEFAULT_PAGINATION);
   const [selectedTab, setSelectedTab] = useState<OrderTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<BackendOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
-  const [error, setError] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
+  const { toast } = useToast();
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadOrders = async (page: number, search: string, tab: OrderTab) => {
+    setIsLoading(true);
+    try {
+      const backendStatus = TAB_TO_BACKEND_STATUS[tab];
+      const result = await fetchAdminOrders({
+        page,
+        limit: PAGE_LIMIT,
+        search: search.trim() || undefined,
+        status: backendStatus,
+      });
+      setOrders(result.orders);
+      setPagination(result.pagination);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to load orders.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadOrders = async () => {
-      setIsLoading(true);
-      setError("");
-
-      try {
-        const nextOrders = await fetchAdminOrders();
-        setOrders(nextOrders);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load orders.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadOrders();
+    loadOrders(1, "", "all");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tabCounts = useMemo(() => {
-    const counts: Record<OrderTab, number> = {
-      all: orders.length,
-      pending: 0,
-      processing: 0,
-      shipped: 0,
-      delivered: 0,
-      cancelled: 0,
-    };
+  const handleTabChange = (tab: OrderTab) => {
+    setSelectedTab(tab);
+    setCurrentPage(1);
+    loadOrders(1, searchQuery, tab);
+  };
 
-    orders.forEach((order) => {
-      const status = getDisplayStatus(order.status);
-      if (status in counts) {
-        counts[status as OrderTab] += 1;
-      }
-    });
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      loadOrders(1, query, selectedTab);
+    }, 350);
+  };
 
-    return counts;
-  }, [orders]);
-
-  const filteredOrders = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-
-    return orders.filter((order, index) => {
-      const displayStatus = getDisplayStatus(order.status);
-      const customer = getCustomer(order);
-      const matchesTab = selectedTab === "all" || displayStatus === selectedTab;
-      const matchesSearch =
-        !query ||
-        formatOrderId(order._id, index).toLowerCase().includes(query) ||
-        customer.name.toLowerCase().includes(query) ||
-        customer.email.toLowerCase().includes(query) ||
-        order.items.some((item) => item.productName.toLowerCase().includes(query));
-
-      return matchesTab && matchesSearch;
-    });
-  }, [orders, searchQuery, selectedTab]);
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    loadOrders(newPage, searchQuery, selectedTab);
+  };
 
   const handleStatusUpdate = async (order: BackendOrder, status: AdminOrderStatusUpdate) => {
-    setError("");
-    setStatusMessage("");
     setUpdatingOrderId(order._id);
-
     try {
       const updatedOrder = await updateAdminOrderStatus(order._id, status);
-
       if (updatedOrder) {
         setOrders((current) => current.map((item) => (item._id === updatedOrder._id ? updatedOrder : item)));
         setSelectedOrder((current) => (current?._id === updatedOrder._id ? updatedOrder : current));
       }
-
-      setStatusMessage(`Order ${formatOrderId(order._id, 0)} moved to ${getStatusLabel(status)}.`);
+      toast.success(`Order ${formatOrderId(order._id)} moved to ${getStatusLabel(status)}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update order status.");
+      toast.error(err instanceof Error ? err.message : "Unable to update order status.");
     } finally {
       setUpdatingOrderId("");
     }
@@ -170,7 +171,7 @@ export default function AdminOrdersPage() {
     <section className="admin-orders-page">
       <header className="admin-orders-header">
         <h1>Orders</h1>
-        <p>{orders.length} orders total</p>
+        <p>{pagination.total} orders total</p>
       </header>
 
       <div className="admin-order-toolbar">
@@ -179,11 +180,11 @@ export default function AdminOrdersPage() {
             <button
               type="button"
               className={selectedTab === tab.key ? "active" : undefined}
-              onClick={() => setSelectedTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               key={tab.key}
             >
               {tab.label}
-              <span>{tabCounts[tab.key]}</span>
+              {selectedTab === tab.key && <span>{pagination.total}</span>}
             </button>
           ))}
         </div>
@@ -194,13 +195,10 @@ export default function AdminOrdersPage() {
             type="search"
             placeholder="Search orders..."
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            onChange={(event) => handleSearchChange(event.target.value)}
           />
         </label>
       </div>
-
-      {error ? <p className="admin-products-message error">{error}</p> : null}
-      {statusMessage ? <p className="admin-products-message success">{statusMessage}</p> : null}
 
       <div className="admin-orders-table-card">
         <div className="admin-orders-admin-table">
@@ -215,18 +213,27 @@ export default function AdminOrdersPage() {
           </div>
 
           {isLoading ? (
-            <div className="admin-orders-empty">Loading orders...</div>
-          ) : filteredOrders.length === 0 ? (
+            <div className="admin-orders-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 100 }} />
+                  <div className="skeleton skeleton-text short" style={{ width: 72 }} />
+                </div>
+              ))}
+            </div>
+          ) : orders.length === 0 ? (
             <div className="admin-orders-empty">No orders found.</div>
           ) : (
-            filteredOrders.map((order, index) => {
+            orders.map((order) => {
               const customer = getCustomer(order);
               const status = getDisplayStatus(order.status);
               const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
               return (
                 <div className="admin-orders-admin-row" key={order._id}>
-                  <strong>{formatOrderId(order._id, index)}</strong>
+                  <strong>{formatOrderId(order._id)}</strong>
                   <div className="admin-order-customer">
                     <strong>{customer.name}</strong>
                     <span title={customer.email}>{formatCustomerEmail(customer.email)}</span>
@@ -244,13 +251,21 @@ export default function AdminOrdersPage() {
                       value=""
                       onChange={(event) => handleStatusUpdate(order, event.target.value as AdminOrderStatusUpdate)}
                       disabled={updatingOrderId === order._id || getAvailableStatusUpdates(order.status).length === 0}
-                      aria-label={`Update status for order ${formatOrderId(order._id, index)}`}
+                      aria-label={`Update status for order ${formatOrderId(order._id)}`}
                     >
                       <option value="">
-                        {updatingOrderId === order._id ? "Updating..." : getAvailableStatusUpdates(order.status).length ? "Update status" : "No action"}
+                        {updatingOrderId === order._id
+                          ? "Updating..."
+                          : getAvailableStatusUpdates(order.status).length
+                          ? "Update status"
+                          : "No action"}
                       </option>
                       {adminStatusOptions.map((option) => (
-                        <option value={option.value} disabled={!getAvailableStatusUpdates(order.status).includes(option.value)} key={option.value}>
+                        <option
+                          value={option.value}
+                          disabled={!getAvailableStatusUpdates(order.status).includes(option.value)}
+                          key={option.value}
+                        >
                           {option.label}
                         </option>
                       ))}
@@ -263,13 +278,42 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
+      {pagination.totalPages > 1 ? (
+        <div className="admin-pagination">
+          <button
+            type="button"
+            disabled={!pagination.hasPrevPage}
+            onClick={() => handlePageChange(currentPage - 1)}
+            aria-label="Previous page"
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <span>
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={!pagination.hasNextPage}
+            onClick={() => handlePageChange(currentPage + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
+
       {selectedOrder ? (
         <div className="admin-order-detail-backdrop" role="presentation" onClick={() => setSelectedOrder(null)}>
           <aside className="admin-order-detail" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="admin-form-close" onClick={() => setSelectedOrder(null)} aria-label="Close order details">
+            <button
+              type="button"
+              className="admin-form-close"
+              onClick={() => setSelectedOrder(null)}
+              aria-label="Close order details"
+            >
               <X aria-hidden="true" />
             </button>
-            <h2>{formatOrderId(selectedOrder._id, 0)}</h2>
+            <h2>{formatOrderId(selectedOrder._id)}</h2>
             <p>{getCustomer(selectedOrder).name}</p>
             <div className="admin-order-detail-lines">
               {selectedOrder.items.map((item) => (
@@ -293,10 +337,18 @@ export default function AdminOrdersPage() {
                 disabled={updatingOrderId === selectedOrder._id || getAvailableStatusUpdates(selectedOrder.status).length === 0}
               >
                 <option value="">
-                  {updatingOrderId === selectedOrder._id ? "Updating..." : getAvailableStatusUpdates(selectedOrder.status).length ? "Choose next status" : "No action available"}
+                  {updatingOrderId === selectedOrder._id
+                    ? "Updating..."
+                    : getAvailableStatusUpdates(selectedOrder.status).length
+                    ? "Choose next status"
+                    : "No action available"}
                 </option>
                 {adminStatusOptions.map((option) => (
-                  <option value={option.value} disabled={!getAvailableStatusUpdates(selectedOrder.status).includes(option.value)} key={option.value}>
+                  <option
+                    value={option.value}
+                    disabled={!getAvailableStatusUpdates(selectedOrder.status).includes(option.value)}
+                    key={option.value}
+                  >
                     {option.label}
                   </option>
                 ))}

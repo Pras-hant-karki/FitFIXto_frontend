@@ -6,11 +6,26 @@ import {
   createPartnerGym,
   deletePartnerGym,
   fetchPartnerGyms,
+  normalizeGymImageUrl,
   updatePartnerGym,
   uploadPartnerGymImages,
   type BackendPartnerGym,
   type PartnerGymPayload,
 } from "@/features/partner-gyms";
+import { useToast } from "@/contexts";
+import { useMapsAuthFailure } from "@/hooks";
+import {
+  googleMapsApiKey,
+  loadGoogleMaps,
+  MAPS_AUTH_FAILURE_MESSAGE,
+  MAPS_MISSING_KEY_MESSAGE,
+  nepalCenter,
+  type GoogleLatLng,
+  type GoogleMapInstance,
+  type GoogleMarkerInstance,
+  type GooglePlaceResult,
+  type GooglePlacesService,
+} from "@/lib/google-maps";
 
 type GymFormState = {
   name: string;
@@ -24,62 +39,6 @@ type GymFormState = {
   isVisible: boolean;
 };
 
-type GoogleLatLng = {
-  lat: number;
-  lng: number;
-};
-
-type GooglePlaceResult = {
-  place_id?: string;
-  name?: string;
-  formatted_address?: string;
-  rating?: number;
-  url?: string;
-  geometry?: {
-    location?: {
-      lat: () => number;
-      lng: () => number;
-    };
-  };
-};
-
-type GoogleMapInstance = {
-  addListener: (eventName: string, callback: (event: { latLng?: { lat: () => number; lng: () => number } }) => void) => void;
-  fitBounds: (bounds: unknown) => void;
-  getBounds: () => unknown;
-  panTo: (location: GoogleLatLng) => void;
-  setCenter: (location: GoogleLatLng) => void;
-  setZoom: (zoom: number) => void;
-};
-
-type GoogleMarkerInstance = {
-  setMap: (map: GoogleMapInstance | null) => void;
-  setPosition: (location: GoogleLatLng) => void;
-};
-
-type GooglePlacesService = {
-  textSearch: (
-    request: { query: string; bounds?: unknown; location?: GoogleLatLng; radius?: number },
-    callback: (results: GooglePlaceResult[] | null, status: string) => void
-  ) => void;
-};
-
-declare global {
-  interface Window {
-    google?: {
-      maps: {
-        Map: new (element: HTMLElement, options: { center: GoogleLatLng; zoom: number; mapTypeControl: boolean; streetViewControl: boolean }) => GoogleMapInstance;
-        Marker: new (options: { map: GoogleMapInstance; position: GoogleLatLng; title?: string }) => GoogleMarkerInstance;
-        LatLngBounds: new () => { extend: (location: GoogleLatLng) => void };
-        places: {
-          PlacesService: new (map: GoogleMapInstance) => GooglePlacesService;
-          PlacesServiceStatus: { OK: string };
-        };
-      };
-    };
-  }
-}
-
 const emptyGymForm: GymFormState = {
   name: "",
   address: "",
@@ -92,57 +51,31 @@ const emptyGymForm: GymFormState = {
   isVisible: true,
 };
 
-const nepalCenter = { lat: 28.3949, lng: 84.124 };
-const googleMapsApiKey =
-  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-  process.env.NEXT_PUBLIC_VITE_GOOGLE_MAPS_API_KEY ||
-  process.env.VITE_GOOGLE_MAPS_API_KEY ||
-  "";
-
-const loadGoogleMapsScript = (apiKey: string) =>
-  new Promise<void>((resolve, reject) => {
-    if (window.google?.maps?.places) {
-      resolve();
-      return;
-    }
-
-    const existingScript = document.getElementById("fitfixto-google-maps-script") as HTMLScriptElement | null;
-    if (existingScript) {
-      existingScript.addEventListener("load", () => resolve(), { once: true });
-      existingScript.addEventListener("error", () => reject(new Error("Unable to load Google Maps.")), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "fitfixto-google-maps-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Unable to load Google Maps."));
-    document.head.appendChild(script);
-  });
-
 const formatPin = (location: GoogleLatLng) => `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
 
 export default function AdminPartnerGymsPage() {
+  const { toast } = useToast();
   const [gyms, setGyms] = useState<BackendPartnerGym[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGymId, setEditingGymId] = useState<string | null>(null);
   const [form, setForm] = useState<GymFormState>(emptyGymForm);
-  const [mapStatus, setMapStatus] = useState(googleMapsApiKey ? "Loading map..." : "Google Maps API key missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your env to enable the map.");
+  const [mapStatus, setMapStatus] = useState(googleMapsApiKey ? "Loading map..." : MAPS_MISSING_KEY_MESSAGE);
+  const mapsAuthFailed = useMapsAuthFailure();
   const [searchQuery, setSearchQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<GooglePlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
-  const [statusMessage, setStatusMessage] = useState("");
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRef = useRef<GoogleMarkerInstance | null>(null);
   const placesServiceRef = useRef<GooglePlacesService | null>(null);
+  // Constructors and enums are captured from the loaded library rather than read off
+  // window.google, which is undefined until the async bootstrap resolves.
+  const markerFactoryRef = useRef<typeof google.maps.Marker | null>(null);
+  const placesStatusOkRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -155,7 +88,7 @@ export default function AdminPartnerGymsPage() {
       })
       .catch((error) => {
         if (isMounted) {
-          setStatusMessage(error instanceof Error ? error.message : "Unable to load partner gyms.");
+          toast.error(error instanceof Error ? error.message : "Unable to load partner gyms.");
         }
       });
 
@@ -171,13 +104,15 @@ export default function AdminPartnerGymsPage() {
 
     let isMounted = true;
 
-    loadGoogleMapsScript(googleMapsApiKey)
-      .then(() => {
-        if (!isMounted || !window.google || !mapElementRef.current) {
+    loadGoogleMaps(googleMapsApiKey)
+      .then(({ maps, places, marker }) => {
+        if (!isMounted || !mapElementRef.current) {
           return;
         }
 
-        const map = new window.google.maps.Map(mapElementRef.current, {
+        // Constructors come from the resolved library, never from window.google — the global
+        // is not populated until the async bootstrap finishes.
+        const map = new maps.Map(mapElementRef.current, {
           center: nepalCenter,
           zoom: 7,
           mapTypeControl: false,
@@ -185,10 +120,12 @@ export default function AdminPartnerGymsPage() {
         });
 
         mapRef.current = map;
-        placesServiceRef.current = new window.google.maps.places.PlacesService(map);
+        markerFactoryRef.current = marker.Marker;
+        placesServiceRef.current = new places.PlacesService(map);
+        placesStatusOkRef.current = places.PlacesServiceStatus.OK;
         setMapStatus("");
 
-        map.addListener("click", (event) => {
+        map.addListener("click", (event: google.maps.MapMouseEvent) => {
           if (!event.latLng) {
             return;
           }
@@ -207,12 +144,14 @@ export default function AdminPartnerGymsPage() {
   }, []);
 
   const setPinOnMap = (location: GoogleLatLng, title?: string) => {
-    if (!mapRef.current || !window.google) {
+    const MarkerCtor = markerFactoryRef.current;
+
+    if (!mapRef.current || !MarkerCtor) {
       return;
     }
 
     if (!markerRef.current) {
-      markerRef.current = new window.google.maps.Marker({ map: mapRef.current, position: location, title });
+      markerRef.current = new MarkerCtor({ map: mapRef.current, position: location, title });
     } else {
       markerRef.current.setPosition(location);
     }
@@ -271,12 +210,11 @@ export default function AdminPartnerGymsPage() {
 
   const handleImageUpload = async () => {
     if (!selectedImageFiles.length) {
-      setStatusMessage("Please choose 1-5 gym images before uploading.");
+      toast.warning("Please choose 1–5 gym images before uploading.");
       return;
     }
 
     setIsUploading(true);
-    setStatusMessage("");
 
     try {
       const uploadedUrls = await uploadPartnerGymImages(selectedImageFiles);
@@ -285,9 +223,9 @@ export default function AdminPartnerGymsPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      setStatusMessage(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
+      toast.success(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded.`);
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to upload partner gym images.");
+      toast.error(error instanceof Error ? error.message : "Unable to upload gym images.");
     } finally {
       setIsUploading(false);
     }
@@ -296,7 +234,6 @@ export default function AdminPartnerGymsPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setStatusMessage("");
 
     try {
       if (editingGymId) {
@@ -304,50 +241,50 @@ export default function AdminPartnerGymsPage() {
         if (updatedGym) {
           setGyms((current) => current.map((gym) => (gym._id === editingGymId ? updatedGym : gym)));
         }
+        toast.success("Partner gym updated.");
       } else {
         const createdGym = await createPartnerGym(toPayload());
         if (createdGym) {
           setGyms((current) => [createdGym, ...current]);
         }
+        toast.success("Partner gym added.");
       }
 
       closeForm();
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to save partner gym.");
+      toast.error(error instanceof Error ? error.message : "Unable to save partner gym.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleVisibilityToggle = async (gym: BackendPartnerGym) => {
-    setStatusMessage("");
-
     try {
       const updatedGym = await updatePartnerGym(gym._id, { isVisible: !gym.isVisible });
       if (updatedGym) {
         setGyms((current) => current.map((currentGym) => (currentGym._id === gym._id ? updatedGym : currentGym)));
       }
+      toast.success(gym.isVisible ? "Gym hidden from public." : "Gym now visible to public.");
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to update gym visibility.");
+      toast.error(error instanceof Error ? error.message : "Unable to update gym visibility.");
     }
   };
 
   const handleDelete = async (gymId: string) => {
-    setStatusMessage("");
-
     try {
       await deletePartnerGym(gymId);
       setGyms((current) => current.filter((gym) => gym._id !== gymId));
+      toast.success("Partner gym removed.");
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Unable to delete partner gym.");
+      toast.error(error instanceof Error ? error.message : "Unable to delete partner gym.");
     }
   };
 
   const handleSearchGyms = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!placesServiceRef.current || !window.google) {
-      setMapStatus("Google Maps API key missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your env to enable the map.");
+    if (!placesServiceRef.current) {
+      setMapStatus(googleMapsApiKey ? "The map is still loading. Try again in a moment." : MAPS_MISSING_KEY_MESSAGE);
       return;
     }
 
@@ -369,7 +306,7 @@ export default function AdminPartnerGymsPage() {
       (results, status) => {
         setIsSearching(false);
 
-        if (status !== window.google?.maps.places.PlacesServiceStatus.OK || !results) {
+        if (status !== placesStatusOkRef.current || !results) {
           setPlaceResults([]);
           return;
         }
@@ -415,8 +352,6 @@ export default function AdminPartnerGymsPage() {
           Add Gym
         </button>
       </header>
-      {statusMessage ? <p className="admin-gym-status">{statusMessage}</p> : null}
-
       <div className="admin-partner-gyms-grid">
         <section className="admin-gym-map-shell" aria-label="Partner gyms map">
           <div className="admin-gym-map-search">
@@ -433,7 +368,17 @@ export default function AdminPartnerGymsPage() {
             </form>
           </div>
 
-          <div className="admin-gym-map-canvas" ref={mapElementRef}>
+          {/* A rejected key still renders a usable greyed-out map, so this is a banner above
+              it rather than an overlay — pinning and searching keep working. */}
+          {mapsAuthFailed ? (
+            <p className="admin-gym-map-warning" role="status">
+              <MapPin aria-hidden="true" />
+              {MAPS_AUTH_FAILURE_MESSAGE}
+            </p>
+          ) : null}
+
+          <div className="admin-gym-map-canvas">
+            <div ref={mapElementRef} className="admin-gym-map-inner" />
             {mapStatus ? (
               <div className="admin-gym-map-placeholder">
                 <MapPin aria-hidden="true" />
@@ -600,7 +545,11 @@ export default function AdminPartnerGymsPage() {
                   {gyms.map((gym) => (
                     <article className="admin-gym-list-item" key={gym._id}>
                       <div className="admin-gym-thumb">
-                        {gym.images?.[0] ? <img src={gym.images[0]} alt={gym.name} /> : <MapPin aria-hidden="true" />}
+                        {normalizeGymImageUrl(gym.images?.[0]) ? (
+                          <img src={normalizeGymImageUrl(gym.images?.[0])} alt={gym.name} />
+                        ) : (
+                          <MapPin aria-hidden="true" />
+                        )}
                       </div>
                       <div className="admin-gym-details">
                         <div>

@@ -41,8 +41,24 @@ export const fetchReviews = async (params?: Record<string, string | number>) => 
   return response.data;
 };
 
-export const fetchFeaturedReviews = async (): Promise<BackendReview[]> => {
-  const response = await apiClient.get<{ reviews: BackendReview[] }>(API_ENDPOINTS.reviews.featured);
+/**
+ * A featured review as shown on the homepage. Product, trainer-session and service reviews are
+ * stored differently but the backend normalises them into this one shape.
+ */
+export interface FeaturedReview {
+  id: string;
+  kind: "product" | "trainer" | "service";
+  rating: number;
+  comment: string;
+  /** The product, trainer or service the review is about. */
+  subject: string;
+  authorName: string;
+  authorPicture?: string | null;
+  updatedAt: string;
+}
+
+export const fetchFeaturedReviews = async (): Promise<FeaturedReview[]> => {
+  const response = await apiClient.get<{ reviews: FeaturedReview[] }>(API_ENDPOINTS.reviews.featured);
   return response.data?.reviews || [];
 };
 
@@ -80,4 +96,38 @@ export const featureReview = async (reviewId: string, isFeatured: boolean) => {
     { isFeatured }
   );
   return response.data?.review;
+};
+
+/** Trainer-session and service reviews are stored on their booking documents. */
+export type BookingReviewKind = "trainer" | "service";
+
+export interface BookingReviewState {
+  id: string;
+  kind: BookingReviewKind;
+  isFeatured: boolean;
+  moderationStatus?: "approved" | "removed";
+}
+
+export const featureBookingReview = async (
+  kind: BookingReviewKind,
+  bookingId: string,
+  isFeatured: boolean
+) => {
+  const response = await apiClient.patch<BookingReviewState>(
+    API_ENDPOINTS.reviews.featureBooking(kind, bookingId),
+    { isFeatured }
+  );
+  return response.data;
+};
+
+export const moderateBookingReview = async (
+  kind: BookingReviewKind,
+  bookingId: string,
+  status: "approved" | "removed"
+) => {
+  const response = await apiClient.patch<BookingReviewState>(
+    API_ENDPOINTS.reviews.moderateBooking(kind, bookingId),
+    { status }
+  );
+  return response.data;
 };

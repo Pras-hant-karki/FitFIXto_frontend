@@ -1,20 +1,21 @@
-"use client";
+﻿"use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthField } from "@/components/shared";
-import { useAuth } from "@/contexts";
+import { useAuth, useToast } from "@/contexts";
+import { resolvePostLoginRedirect } from "@/utils/redirect";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,13 +26,15 @@ export default function LoginPage() {
 
     try {
       const loggedInUser = await login(formData, rememberMe);
-      const redirectTo =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("redirect")
-          : null;
-      const defaultDash =
-        loggedInUser.role === "trainer" ? "/trainer/dashboard" : "/user/dashboard";
-      router.push(redirectTo || defaultDash);
+
+      if (loggedInUser.passwordIsWeak) {
+        toast.warning("Your password is weak. Please change it to improve your account security.", {
+          duration: 7000,
+          action: { label: "Change Password", onClick: () => router.push("/user/settings") },
+        });
+      }
+
+      router.push(resolvePostLoginRedirect(loggedInUser.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in. Please try again.");
     } finally {
@@ -41,7 +44,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <section className="auth-split-page">
         <aside className="auth-visual auth-login-visual">
           <div className="auth-visual-copy">
@@ -58,9 +60,6 @@ export default function LoginPage() {
 
         <div className="auth-panel">
           <div className="auth-form-wrap">
-            <Link className="auth-logo-link" href="/" aria-label="FitFIXto home">
-              <Image src="/fitfixto_logo.png" alt="FitFIXto" width={190} height={77} className="auth-logo" priority style={{ width: "auto", height: "auto" }} />
-            </Link>
             <div className="auth-title">
               <h1>Sign in</h1>
               <p>Welcome back. Let&apos;s go.</p>
@@ -113,6 +112,9 @@ export default function LoginPage() {
 
             <p className="auth-switch">
               New here? <Link href="/signup">Create an account</Link>
+            </p>
+            <p className="auth-switch" style={{ marginTop: "10px", fontSize: "13px" }}>
+              Are you a trainer? <Link href="/trainer/login">Trainer sign-in</Link>
             </p>
           </div>
         </div>

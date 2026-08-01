@@ -49,18 +49,21 @@ const writeStoredCart = (cart: BackendCart, userId?: string | null) => {
 };
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, user, role } = useAuth();
   const [cart, setCart] = useState<BackendCart>(emptyCart);
   const [isCartLoading, setIsCartLoading] = useState(false);
   const [cartError, setCartError] = useState("");
   const userId = user?.id ?? null;
+  // Customers and trainers both shop, so both own a server-side cart. Admins work only inside
+  // the console and never have one, so their session skips the cart API entirely.
+  const ownsCart = isAuthenticated && role !== "admin";
 
   const refreshCart = useCallback(async () => {
     if (isAuthLoading) {
-      return readStoredCart(isAuthenticated ? userId : null);
+      return readStoredCart(ownsCart ? userId : null);
     }
 
-    if (!isAuthenticated) {
+    if (!ownsCart) {
       const storedCart = readStoredCart(null);
       setCart(storedCart);
       setCartError("");
@@ -87,11 +90,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsCartLoading(false);
     }
-  }, [isAuthenticated, isAuthLoading, userId]);
+  }, [ownsCart, isAuthLoading, userId]);
 
   useEffect(() => {
     if (isAuthLoading) return;
-    setCart(readStoredCart(isAuthenticated ? userId : null));
+    setCart(readStoredCart(ownsCart ? userId : null));
     refreshCart().catch(() => undefined);
   }, [refreshCart]);
 

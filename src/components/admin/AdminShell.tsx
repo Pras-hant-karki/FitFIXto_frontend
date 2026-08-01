@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Home,
@@ -12,6 +12,7 @@ import {
   MessageSquareText,
   Moon,
   Package,
+  RotateCcw,
   Settings,
   Shield,
   ShoppingBag,
@@ -29,7 +30,9 @@ const navItems = [
   { label: "Services", href: "/admin/services", icon: Wrench },
   { label: "Discounts", href: "/admin/discounts", icon: Tag },
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
+  { label: "Returns", href: "/admin/returns", icon: RotateCcw },
   { label: "Trainers", href: "/admin/trainers", icon: UserCog },
+  { label: "Profile", href: "/admin/profile", icon: User },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Reviews", href: "/admin/reviews", icon: MessageSquareText },
   { label: "Homepage", href: "/admin/homepage", icon: Home },
@@ -47,7 +50,6 @@ const footerGroups = [
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { logout, user } = useAuth();
 
   if (pathname === "/admin/login") {
@@ -64,16 +66,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout();
-    router.push("/admin/login");
+    // ProtectedRoute handles redirect to /admin/login when isAuthenticated becomes false
   };
 
   return (
     <>
-      <style>{`.site-navbar,.site-footer{display:none}.site-main{padding-top:0}`}</style>
       <div className="admin-shell">
         <header className="admin-topbar">
           <Link href="/admin/dashboard" className="admin-brand" aria-label="FitFIXto admin dashboard">
-            <Image src="/fitfixto_logo.png" alt="FitFIXto" width={206} height={72} priority style={{ width: "100%", height: "auto" }} />
+            <Image src="/logo.png" alt="FitFIXto" width={206} height={72} priority style={{ width: "auto", height: "44px" }} />
           </Link>
           <span className="admin-badge">
             <Shield aria-hidden="true" />
@@ -127,7 +128,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <footer className="admin-footer">
             <div className="admin-footer-inner">
               <div className="admin-footer-brand">
-                <Image src="/fitfixto_logo.png" alt="FitFIXto" width={206} height={72} style={{ width: "100%", height: "auto" }} />
+                <Image src="/logo.png" alt="FitFIXto" width={206} height={72} style={{ width: "auto", height: "44px" }} />
                 <p>Premium gym equipment, supplements, services and trainers - all in one place.</p>
                 <div className="admin-socials" aria-label="Social links">
                   <a href="#" aria-label="Facebook">

@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Check, Search, Star, Trash2 } from "lucide-react";
-import { BackendReview, featureReview, fetchAdminReviews, moderateReview } from "@/features/reviews";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Check, Search, Star, Trash2 } from "lucide-react";
+import {
+  BackendReview,
+  BookingReviewKind,
+  ReviewListResponse,
+  featureBookingReview,
+  featureReview,
+  fetchAdminReviews,
+  moderateBookingReview,
+  moderateReview,
+} from "@/features/reviews";
 import { BackendProduct, getProductImage } from "@/features/products";
+import { BackendBooking, fetchAdminBookings } from "@/features/bookings";
+import { BackendServiceBooking, fetchAllServiceBookings } from "@/features/serviceBookings";
 
-type ReviewTab = "all" | "approved" | "removed";
+type ReviewTab = "all" | "product" | "trainer" | "service";
 
 type ReviewUser = {
   firstName?: string;
@@ -21,8 +32,9 @@ type ReviewOrder = {
 
 const tabs: Array<{ key: ReviewTab; label: string }> = [
   { key: "all", label: "All" },
-  { key: "approved", label: "Approved" },
-  { key: "removed", label: "Removed" },
+  { key: "product", label: "Products" },
+  { key: "trainer", label: "Trainers" },
+  { key: "service", label: "Services" },
 ];
 
 const getProduct = (review: BackendReview) =>
@@ -36,9 +48,7 @@ const getOrder = (review: BackendReview) =>
 
 const getReviewerName = (review: BackendReview) => {
   const user = getUser(review);
-
   if (!user) return "Customer";
-
   return `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Customer";
 };
 
@@ -47,16 +57,54 @@ const getReviewStatus = (review: BackendReview) =>
 
 const formatDate = (value?: string) => {
   if (!value) return "Unknown date";
-
-  return new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value));
 };
+
+const getTrainerName = (booking: BackendBooking): string => {
+  if (typeof booking.trainerId === "string") return "Trainer";
+  const t = booking.trainerId as { userId?: { firstName?: string; lastName?: string } };
+  return `${t.userId?.firstName || ""} ${t.userId?.lastName || ""}`.trim() || "Trainer";
+};
+
+const getClientName = (booking: BackendBooking | BackendServiceBooking): string => {
+  const c = booking.clientId;
+  if (typeof c === "string") return "Client";
+  return `${(c as { firstName?: string }).firstName || ""} ${(c as { lastName?: string }).lastName || ""}`.trim() || "Client";
+};
+
+const getServiceName = (booking: BackendServiceBooking): string => {
+  if (typeof booking.serviceId === "string") return "Service";
+  return (booking.serviceId as { name?: string }).name || "Service";
+};
+
+const REVIEWS_PER_PAGE = 20;
+
+const DEFAULT_PAGINATION = {
+  total: 0,
+  page: 1,
+  limit: REVIEWS_PER_PAGE,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false,
+};
+
+function StarDisplay({ rating }: { rating: number }) {
+  return (
+    <div className="admin-review-rating">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star key={i} className={i < rating ? "active" : undefined} aria-hidden="true" />
+      ))}
+      <span>{rating}/5</span>
+    </div>
+  );
+}
 
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [reviewsPagination, setReviewsPagination] = useState(DEFAULT_PAGINATION);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [trainerBookings, setTrainerBookings] = useState<BackendBooking[]>([]);
+  const [serviceBookings, setServiceBookings] = useState<BackendServiceBooking[]>([]);
   const [selectedTab, setSelectedTab] = useState<ReviewTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -64,55 +112,85 @@ export default function AdminReviewsPage() {
   const [featuringReviewId, setFeaturingReviewId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadReviews = async (status = selectedTab) => {
+  const loadProductReviews = useCallback(async (page: number, search: string) => {
     setIsLoading(true);
     setError("");
-
     try {
-      const response = await fetchAdminReviews({
-        status,
-        limit: 100,
-        ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
-      });
-      setReviews(response?.reviews || []);
+      const data = await fetchAdminReviews({ status: "all", page, limit: REVIEWS_PER_PAGE, ...(search.trim() ? { search: search.trim() } : {}) });
+      setReviews(data?.reviews || []);
+      setReviewsPagination(data?.pagination || DEFAULT_PAGINATION);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load reviews.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  const loadBookingReviews = useCallback(async () => {
+    try {
+      const [bookingsResult, svcResult] = await Promise.all([
+        fetchAdminBookings({ limit: 200 }),
+        fetchAllServiceBookings({ limit: 200 }),
+      ]);
+      setTrainerBookings(bookingsResult.bookings.filter((b) => b.clientRating));
+      setServiceBookings(svcResult.bookings.filter((b) => b.clientRating));
+    } catch {
+      // secondary data — do not surface error
+    }
+  }, []);
 
   useEffect(() => {
-    loadReviews(selectedTab);
+    loadProductReviews(1, "");
+    loadBookingReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTab]);
+  }, []);
 
-  const tabCounts = useMemo(
-    () => ({
-      all: reviews.length,
-      approved: reviews.filter((review) => getReviewStatus(review) === "approved").length,
-      removed: reviews.filter((review) => getReviewStatus(review) === "removed").length,
-    }),
-    [reviews]
-  );
+  const handleTabChange = (tab: ReviewTab) => {
+    setSelectedTab(tab);
+    setReviewsPage(1);
+    loadProductReviews(1, searchQuery);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setReviewsPage(1);
+      loadProductReviews(1, query);
+    }, 350);
+  };
+
+  const handleReviewsPageChange = (newPage: number) => {
+    setReviewsPage(newPage);
+    loadProductReviews(newPage, searchQuery);
+  };
+
+  const visibleReviews = selectedTab === "all" || selectedTab === "product" ? reviews : [];
+  const visibleTrainerBookings =
+    (selectedTab === "all" || selectedTab === "trainer") ? trainerBookings : [];
+  const visibleServiceBookings =
+    (selectedTab === "all" || selectedTab === "service") ? serviceBookings : [];
+
+  const totalCount = visibleReviews.length + visibleTrainerBookings.length + visibleServiceBookings.length;
+
+  const tabCounts = {
+    all: reviewsPagination.total + trainerBookings.length + serviceBookings.length,
+    product: reviewsPagination.total,
+    trainer: trainerBookings.length,
+    service: serviceBookings.length,
+  };
 
   const handleModeration = async (review: BackendReview, status: "approved" | "removed") => {
     setMessage("");
     setError("");
     setUpdatingReviewId(review._id);
-
     try {
       const updatedReview = await moderateReview(review._id, status);
-
       if (updatedReview) {
-        setReviews((current) =>
-          current
-            .map((item) => (item._id === updatedReview._id ? updatedReview : item))
-            .filter((item) => selectedTab === "all" || getReviewStatus(item) === selectedTab)
-        );
+        setReviews((current) => current.map((item) => (item._id === updatedReview._id ? updatedReview : item)));
       }
-
       setMessage(status === "approved" ? "Review approved." : "Review removed from public product ratings.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to moderate review.");
@@ -139,27 +217,87 @@ export default function AdminReviewsPage() {
     }
   };
 
-  const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    await loadReviews(selectedTab);
+  /**
+   * Trainer and service reviews live on booking documents, so they are updated in their own
+   * lists. Both handlers mirror the product flow: optimistic id lock, then patch state in place.
+   */
+  const applyBookingReviewPatch = (
+    kind: BookingReviewKind,
+    bookingId: string,
+    patch: { reviewIsFeatured?: boolean; reviewModerationStatus?: "approved" | "removed" }
+  ) => {
+    if (kind === "trainer") {
+      setTrainerBookings((current) =>
+        current.map((item) => (item._id === bookingId ? { ...item, ...patch } : item))
+      );
+    } else {
+      setServiceBookings((current) =>
+        current.map((item) => (item._id === bookingId ? { ...item, ...patch } : item))
+      );
+    }
   };
+
+  const handleBookingFeature = async (
+    kind: BookingReviewKind,
+    bookingId: string,
+    currentlyFeatured: boolean
+  ) => {
+    setMessage("");
+    setError("");
+    setFeaturingReviewId(bookingId);
+    const next = !currentlyFeatured;
+    try {
+      await featureBookingReview(kind, bookingId, next);
+      applyBookingReviewPatch(kind, bookingId, { reviewIsFeatured: next });
+      setMessage(next ? "Review featured on homepage." : "Review removed from homepage.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update feature status.");
+    } finally {
+      setFeaturingReviewId("");
+    }
+  };
+
+  const handleBookingModeration = async (
+    kind: BookingReviewKind,
+    bookingId: string,
+    status: "approved" | "removed"
+  ) => {
+    setMessage("");
+    setError("");
+    setUpdatingReviewId(bookingId);
+    try {
+      await moderateBookingReview(kind, bookingId, status);
+      applyBookingReviewPatch(kind, bookingId, {
+        reviewModerationStatus: status,
+        ...(status === "removed" ? { reviewIsFeatured: false } : {}),
+      });
+      setMessage(status === "approved" ? "Review approved." : "Review removed from public listings.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to moderate review.");
+    } finally {
+      setUpdatingReviewId("");
+    }
+  };
+
+  const showProductPagination =
+    (selectedTab === "all" || selectedTab === "product") && reviewsPagination.totalPages > 1;
 
   return (
     <section className="admin-reviews-page">
       <header className="admin-reviews-header">
         <div>
           <h1>Reviews</h1>
-          <p>Approve real product feedback and remove suspicious reviews.</p>
+          <p>All customer feedback — products, trainer sessions, and services.</p>
         </div>
       </header>
 
       <div className="admin-review-toolbar">
-        <div className="admin-review-tabs" role="tablist" aria-label="Review status filters">
+        <div className="admin-review-tabs" role="tablist" aria-label="Review type filters">
           {tabs.map((tab) => (
             <button
               type="button"
               className={selectedTab === tab.key ? "active" : undefined}
-              onClick={() => setSelectedTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               key={tab.key}
             >
               {tab.label}
@@ -168,13 +306,13 @@ export default function AdminReviewsPage() {
           ))}
         </div>
 
-        <form className="admin-review-search" onSubmit={handleSearch}>
+        <form className="admin-review-search" onSubmit={(e) => e.preventDefault()}>
           <Search aria-hidden="true" />
           <input
             type="search"
             placeholder="Search reviews..."
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </form>
       </div>
@@ -184,61 +322,129 @@ export default function AdminReviewsPage() {
 
       <div className="admin-reviews-list">
         {isLoading ? (
-          <div className="admin-reviews-empty">Loading reviews...</div>
-        ) : reviews.length === 0 ? (
+          <div className="admin-reviews-empty" style={{ textAlign: "left" }}>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                <div className="skeleton skeleton-avatar" style={{ width: 36, height: 36 }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                </div>
+                <div className="skeleton skeleton-text" style={{ width: 80 }} />
+              </div>
+            ))}
+          </div>
+        ) : totalCount === 0 && !isLoading ? (
           <div className="admin-reviews-empty">No reviews found.</div>
         ) : (
-          reviews.map((review) => {
-            const product = getProduct(review);
-            const user = getUser(review);
-            const order = getOrder(review);
-            const status = getReviewStatus(review);
-            const image = product ? getProductImage(product) : "";
+          <>
+            {/* Product reviews */}
+            {visibleReviews.map((review) => {
+              const product = getProduct(review);
+              const user = getUser(review);
+              const order = getOrder(review);
+              const status = getReviewStatus(review);
+              const image = product ? getProductImage(product) : "";
 
-            return (
-              <article className="admin-review-card" key={review._id}>
+              return (
+                <article className="admin-review-card" key={`prod-${review._id}`}>
+                  <div className="admin-review-product">
+                    {image ? <img src={image} alt="" /> : <span>No image</span>}
+                    <div>
+                      <strong>{product?.name || "Product"}</strong>
+                      <small>
+                        {product?.brand || "FitFIXto"}{product?.category ? ` - ${product.category.replace(/_/g, " ")}` : ""}
+                        {" · "}
+                        <span className="admin-review-type-badge">Product</span>
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="admin-review-body">
+                    <div className="admin-review-meta">
+                      <strong>{getReviewerName(review)}</strong>
+                      <span>{user?.email || "No email"}</span>
+                      <span>{order?.orderNumber || "Order"} - {formatDate(order?.createdAt || review.createdAt)}</span>
+                    </div>
+                    <StarDisplay rating={review.rating} />
+                    {review.title ? <h2>{review.title}</h2> : null}
+                    <p>{review.comment || "No written comment."}</p>
+                  </div>
+
+                  <div className="admin-review-actions">
+                    <span className={`admin-review-status ${status}`}>{status}</span>
+                    <button
+                      type="button"
+                      className={review.isFeatured ? "admin-review-feature-btn featured" : "admin-review-feature-btn"}
+                      disabled={featuringReviewId === review._id}
+                      onClick={() => handleFeature(review)}
+                    >
+                      <Star aria-hidden="true" className={review.isFeatured ? "filled" : undefined} />
+                      {review.isFeatured ? "Featured" : "Feature"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={updatingReviewId === review._id || status === "approved"}
+                      onClick={() => handleModeration(review, "approved")}
+                    >
+                      <Check aria-hidden="true" />
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={updatingReviewId === review._id || status === "removed"}
+                      onClick={() => handleModeration(review, "removed")}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      Remove
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+
+            {/* Trainer session reviews */}
+            {visibleTrainerBookings.map((booking) => (
+              <article className="admin-review-card" key={`trainer-${booking._id}`}>
                 <div className="admin-review-product">
-                  {image ? <img src={image} alt="" /> : <span>No image</span>}
+                  <div style={{ width: 52, height: 52, borderRadius: 8, background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "var(--muted)", flexShrink: 0 }}>
+                    {getTrainerName(booking).charAt(0).toUpperCase()}
+                  </div>
                   <div>
-                    <strong>{product?.name || "Product"}</strong>
+                    <strong>{getTrainerName(booking)}</strong>
                     <small>
-                      {product?.brand || "FitFIXto"} {product?.category ? `- ${product.category.replace(/_/g, " ")}` : ""}
+                      Trainer Session · <span className="admin-review-type-badge">Trainer</span>
                     </small>
                   </div>
                 </div>
 
                 <div className="admin-review-body">
                   <div className="admin-review-meta">
-                    <strong>{getReviewerName(review)}</strong>
-                    <span>{user?.email || "No email"}</span>
-                    <span>{order?.orderNumber || "Order"} - {formatDate(order?.createdAt || review.createdAt)}</span>
+                    <strong>{getClientName(booking)}</strong>
+                    <span>{formatDate(booking.slotDate)} · {booking.timeLabel}</span>
                   </div>
-                  <div className="admin-review-rating" aria-label={`${review.rating} out of 5 stars`}>
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star className={index < review.rating ? "active" : undefined} aria-hidden="true" key={index} />
-                    ))}
-                    <span>{review.rating}/5</span>
-                  </div>
-                  {review.title ? <h2>{review.title}</h2> : null}
-                  <p>{review.comment || "No written comment."}</p>
+                  <StarDisplay rating={booking.clientRating || 0} />
+                  <p>{booking.clientComment || "No written comment."}</p>
                 </div>
 
                 <div className="admin-review-actions">
-                  <span className={`admin-review-status ${status}`}>{status}</span>
+                  <span className={`admin-review-status ${booking.reviewModerationStatus === "removed" ? "removed" : "approved"}`}>
+                    {booking.reviewModerationStatus === "removed" ? "removed" : "approved"}
+                  </span>
                   <button
                     type="button"
-                    className={review.isFeatured ? "admin-review-feature-btn featured" : "admin-review-feature-btn"}
-                    title={review.isFeatured ? "Remove from homepage" : "Feature on homepage"}
-                    disabled={featuringReviewId === review._id}
-                    onClick={() => handleFeature(review)}
+                    className={booking.reviewIsFeatured ? "admin-review-feature-btn featured" : "admin-review-feature-btn"}
+                    disabled={featuringReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingFeature("trainer", booking._id, Boolean(booking.reviewIsFeatured))}
                   >
-                    <Star aria-hidden="true" className={review.isFeatured ? "filled" : undefined} />
-                    {review.isFeatured ? "Featured" : "Feature"}
+                    <Star aria-hidden="true" className={booking.reviewIsFeatured ? "filled" : undefined} />
+                    {booking.reviewIsFeatured ? "Featured" : "Feature"}
                   </button>
                   <button
                     type="button"
-                    disabled={updatingReviewId === review._id || status === "approved"}
-                    onClick={() => handleModeration(review, "approved")}
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus !== "removed"}
+                    onClick={() => handleBookingModeration("trainer", booking._id, "approved")}
                   >
                     <Check aria-hidden="true" />
                     Approve
@@ -246,18 +452,100 @@ export default function AdminReviewsPage() {
                   <button
                     type="button"
                     className="danger"
-                    disabled={updatingReviewId === review._id || status === "removed"}
-                    onClick={() => handleModeration(review, "removed")}
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingModeration("trainer", booking._id, "removed")}
                   >
                     <Trash2 aria-hidden="true" />
                     Remove
                   </button>
                 </div>
               </article>
-            );
-          })
+            ))}
+
+            {/* Service reviews */}
+            {visibleServiceBookings.map((booking) => (
+              <article className="admin-review-card" key={`service-${booking._id}`}>
+                <div className="admin-review-product">
+                  <div style={{ width: 52, height: 52, borderRadius: 8, background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "var(--muted)", flexShrink: 0 }}>
+                    {getServiceName(booking).charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <strong>{getServiceName(booking)}</strong>
+                    <small>
+                      Service · <span className="admin-review-type-badge">Service</span>
+                    </small>
+                  </div>
+                </div>
+
+                <div className="admin-review-body">
+                  <div className="admin-review-meta">
+                    <strong>{getClientName(booking)}</strong>
+                    <span>{formatDate(booking.scheduledDate)}</span>
+                  </div>
+                  <StarDisplay rating={booking.clientRating || 0} />
+                  <p>{booking.clientComment || "No written comment."}</p>
+                </div>
+
+                <div className="admin-review-actions">
+                  <span className={`admin-review-status ${booking.reviewModerationStatus === "removed" ? "removed" : "approved"}`}>
+                    {booking.reviewModerationStatus === "removed" ? "removed" : "approved"}
+                  </span>
+                  <button
+                    type="button"
+                    className={booking.reviewIsFeatured ? "admin-review-feature-btn featured" : "admin-review-feature-btn"}
+                    disabled={featuringReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingFeature("service", booking._id, Boolean(booking.reviewIsFeatured))}
+                  >
+                    <Star aria-hidden="true" className={booking.reviewIsFeatured ? "filled" : undefined} />
+                    {booking.reviewIsFeatured ? "Featured" : "Feature"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus !== "removed"}
+                    onClick={() => handleBookingModeration("service", booking._id, "approved")}
+                  >
+                    <Check aria-hidden="true" />
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={updatingReviewId === booking._id || booking.reviewModerationStatus === "removed"}
+                    onClick={() => handleBookingModeration("service", booking._id, "removed")}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    Remove
+                  </button>
+                </div>
+              </article>
+            ))}
+          </>
         )}
       </div>
+
+      {showProductPagination ? (
+        <div className="admin-pagination">
+          <button
+            type="button"
+            disabled={!reviewsPagination.hasPrevPage}
+            onClick={() => handleReviewsPageChange(reviewsPage - 1)}
+            aria-label="Previous page"
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <span>
+            Page {reviewsPagination.page} of {reviewsPagination.totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={!reviewsPagination.hasNextPage}
+            onClick={() => handleReviewsPageChange(reviewsPage + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

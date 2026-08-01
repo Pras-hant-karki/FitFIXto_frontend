@@ -119,7 +119,18 @@ export default function TrainerToReviewPage() {
         </header>
         {message ? <p className="customer-review-message">{message}</p> : null}
         {isLoading ? (
-          <div className="customer-orders-empty">Loading products to review...</div>
+          <div className="customer-orders-empty">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < 2 ? "1px solid var(--line)" : undefined }}>
+                <div className="skeleton" style={{ width: 48, height: 48, borderRadius: 8, flexShrink: 0 }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                  <div className="skeleton skeleton-text wide" />
+                  <div className="skeleton skeleton-text mid" />
+                  <div className="skeleton skeleton-text short" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : error ? (
           <div className="customer-orders-empty">{error}</div>
         ) : reviewItems.length === 0 ? (

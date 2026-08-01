@@ -39,10 +39,11 @@ function BookingFlow() {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const selectedDay = searchParams.get("day") || "mon";
   const selectedTime = searchParams.get("time") || "";
+  const selectedDateParam = searchParams.get("date") || "";
   const [trainer, setTrainer] = useState<BackendTrainer | null>(null);
   const [step, setStep] = useState(1);
   const [sessionType, setSessionType] = useState<SessionType>("single");
-  const [date, setDate] = useState(() => nextDateForDay(selectedDay));
+  const [date, setDate] = useState(() => selectedDateParam || nextDateForDay(selectedDay));
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -51,7 +52,9 @@ function BookingFlow() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchPublicTrainer(trainerId).then(setTrainer).catch((err) => setError(err instanceof Error ? err.message : "Unable to load trainer."));
+    fetchPublicTrainer(trainerId)
+      .then((nextTrainer) => setTrainer(nextTrainer || null))
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load trainer."));
   }, [trainerId]);
 
   useEffect(() => {
@@ -63,10 +66,12 @@ function BookingFlow() {
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
-      const returnPath = `/trainers/${trainerId}/book?day=${selectedDay}&time=${encodeURIComponent(selectedTime)}`;
+      const returnPath = selectedDateParam
+        ? `/trainers/${trainerId}/book?date=${selectedDateParam}&time=${encodeURIComponent(selectedTime)}`
+        : `/trainers/${trainerId}/book?day=${selectedDay}&time=${encodeURIComponent(selectedTime)}`;
       router.replace(`/login?redirect=${encodeURIComponent(returnPath)}`);
     }
-  }, [isAuthLoading, isAuthenticated, router, selectedDay, selectedTime, trainerId]);
+  }, [isAuthLoading, isAuthenticated, router, selectedDay, selectedDateParam, selectedTime, trainerId]);
 
   const selectedSession = sessionOptions.find((option) => option.id === sessionType) || sessionOptions[0];
   const subtotal = (trainer?.sessionRate || 0) * selectedSession.multiplier;
@@ -118,7 +123,7 @@ function BookingFlow() {
               {sessionOptions.map((option) => <button type="button" className={sessionType === option.id ? "selected" : ""} onClick={() => setSessionType(option.id)} key={option.id}><strong>{option.label}</strong><span>{formatMoney((trainer.sessionRate || 0) * option.multiplier)}</span></button>)}
             </div>
             <div className="booking-field-row">
-              <label><span>Date</span><input type="date" min={toDateInput(new Date())} value={date} onChange={(event) => setDate(event.target.value)} /></label>
+              <label><span>Date</span><input type="date" min={toDateInput(new Date(Date.now() + 864e5))} value={date} onChange={(event) => setDate(event.target.value)} /></label>
               <label><span>Time</span><input value={formatTime(selectedTime)} readOnly /></label>
             </div>
           </> : null}

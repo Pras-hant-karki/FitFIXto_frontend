@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Box, ExternalLink, GripVertical, ImageIcon, Megaphone, Plus, Save, Star, UserCog, Wrench } from "lucide-react";
+import { useToast } from "@/contexts";
 import {
   HomepageHero,
   HomepagePromotionalBanner,
@@ -45,12 +46,13 @@ const defaultSectionOrder: HomepageSectionOrderItem[] = [
 ];
 
 const featuredServices = [
-  { name: "Full Gym", image: "/assets/ctabanner.png" },
+  { name: "Full Gym", image: "/ctabanner.png" },
   { name: "Sauna & Steam", image: "/home-hero-gym.png" },
   { name: "Equipment", image: "/home-hero-gym.png" },
 ];
 
 export default function AdminHomepagePage() {
+  const { toast } = useToast();
   const [hero, setHero] = useState<HomepageHero>(defaultHero);
   const [promotionalBanner, setPromotionalBanner] = useState<HomepagePromotionalBanner>(defaultPromotionalBanner);
   const [sectionOrder, setSectionOrder] = useState<HomepageSectionOrderItem[]>(defaultSectionOrder);
@@ -60,14 +62,11 @@ export default function AdminHomepagePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
       setIsLoading(true);
-      setError("");
 
       try {
         const settings = await fetchHomepageSettings();
@@ -89,7 +88,7 @@ export default function AdminHomepagePage() {
         setFeaturedProducts(productResponse?.products || []);
         setFeaturedTrainers(trainers.filter((trainer) => trainer.isFeatured));
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load homepage settings.");
+        toast.error(err instanceof Error ? err.message : "Unable to load homepage settings.");
       } finally {
         setIsLoading(false);
       }
@@ -100,22 +99,20 @@ export default function AdminHomepagePage() {
 
   const handleImageUpload = async () => {
     if (!selectedImage) {
-      setError("Please choose an image before uploading.");
+      toast.error("Please choose an image before uploading.");
       return;
     }
 
     setIsUploading(true);
-    setError("");
-    setMessage("");
 
     try {
       const imageUrl = await uploadHomepageImage(selectedImage);
       setHero((current) => ({ ...current, imageUrl }));
       setSelectedImage(null);
       if (imageInputRef.current) imageInputRef.current.value = "";
-      setMessage("Hero image uploaded successfully.");
+      toast.success("Hero image uploaded successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to upload hero image.");
+      toast.error(err instanceof Error ? err.message : "Unable to upload hero image.");
     } finally {
       setIsUploading(false);
     }
@@ -124,17 +121,15 @@ export default function AdminHomepagePage() {
   const handleSaveHero = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       const settings = await updateHomepageHero(hero);
       if (settings?.hero) {
         setHero(settings.hero);
       }
-      setMessage("Hero banner saved successfully.");
+      toast.success("Hero banner saved successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save hero banner.");
+      toast.error(err instanceof Error ? err.message : "Unable to save hero banner.");
     } finally {
       setIsSaving(false);
     }
@@ -143,17 +138,15 @@ export default function AdminHomepagePage() {
   const handleSavePromotionalBanner = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       const settings = await updateHomepagePromotionalBanner(promotionalBanner);
       if (settings?.promotionalBanner) {
         setPromotionalBanner({ ...defaultPromotionalBanner, ...settings.promotionalBanner });
       }
-      setMessage("Promotional banner saved successfully.");
+      toast.success("Promotional banner saved successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save promotional banner.");
+      toast.error(err instanceof Error ? err.message : "Unable to save promotional banner.");
     } finally {
       setIsSaving(false);
     }
@@ -172,17 +165,15 @@ export default function AdminHomepagePage() {
 
   const handleSaveSectionOrder = async () => {
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       const settings = await updateHomepageSectionOrder(sectionOrder);
       if (settings?.sectionOrder?.length) {
         setSectionOrder(settings.sectionOrder);
       }
-      setMessage("Homepage section order saved successfully.");
+      toast.success("Homepage section order saved successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save section order.");
+      toast.error(err instanceof Error ? err.message : "Unable to save section order.");
     } finally {
       setIsSaving(false);
     }
@@ -195,9 +186,6 @@ export default function AdminHomepagePage() {
         <p>Edit the hero, promotional banner, and reorder homepage sections.</p>
       </header>
 
-      {message ? <p className="admin-products-message success">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
-
       <article className="admin-home-card">
         <div className="admin-home-card-title">
           <ImageIcon aria-hidden="true" />
@@ -205,7 +193,13 @@ export default function AdminHomepagePage() {
         </div>
 
         {isLoading ? (
-          <div className="admin-products-empty">Loading hero settings...</div>
+          <div className="admin-products-empty">
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div className="skeleton skeleton-text wide" style={{ height: 20 }} />
+              <div className="skeleton skeleton-text mid" />
+              <div className="skeleton skeleton-card" style={{ height: 120 }} />
+            </div>
+          </div>
         ) : (
           <div className="admin-hero-editor">
             <form className="admin-hero-form" onSubmit={handleSaveHero}>

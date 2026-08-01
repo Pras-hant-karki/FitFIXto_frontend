@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Edit2, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit2, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { useToast } from "@/contexts";
 import {
   BackendProduct,
   ProductPayload,
@@ -36,6 +37,7 @@ type ProductFormState = {
   sku: string;
   tags: string;
   isFeatured: boolean;
+  isActive: boolean;
   verifiedBadge: boolean;
 };
 
@@ -58,6 +60,7 @@ const emptyForm: ProductFormState = {
   sku: "",
   tags: "",
   isFeatured: false,
+  isActive: true,
   verifiedBadge: false,
 };
 
@@ -80,6 +83,7 @@ const toFormState = (product: BackendProduct): ProductFormState => ({
   sku: product.sku || "",
   tags: product.tags?.join(", ") || "",
   isFeatured: product.isFeatured,
+  isActive: product.isActive ?? true,
   verifiedBadge: product.verifiedBadge,
 });
 
@@ -110,12 +114,20 @@ const toPayload = (form: ProductFormState): ProductPayload => ({
     .map((tag) => tag.trim())
     .filter(Boolean),
   isFeatured: form.isFeatured,
-  isActive: true,
+  isActive: form.isActive,
   verifiedBadge: form.verifiedBadge,
 });
 
+const PAGE_LIMIT = 20;
+
+const DEFAULT_PRODUCTS_PAGINATION = {
+  total: 0, page: 1, limit: PAGE_LIMIT, totalPages: 1, hasNextPage: false, hasPrevPage: false,
+};
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<BackendProduct[]>([]);
+  const [productsPagination, setProductsPagination] = useState(DEFAULT_PRODUCTS_PAGINATION);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [form, setForm] = useState<ProductFormState>(emptyForm);
   const [customCategories, setCustomCategories] = useState<Array<{ label: string; value: string }>>([]);
@@ -126,8 +138,7 @@ export default function AdminProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const featuredCount = useMemo(() => products.filter((product) => product.isFeatured).length, [products]);
@@ -159,27 +170,28 @@ export default function AdminProductsPage() {
     ? selectedImageFiles.map((file) => file.name).join(", ")
     : "No file chosen";
 
-  const loadProducts = async (query = searchQuery) => {
+  const loadProducts = async (query = searchQuery, page = 1) => {
     setIsLoading(true);
-    setError("");
 
     try {
       const response = await fetchProducts({
-        limit: 100,
+        page,
+        limit: PAGE_LIMIT,
         sortBy: "createdAt",
         order: "desc",
         ...(query.trim() ? { search: query.trim() } : {}),
       });
       setProducts(response?.products || []);
+      setProductsPagination(response?.pagination || DEFAULT_PRODUCTS_PAGINATION);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load products.");
+      toast.error(err instanceof Error ? err.message : "Unable to load products.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadProducts("");
+    loadProducts("", 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -188,8 +200,6 @@ export default function AdminProductsPage() {
     setForm(emptyForm);
     setSelectedImageFiles([]);
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const openEditForm = (product: BackendProduct) => {
@@ -197,8 +207,6 @@ export default function AdminProductsPage() {
     setForm(toFormState(product));
     setSelectedImageFiles([]);
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const closeForm = () => {
@@ -213,7 +221,13 @@ export default function AdminProductsPage() {
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await loadProducts(searchQuery);
+    setCurrentPage(1);
+    await loadProducts(searchQuery, 1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    loadProducts(searchQuery, newPage);
   };
 
   const handleCategoryChange = (category: string) => {
@@ -252,24 +266,22 @@ export default function AdminProductsPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    setError("");
-    setMessage("");
 
     try {
       const payload = toPayload(form);
 
       if (editingProduct) {
         await updateProduct(editingProduct._id, payload);
-        setMessage("Product updated successfully.");
+        toast.success("Product updated.");
       } else {
         await createProduct(payload);
-        setMessage("Product created successfully.");
+        toast.success("Product created.");
       }
 
       closeForm();
-      await loadProducts(searchQuery);
+      await loadProducts(searchQuery, currentPage);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save product.");
+      toast.error(err instanceof Error ? err.message : "Unable to save product.");
     } finally {
       setIsSaving(false);
     }
@@ -281,13 +293,11 @@ export default function AdminProductsPage() {
 
   const handleImageUpload = async () => {
     if (!selectedImageFiles.length) {
-      setError("Please choose an image before uploading.");
+      toast.error("Please choose an image before uploading.");
       return;
     }
 
     setIsUploading(true);
-    setError("");
-    setMessage("");
 
     try {
       const uploadedUrls = await uploadProductImages(selectedImageFiles);
@@ -301,41 +311,35 @@ export default function AdminProductsPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      setMessage(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
+      toast.success(`${uploadedUrls.length} image${uploadedUrls.length === 1 ? "" : "s"} uploaded successfully.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to upload product images.");
+      toast.error(err instanceof Error ? err.message : "Unable to upload product images.");
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleFeaturedToggle = async (product: BackendProduct) => {
-    setError("");
-    setMessage("");
-
     try {
       const updatedProduct = await updateProduct(product._id, { isFeatured: !product.isFeatured });
       if (updatedProduct) {
         setProducts((current) => current.map((item) => (item._id === updatedProduct._id ? updatedProduct : item)));
       }
-      setMessage(updatedProduct?.isFeatured ? "Product starred as featured." : "Product removed from featured.");
+      toast.success(updatedProduct?.isFeatured ? "Product starred as featured." : "Product removed from featured.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update featured product.");
+      toast.error(err instanceof Error ? err.message : "Unable to update featured product.");
     }
   };
 
   const handleDelete = async (product: BackendProduct) => {
     if (!window.confirm(`Delete ${product.name}?`)) return;
 
-    setError("");
-    setMessage("");
-
     try {
       await deleteProduct(product._id);
       setProducts((current) => current.filter((item) => item._id !== product._id));
-      setMessage("Product deleted successfully.");
+      toast.success("Product deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete product.");
+      toast.error(err instanceof Error ? err.message : "Unable to delete product.");
     }
   };
 
@@ -345,7 +349,7 @@ export default function AdminProductsPage() {
         <div>
           <h1>Products</h1>
           <p>
-            {products.length} products · {featuredCount}/9 featured on homepage
+            {productsPagination.total} products · {featuredCount}/9 featured on homepage
           </p>
         </div>
         <button type="button" className="admin-create-button" onClick={openCreateForm}>
@@ -363,9 +367,6 @@ export default function AdminProductsPage() {
           onChange={(event) => setSearchQuery(event.target.value)}
         />
       </form>
-
-      {message ? <p className="admin-products-message success">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
 
       {isFormOpen ? (
         <div className="admin-product-form-card">
@@ -594,6 +595,14 @@ export default function AdminProductsPage() {
             <label className="admin-feature-check">
               <input
                 type="checkbox"
+                checked={form.isActive}
+                onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))}
+              />
+              Product is active (visible to customers)
+            </label>
+            <label className="admin-feature-check">
+              <input
+                type="checkbox"
                 checked={form.verifiedBadge}
                 onChange={(event) => setForm((current) => ({ ...current, verifiedBadge: event.target.checked }))}
               />
@@ -619,7 +628,16 @@ export default function AdminProductsPage() {
           </div>
 
           {isLoading ? (
-            <div className="admin-products-empty">Loading products...</div>
+            <div className="admin-products-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 100 }} />
+                  <div className="skeleton skeleton-text short" style={{ width: 72 }} />
+                </div>
+              ))}
+            </div>
           ) : products.length === 0 ? (
             <div className="admin-products-empty">No products found.</div>
           ) : (
@@ -641,7 +659,7 @@ export default function AdminProductsPage() {
                   )}
                   <div>
                     <strong>{product.name}</strong>
-                    <span>{product.verifiedBadge ? "Verified" : product.isActive ? "New" : "Inactive"}</span>
+                    <span>{product.verifiedBadge ? "Verified" : product.isActive ? "Active" : "Inactive"}</span>
                   </div>
                 </div>
                 <span>{[formatCategory(product.category), product.subcategory].filter(Boolean).join(" / ")}</span>
@@ -665,6 +683,30 @@ export default function AdminProductsPage() {
           )}
         </div>
       </div>
+
+      {productsPagination.totalPages > 1 ? (
+        <div className="admin-pagination">
+          <button
+            type="button"
+            disabled={!productsPagination.hasPrevPage}
+            onClick={() => handlePageChange(currentPage - 1)}
+            aria-label="Previous page"
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <span>
+            Page {productsPagination.page} of {productsPagination.totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={!productsPagination.hasNextPage}
+            onClick={() => handlePageChange(currentPage + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

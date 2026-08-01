@@ -7,6 +7,7 @@ import { useCart } from "@/contexts";
 import { getCartLineTotal } from "@/features/cart";
 import { CartOrderSummary } from "@/features/orders";
 import { formatCategory, getProductImage } from "@/features/products";
+import { DiscountData, fetchPublicDiscounts } from "@/features/discounts";
 
 const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
 const formatSummaryMoney = (value: number) =>
@@ -17,6 +18,11 @@ export default function CartPage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [updatingProductId, setUpdatingProductId] = useState("");
   const [actionError, setActionError] = useState("");
+  const [discounts, setDiscounts] = useState<DiscountData | null>(null);
+
+  useEffect(() => {
+    fetchPublicDiscounts().then(setDiscounts).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setSelectedProductIds((current) => {
@@ -170,6 +176,7 @@ export default function CartPage() {
             selectedProductIds={selectedProductIds}
             showItems={false}
             totalLabel="Grand Total"
+            publicDiscounts={discounts}
           />
         </div>
       )}

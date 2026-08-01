@@ -50,7 +50,7 @@ const serviceResults: SearchResult[] = [
     subtitle: "Service - Design, delivery and installation",
     detail: "Custom layout design, equipment sourcing, professional installation",
     price: "From Npr 4,999",
-    image: "/assets/ctabanner.png",
+    image: "/ctabanner.png",
     href: "/services",
   },
   {
@@ -60,7 +60,7 @@ const serviceResults: SearchResult[] = [
     subtitle: "Service - Sauna and steam installation",
     detail: "Cedar or hemlock options, controls, ventilation and warranty",
     price: "From Npr 7,499",
-    image: "/assets/ctabanner.png",
+    image: "/ctabanner.png",
     href: "/services",
   },
   {
@@ -70,7 +70,7 @@ const serviceResults: SearchResult[] = [
     subtitle: "Service - Preventative maintenance",
     detail: "Inspections, lubrication, cable checks and same-week response",
     price: "From Npr 199/mo",
-    image: "/assets/ctabanner.png",
+    image: "/ctabanner.png",
     href: "/services",
   },
 ];

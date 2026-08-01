@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Heart, RotateCcw, ShieldCheck, Star, Truck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Heart, RotateCcw, ShieldCheck, Star, Truck, Zap } from "lucide-react";
 import { AddToCartButton } from "@/features/cart";
 import { useAuth, useWishlist } from "@/contexts";
 import {
@@ -14,6 +14,8 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { resolveAssetUrl } from "@/constants/api";
+import { DiscountData, fetchPublicDiscounts } from "@/features/discounts";
 import { BackendReview, fetchReviews } from "@/features/reviews";
 
 const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
@@ -85,12 +87,14 @@ export default function ProductDetailsPage() {
   const pathname = usePathname();
   const productId = params.productId;
   const [product, setProduct] = useState<BackendProduct | null>(null);
+  const [discounts, setDiscounts] = useState<DiscountData | null>(null);
   const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<BackendProduct[]>([]);
   const [activeImage, setActiveImage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const [wishlistJustAdded, setWishlistJustAdded] = useState(false);
   const [activeTab, setActiveTab] = useState<"reviews" | "faq">("reviews");
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
@@ -109,13 +113,11 @@ export default function ProductDetailsPage() {
         setProduct(nextProduct);
         setActiveImage(getProductImage(nextProduct));
 
-        const related = await fetchProducts({
-          category: nextProduct.category,
-          limit: 4,
-          sortBy: "createdAt",
-          order: "desc",
-        });
-        const reviewData = await fetchReviews({ productId: nextProduct._id, limit: 5 });
+        const [related, reviewData] = await Promise.all([
+          fetchProducts({ category: nextProduct.category, limit: 4, sortBy: "createdAt", order: "desc" }),
+          fetchReviews({ productId: nextProduct._id, limit: 5 }),
+        ]);
+        fetchPublicDiscounts().then(setDiscounts).catch(() => {});
         setRelatedProducts((related?.products || []).filter((item) => item._id !== nextProduct._id).slice(0, 4));
         setReviews(reviewData?.reviews || []);
       } catch (err) {
@@ -130,23 +132,46 @@ export default function ProductDetailsPage() {
     }
   }, [productId]);
 
-  const galleryImages = useMemo(() => product?.images.filter(Boolean) || [], [product]);
+  const galleryImages = useMemo(
+    () => (product?.images.filter(Boolean) || []).map(resolveAssetUrl),
+    [product]
+  );
   const originalPrice = product ? getOriginalPrice(product) : null;
+
+  const flashSale = discounts?.flashSale;
+  const isFlashSale = Boolean(
+    product &&
+      flashSale?.isActive &&
+      (!(flashSale.productIds as { _id: string }[]).length ||
+        (flashSale.productIds as { _id: string }[]).some((p) => p._id === product._id))
+  );
+  const flashSalePercent = isFlashSale ? flashSale!.discountPercentage : 0;
+  const isBestPrice = Boolean(product && discounts?.bestPriceProductIds.some((p) => p._id === product._id));
+  const effectivePrice = product
+    ? isFlashSale
+      ? Math.round(product.price * (1 - flashSalePercent / 100))
+      : product.price
+    : 0;
+  const displayOriginalPrice = isFlashSale ? product?.price ?? null : originalPrice;
+  const displayDiscountPct = isFlashSale ? flashSalePercent : product?.discountPercentage || 0;
+
   const dimensions = product?.dimensions;
   const isWishlisted = product ? wishlistProductIds.has(product._id) : false;
   const isOutOfStock = product ? product.stock <= 0 : false;
   const handleWishlistToggle = async () => {
     if (!product) return;
-
     if (!isAuthenticated) {
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
-
+    const wasWishlisted = wishlistProductIds.has(product._id);
     setIsUpdatingWishlist(true);
-
     try {
       await toggleWishlistItem(product._id);
+      if (!wasWishlisted) {
+        setWishlistJustAdded(true);
+        window.setTimeout(() => setWishlistJustAdded(false), 300);
+      }
     } finally {
       setIsUpdatingWishlist(false);
     }
@@ -242,6 +267,13 @@ export default function ProductDetailsPage() {
               </span>
             ) : null}
             {product.isFeatured ? <span>Featured</span> : null}
+            {isFlashSale ? (
+              <span className="product-detail-badge-flash">
+                <Zap aria-hidden="true" />
+                Flash Sale
+              </span>
+            ) : null}
+            {isBestPrice ? <span className="product-detail-badge-best">Best Price</span> : null}
           </div>
           <p>{[formatCategory(product.category), product.subcategory].filter(Boolean).join(" - ")}</p>
           <h1>{product.name}</h1>
@@ -251,8 +283,9 @@ export default function ProductDetailsPage() {
             <span>{product.ratingCount} reviews</span>
           </div>
           <div className="product-detail-price">
-            <strong>{formatMoney(product.price)}</strong>
-            {originalPrice ? <span>{formatMoney(originalPrice)}</span> : null}
+            <strong>{formatMoney(effectivePrice)}</strong>
+            {displayOriginalPrice ? <span>{formatMoney(displayOriginalPrice)}</span> : null}
+            {displayDiscountPct > 0 ? <em className="product-detail-discount-badge">-{displayDiscountPct}%</em> : null}
           </div>
           <div className={product.stock > 0 ? "product-detail-stock in-stock" : "product-detail-stock out-stock"}>
             {product.stock > 0 ? `${product.stock} pc in stock` : "Out of stock"}
@@ -266,7 +299,7 @@ export default function ProductDetailsPage() {
             {isOutOfStock ? null : <AddToCartButton productId={product._id} stock={product.stock} />}
             <button
               type="button"
-              className={isWishlisted ? "active" : undefined}
+              className={`wishlist-button${isWishlisted ? " active" : ""}${wishlistJustAdded ? " just-added" : ""}`}
               onClick={handleWishlistToggle}
               disabled={isUpdatingWishlist}
               aria-pressed={isWishlisted}

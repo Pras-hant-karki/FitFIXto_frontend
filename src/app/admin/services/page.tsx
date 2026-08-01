@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Check, CheckCircle, Clock, Edit2, Plus, Search, Trash2, X, XCircle } from "lucide-react";
+import { Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Edit2, Plus, Search, Trash2, X, XCircle } from "lucide-react";
+import { assetUrl } from "@/utils/assets";
 import {
   BackendService,
   ServicePayload,
@@ -11,7 +12,8 @@ import {
   updateService,
   uploadServiceImage,
 } from "@/features/services";
-import { BackendServiceBooking, ServiceBookingStatus, fetchAllServiceBookings, updateServiceBookingStatus } from "@/features/serviceBookings";
+import { BackendServiceBooking, ServiceBookingPaginationMeta, ServiceBookingStatus, fetchAllServiceBookings, updateServiceBookingStatus } from "@/features/serviceBookings";
+import { useToast } from "@/contexts";
 
 type ServiceForm = {
   name: string;
@@ -63,6 +65,7 @@ const formatDate = (d: string) =>
   new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
 
 export default function AdminServicesPage() {
+  const { toast } = useToast();
   const [tab, setTab] = useState<"services" | "bookings">("services");
 
   // Services tab
@@ -74,17 +77,18 @@ export default function AdminServicesPage() {
   const [form, setForm] = useState<ServiceForm>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Bookings tab
   const [svcBookings, setSvcBookings] = useState<BackendServiceBooking[]>([]);
+  const [bookingsPagination, setBookingsPagination] = useState<ServiceBookingPaginationMeta>({
+    total: 0, page: 1, limit: 20, totalPages: 1, hasNextPage: false, hasPrevPage: false,
+  });
+  const [bookingsPage, setBookingsPage] = useState(1);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingStatusFilter, setBookingStatusFilter] = useState<"all" | ServiceBookingStatus>("all");
   const [updatingBookingId, setUpdatingBookingId] = useState("");
-  const [bookingMsg, setBookingMsg] = useState("");
 
   const filtered = search.trim()
     ? services.filter(
@@ -96,12 +100,11 @@ export default function AdminServicesPage() {
 
   const load = async () => {
     setIsLoading(true);
-    setError("");
     try {
       const data = await fetchAdminServices();
       setServices(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load services.");
+      toast.error(err instanceof Error ? err.message : "Unable to load services.");
     } finally {
       setIsLoading(false);
     }
@@ -109,19 +112,37 @@ export default function AdminServicesPage() {
 
   useEffect(() => { load(); }, []);
 
-  const loadBookings = async () => {
+  const loadBookings = async (page: number, statusFilter: "all" | ServiceBookingStatus) => {
     setBookingsLoading(true);
-    try { setSvcBookings(await fetchAllServiceBookings()); } catch {} finally { setBookingsLoading(false); }
+    try {
+      const result = await fetchAllServiceBookings({
+        page,
+        limit: 20,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      });
+      setSvcBookings(result.bookings);
+      setBookingsPagination(result.pagination);
+    } catch {} finally { setBookingsLoading(false); }
   };
-  useEffect(() => { if (tab === "bookings") loadBookings(); }, [tab]);
+  useEffect(() => { if (tab === "bookings") loadBookings(1, bookingStatusFilter); }, [tab]);
+
+  const handleBookingStatusFilterChange = (f: "all" | ServiceBookingStatus) => {
+    setBookingStatusFilter(f);
+    setBookingsPage(1);
+    loadBookings(1, f);
+  };
+
+  const handleBookingsPageChange = (newPage: number) => {
+    setBookingsPage(newPage);
+    loadBookings(newPage, bookingStatusFilter);
+  };
 
   const handleBookingStatusChange = async (id: string, status: ServiceBookingStatus) => {
     setUpdatingBookingId(id);
-    setBookingMsg("");
     try {
       const updated = await updateServiceBookingStatus(id, status);
       setSvcBookings((cur) => cur.map((b) => b._id === id ? updated : b));
-      setBookingMsg(`Status updated to ${SVC_STATUS_LABELS[status]}.`);
+      toast.success(`Status updated to ${SVC_STATUS_LABELS[status]}.`);
     } catch {} finally { setUpdatingBookingId(""); }
   };
 
@@ -130,8 +151,6 @@ export default function AdminServicesPage() {
     setForm(emptyForm);
     setFormError("");
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const openEdit = (s: BackendService) => {
@@ -139,8 +158,6 @@ export default function AdminServicesPage() {
     setForm(toForm(s));
     setFormError("");
     setIsFormOpen(true);
-    setMessage("");
-    setError("");
   };
 
   const closeForm = () => {
@@ -193,11 +210,11 @@ export default function AdminServicesPage() {
       if (editingService) {
         const updated = await updateService(editingService._id, payload);
         if (updated) setServices((cur) => cur.map((s) => (s._id === editingService._id ? updated : s)));
-        setMessage("Service updated.");
+        toast.success("Service updated.");
       } else {
         const created = await createService(payload);
         if (created) setServices((cur) => [created, ...cur]);
-        setMessage("Service created.");
+        toast.success("Service created.");
       }
       closeForm();
     } catch (err) {
@@ -209,19 +226,14 @@ export default function AdminServicesPage() {
 
   const handleDelete = async (s: BackendService) => {
     if (!window.confirm(`Delete "${s.name}"?`)) return;
-    setError(""); setMessage("");
     try {
       await deleteService(s._id);
       setServices((cur) => cur.filter((item) => item._id !== s._id));
-      setMessage("Service deleted.");
+      toast.success("Service deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete service.");
+      toast.error(err instanceof Error ? err.message : "Unable to delete service.");
     }
   };
-
-  const filteredBookings = bookingStatusFilter === "all"
-    ? svcBookings
-    : svcBookings.filter((b) => b.status === bookingStatusFilter);
 
   const getClientName = (b: BackendServiceBooking) =>
     typeof b.clientId === "string" ? b.contactName : `${b.clientId.firstName} ${b.clientId.lastName}`;
@@ -238,7 +250,7 @@ export default function AdminServicesPage() {
           <p>
             {tab === "services"
               ? `${services.length} service${services.length === 1 ? "" : "s"} customers can purchase.`
-              : `${svcBookings.length} service booking${svcBookings.length === 1 ? "" : "s"}.`}
+              : `${bookingsPagination.total} service booking${bookingsPagination.total === 1 ? "" : "s"}.`}
           </p>
         </div>
         {tab === "services" && (
@@ -265,7 +277,7 @@ export default function AdminServicesPage() {
           onClick={() => setTab("bookings")}
         >
           Bookings
-          <span className="bookings-tab-count">{svcBookings.length}</span>
+          <span className="bookings-tab-count">{bookingsPagination.total}</span>
         </button>
       </div>
 
@@ -278,22 +290,29 @@ export default function AdminServicesPage() {
                 key={f}
                 type="button"
                 className={`trainer-booking-filter-btn${bookingStatusFilter === f ? " active" : ""}`}
-                onClick={() => setBookingStatusFilter(f as "all" | ServiceBookingStatus)}
+                onClick={() => handleBookingStatusFilterChange(f as "all" | ServiceBookingStatus)}
               >
                 {f === "all" ? "All" : SVC_STATUS_LABELS[f as ServiceBookingStatus]}
               </button>
             ))}
           </div>
-          {bookingMsg && <p className="admin-products-message success">{bookingMsg}</p>}
           {bookingsLoading ? (
-            <div className="admin-products-empty">Loading bookings…</div>
-          ) : filteredBookings.length === 0 ? (
+            <div className="admin-products-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                </div>
+              ))}
+            </div>
+          ) : svcBookings.length === 0 ? (
             <div className="admin-products-empty">
               {bookingStatusFilter === "all" ? "No service bookings yet." : `No ${SVC_STATUS_LABELS[bookingStatusFilter as ServiceBookingStatus]?.toLowerCase()} bookings.`}
             </div>
           ) : (
             <div className="trainer-booking-list">
-              {filteredBookings.map((b) => {
+              {svcBookings.map((b) => {
                 const isUpdating = updatingBookingId === b._id;
                 return (
                   <article className="trainer-booking-card svc-admin-booking-card" key={b._id}>
@@ -334,6 +353,27 @@ export default function AdminServicesPage() {
               })}
             </div>
           )}
+          {bookingsPagination.totalPages > 1 ? (
+            <div className="admin-pagination" style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                disabled={!bookingsPagination.hasPrevPage}
+                onClick={() => handleBookingsPageChange(bookingsPage - 1)}
+                aria-label="Previous page"
+              >
+                <ChevronLeft aria-hidden="true" />
+              </button>
+              <span>Page {bookingsPagination.page} of {bookingsPagination.totalPages}</span>
+              <button
+                type="button"
+                disabled={!bookingsPagination.hasNextPage}
+                onClick={() => handleBookingsPageChange(bookingsPage + 1)}
+                aria-label="Next page"
+              >
+                <ChevronRight aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -352,9 +392,6 @@ export default function AdminServicesPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </form>
-
-      {message ? <p className="admin-products-message success">{message}</p> : null}
-      {error ? <p className="admin-products-message error">{error}</p> : null}
 
       {/* Create / Edit Form */}
       {isFormOpen ? (
@@ -433,9 +470,9 @@ export default function AdminServicesPage() {
               </button>
             </div>
 
-            {form.image ? (
+            {assetUrl(form.image) ? (
               <div className="admin-product-image-preview">
-                <img src={form.image} alt="" />
+                <img src={assetUrl(form.image)} alt="" />
                 <span>Current service image</span>
               </div>
             ) : null}
@@ -518,7 +555,16 @@ export default function AdminServicesPage() {
           </div>
 
           {isLoading ? (
-            <div className="admin-products-empty">Loading services...</div>
+            <div className="admin-products-empty" style={{ textAlign: "left" }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 16, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div className="skeleton skeleton-text" style={{ width: 90 }} />
+                  <div className="skeleton skeleton-text wide" style={{ flex: 1 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 100 }} />
+                  <div className="skeleton skeleton-text short" style={{ width: 72 }} />
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <div className="admin-products-empty">
               {search ? "No services match your search." : "No services yet. Create your first one."}
@@ -527,8 +573,8 @@ export default function AdminServicesPage() {
             filtered.map((s) => (
               <div className="admin-services-row" key={s._id}>
                 <div className="admin-service-cell">
-                  {s.image ? (
-                    <img src={s.image} alt={s.name} />
+                  {assetUrl(s.image) ? (
+                    <img src={assetUrl(s.image)} alt={s.name} />
                   ) : (
                     <span className="admin-product-no-image">No image</span>
                   )}

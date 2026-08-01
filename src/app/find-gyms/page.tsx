@@ -1,14 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Clock, MapPin, Navigation, Phone, Search, Star } from "lucide-react";
 import {
   fetchPublicPartnerGyms,
   normalizeGymImageUrl,
   type BackendPartnerGym,
 } from "@/features/partner-gyms";
+import {
+  googleMapsApiKey,
+  loadGoogleMaps,
+  MAPS_AUTH_FAILURE_MESSAGE,
+  nepalCenter,
+  type GoogleMapInstance,
+  type GoogleMarkerInstance,
+} from "@/lib/google-maps";
+import { useMapsAuthFailure } from "@/hooks";
 
-const fallbackImages = ["/home-hero-gym.png", "/assets/ctabanner.png"];
+const fallbackImages = ["/home-hero-gym.png", "/ctabanner.png"];
 
 const parsePin = (pin?: string) => {
   if (!pin) return null;
@@ -35,6 +44,13 @@ export default function FindGymsPage() {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapsAuthFailed = useMapsAuthFailure();
+  const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<GoogleMapInstance | null>(null);
+  const markersRef = useRef<GoogleMarkerInstance[]>([]);
+  const markerFactoryRef = useRef<typeof google.maps.Marker | null>(null);
+  const boundsFactoryRef = useRef<typeof google.maps.LatLngBounds | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -62,6 +78,70 @@ export default function FindGymsPage() {
       isCurrent = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!googleMapsApiKey || !mapElementRef.current) return;
+    let isMounted = true;
+
+    loadGoogleMaps(googleMapsApiKey)
+      .then(({ maps, core, marker }) => {
+        if (!isMounted || !mapElementRef.current) return;
+
+        // Constructors come from the resolved libraries; window.google is not populated
+        // until the async bootstrap finishes.
+        const map = new maps.Map(mapElementRef.current, {
+          center: nepalCenter,
+          zoom: 7,
+          mapTypeControl: false,
+          streetViewControl: false,
+        });
+
+        mapRef.current = map;
+        markerFactoryRef.current = marker.Marker;
+        boundsFactoryRef.current = core.LatLngBounds;
+        setMapLoaded(true);
+      })
+      .catch(() => {
+        // placeholder stays visible on error
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const MarkerCtor = markerFactoryRef.current;
+    const BoundsCtor = boundsFactoryRef.current;
+    if (!mapRef.current || !MarkerCtor || !BoundsCtor) return;
+
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+
+    const bounds = new BoundsCtor();
+    let hasMarkers = false;
+
+    gyms.forEach((gym) => {
+      const pin = parsePin(gym.pin);
+      if (!pin) return;
+
+      const marker = new MarkerCtor({
+        map: mapRef.current!,
+        position: pin,
+        title: gym.name,
+      });
+
+      markersRef.current.push(marker);
+      bounds.extend(pin);
+      hasMarkers = true;
+    });
+
+    if (hasMarkers) {
+      mapRef.current.fitBounds(bounds);
+    }
+    // mapLoaded gates this on the constructors being captured, so markers are drawn for
+    // gyms that arrived before the map finished loading.
+  }, [gyms, mapLoaded]);
 
   const visibleGyms = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -95,21 +175,25 @@ export default function FindGymsPage() {
       </header>
 
       <div className="public-gyms-layout">
-        <section className="public-gyms-map" aria-label="Partner gym map preview">
-          <div className="public-map-marker one">
-            <MapPin aria-hidden="true" />
-          </div>
-          <div className="public-map-marker two">
-            <MapPin aria-hidden="true" />
-          </div>
-          <div className="public-map-marker three">
-            <MapPin aria-hidden="true" />
-          </div>
-          <div className="public-gyms-map-center">
-            <MapPin aria-hidden="true" />
-            <strong>Interactive map</strong>
-            <span>{visibleGyms.length} locations near you</span>
-          </div>
+        <section className="public-gyms-map" aria-label="Partner gym locations map">
+          {mapsAuthFailed ? (
+            <p className="public-gyms-map-warning" role="status">
+              <MapPin aria-hidden="true" />
+              {MAPS_AUTH_FAILURE_MESSAGE}
+            </p>
+          ) : null}
+          <div ref={mapElementRef} className="public-gyms-map-inner" />
+          {!mapLoaded ? (
+            <div className="public-gyms-map-center">
+              <MapPin aria-hidden="true" />
+              <strong>Interactive map</strong>
+              <span>
+                {googleMapsApiKey
+                  ? "Loading map…"
+                  : "Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable map"}
+              </span>
+            </div>
+          ) : null}
         </section>
 
         <section className="public-gym-list" aria-label="Partner gyms">
