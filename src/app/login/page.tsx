@@ -24,12 +24,14 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login(formData, rememberMe);
+      const loggedInUser = await login(formData, rememberMe);
       const redirectTo =
         typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("redirect")
           : null;
-      router.push(redirectTo || "/user/dashboard");
+      const defaultDash =
+        loggedInUser.role === "trainer" ? "/trainer/dashboard" : "/user/dashboard";
+      router.push(redirectTo || defaultDash);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in. Please try again.");
     } finally {

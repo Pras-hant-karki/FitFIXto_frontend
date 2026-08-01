@@ -3,14 +3,17 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Heart, Search, Star } from "lucide-react";
+import { CheckCircle2, ChevronRight, Heart, Search, Star } from "lucide-react";
 import {
   BackendProduct,
   fetchProducts,
   formatCategory,
+  getCategoryOption,
   getOriginalPrice,
   getProductImage,
+  productCategoryTree,
 } from "@/features/products";
+import { DiscountData, DiscountProduct, fetchPublicDiscounts } from "@/features/discounts";
 import { AddToCartButton } from "@/features/cart";
 import { useAuth, useWishlist } from "@/contexts";
 
@@ -150,13 +153,19 @@ const ProductCard: React.FC<{
   isSelectedForCompare?: boolean;
   isCompareSelectionDisabled?: boolean;
   onCompareSelect?: (productId: string) => void;
-}> = ({ product, compareMode = false, isSelectedForCompare = false, isCompareSelectionDisabled = false, onCompareSelect }) => {
+  isFlashSale?: boolean;
+  flashSalePercent?: number;
+  isBestPrice?: boolean;
+}> = ({ product, compareMode = false, isSelectedForCompare = false, isCompareSelectionDisabled = false, onCompareSelect, isFlashSale = false, flashSalePercent = 0, isBestPrice = false }) => {
   const discount = product.discountPercentage || 0;
   const originalPrice = getOriginalPrice(product);
+  const effectivePrice = isFlashSale && flashSalePercent > 0 ? Math.round(product.price * (1 - flashSalePercent / 100)) : product.price;
+  const showOriginalPrice = isFlashSale && flashSalePercent > 0 ? product.price : originalPrice;
   const { isAuthenticated } = useAuth();
   const { wishlistProductIds, toggleWishlistItem } = useWishlist();
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
   const isWishlisted = wishlistProductIds.has(product._id);
+  const isOutOfStock = product.stock <= 0;
 
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
@@ -219,13 +228,22 @@ const ProductCard: React.FC<{
             )}
           </Link>
         )}
-        {product.verifiedBadge && (
-          <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
-            <CheckCircle2 className="w-3 h-3" />
-            <span>VERIFIED</span>
-          </div>
-        )}
-        {discount > 0 ? <div className="absolute top-3 left-24 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div> : null}
+        <div className="absolute top-3 left-3 flex flex-col gap-1">
+          {product.verifiedBadge && (
+            <div className="flex items-center space-x-1 bg-black text-white text-xs font-bold px-2 py-1 rounded">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>VERIFIED</span>
+            </div>
+          )}
+          {isFlashSale && flashSalePercent > 0 && (
+            <div className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+              SALE -{flashSalePercent}%
+            </div>
+          )}
+          {!isFlashSale && discount > 0 && (
+            <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">-{discount}%</div>
+          )}
+        </div>
         {compareMode ? (
           <span className="shop-compare-check">{isSelectedForCompare ? "Selected" : "Pick"}</span>
         ) : (
@@ -244,7 +262,7 @@ const ProductCard: React.FC<{
 
       <div className="p-4">
         <div className="text-xs text-gray-500 mb-1">
-          {formatCategory(product.category)} - {product.brand || "FitFIXto"}
+          {[formatCategory(product.category), product.subcategory, product.brand || "FitFIXto"].filter(Boolean).join(" - ")}
         </div>
         {compareMode ? (
           <strong className="block font-semibold text-gray-900 mb-2 leading-tight">{product.name}</strong>
@@ -258,16 +276,33 @@ const ProductCard: React.FC<{
           <span className="text-sm font-semibold text-gray-900">{product.averageRating.toFixed(1)}</span>
           <span className="text-sm text-gray-500">({product.ratingCount})</span>
         </div>
-        <div className="flex items-baseline space-x-2 mb-4">
-          <span className="text-xl font-bold text-gray-900">Npr {product.price}</span>
-          {originalPrice ? <span className="text-sm text-gray-400 line-through">Npr {originalPrice}</span> : null}
+        <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mb-4">
+          <span className="text-xl font-bold text-gray-900">Npr {effectivePrice}</span>
+          {showOriginalPrice && showOriginalPrice !== effectivePrice ? <span className="text-sm text-gray-400 line-through">Npr {showOriginalPrice}</span> : null}
+          {isBestPrice && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded">Best Price</span>}
         </div>
-        <AddToCartButton
-          productId={product._id}
-          stock={product.stock}
-          stopPropagation={compareMode}
-          className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
-        />
+        {isOutOfStock ? <div className="mb-3 text-sm font-black text-orange-600">Out of stock</div> : null}
+        {isOutOfStock ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              if (compareMode) event.stopPropagation();
+              handleWishlistToggle();
+            }}
+            disabled={isUpdatingWishlist}
+            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium disabled:opacity-60"
+          >
+            <Heart className={`w-4 h-4 ${isWishlisted ? "fill-white text-white" : ""}`} />
+            <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+          </button>
+        ) : (
+          <AddToCartButton
+            productId={product._id}
+            stock={product.stock}
+            stopPropagation={compareMode}
+            className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors font-medium"
+          />
+        )}
       </div>
     </div>
   );
@@ -309,14 +344,17 @@ const ShopContent: React.FC = () => {
   const [pagination, setPagination] = useState<ProductPagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [discounts, setDiscounts] = useState<DiscountData | null>(null);
 
   const selectedCategories = useMemo(() => parseListParam(searchParams.get("category")), [searchParamString]);
+  const selectedSubcategories = useMemo(() => parseListParam(searchParams.get("subcategory")), [searchParamString]);
   const selectedBrands = useMemo(() => parseListParam(searchParams.get("brand")), [searchParamString]);
   const isComparePickMode = searchParams.get("compare") === "1";
   const compareSlotCount = parseCompareSlotCount(searchParams.get("slots"));
   const selectedCompareIds = useMemo(() => parseListParam(searchParams.get("ids")).slice(0, compareSlotCount), [searchParamString, compareSlotCount]);
   const searchQuery = searchParams.get("search") || "";
   const [searchInput, setSearchInput] = useState(searchQuery);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const parsedMinPrice = Number(searchParams.get("minPrice") || 0);
   const minPrice = Number.isFinite(parsedMinPrice) ? parsedMinPrice : 0;
   const selectedMaxPrice = searchParams.get("maxPrice");
@@ -329,12 +367,12 @@ const ShopContent: React.FC = () => {
 
   useEffect(() => {
     const loadFacets = async () => {
-      try {
-        const data = await fetchProducts({ limit: 100, sortBy: "createdAt", order: "desc" });
-        setFacetProducts(data?.products || []);
-      } catch {
-        setFacetProducts([]);
-      }
+      const [productsResult, discountsResult] = await Promise.allSettled([
+        fetchProducts({ limit: 100, sortBy: "createdAt", order: "desc" }),
+        fetchPublicDiscounts(),
+      ]);
+      setFacetProducts(productsResult.status === "fulfilled" ? productsResult.value?.products ?? [] : []);
+      if (discountsResult.status === "fulfilled") setDiscounts(discountsResult.value);
     };
 
     loadFacets();
@@ -348,8 +386,37 @@ const ShopContent: React.FC = () => {
   const parsedMaxPrice = Number(selectedMaxPrice);
   const priceRange: [number, number] = [minPrice, selectedMaxPrice && Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : maxPrice];
 
-  const categories = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.category))).filter(Boolean), [facetProducts]);
+  const categories = useMemo(() => {
+    const optionMap = new Map<string, { label: string; value: string; subcategories: string[] }>();
+
+    productCategoryTree.forEach((category) => optionMap.set(category.value, category));
+    facetProducts.forEach((product) => {
+      if (!product.category) return;
+      const existing = optionMap.get(product.category);
+      const subcategories = new Set(existing?.subcategories || []);
+      if (product.subcategory) subcategories.add(product.subcategory);
+      optionMap.set(product.category, {
+        label: formatCategory(product.category),
+        value: product.category,
+        subcategories: Array.from(subcategories),
+      });
+    });
+
+    return Array.from(optionMap.values());
+  }, [facetProducts]);
   const brands = useMemo(() => Array.from(new Set(facetProducts.map((product) => product.brand).filter(Boolean))) as string[], [facetProducts]);
+
+  const flashSalePercent = discounts?.flashSale?.isActive ? discounts.flashSale.discountPercentage : 0;
+  const flashSaleActiveIds = useMemo<Set<string> | null>(() => {
+    const fs = discounts?.flashSale;
+    if (!fs?.isActive) return null;
+    const ids = (fs.productIds as Array<string | DiscountProduct>).map((p) => (typeof p === "string" ? p : p._id));
+    return ids.length > 0 ? new Set(ids) : null;
+  }, [discounts]);
+  const bestPriceIds = useMemo<Set<string>>(
+    () => new Set((discounts?.bestPriceProductIds ?? []).map((p) => p._id)),
+    [discounts]
+  );
 
   const updateUrl = useCallback((updates: Record<string, string | null>, mode: "push" | "replace" = "push") => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -386,10 +453,31 @@ const ShopContent: React.FC = () => {
     return () => window.clearTimeout(timeoutId);
   }, [searchInput, searchQuery, updateUrl]);
 
-  const toggleFilter = (key: "category" | "brand", value: string) => {
-    const current = key === "category" ? selectedCategories : selectedBrands;
+  const toggleFilter = (key: "category" | "subcategory" | "brand", value: string) => {
+    const current = key === "category" ? selectedCategories : key === "subcategory" ? selectedSubcategories : selectedBrands;
     const updated = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
-    updateUrl({ [key]: updated.length ? updated.join(",") : null, page: null });
+    const nextUpdates: Record<string, string | null> = { [key]: updated.length ? updated.join(",") : null, page: null };
+
+    if (key === "category") {
+      setExpandedCategories((currentExpanded) => new Set(currentExpanded).add(value));
+      const subcategoriesForCategory = getCategoryOption(value)?.subcategories || [];
+      const nextSubcategories = selectedSubcategories.filter((subcategory) => !subcategoriesForCategory.includes(subcategory));
+      nextUpdates.subcategory = nextSubcategories.length ? nextSubcategories.join(",") : null;
+    }
+
+    updateUrl(nextUpdates);
+  };
+
+  const toggleCategoryBranch = (category: string) => {
+    setExpandedCategories((current) => {
+      const next = new Set(current);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
   };
 
   const updatePriceRange = (range: [number, number]) => {
@@ -436,6 +524,7 @@ const ShopContent: React.FC = () => {
         };
 
         if (selectedCategories.length) params.category = selectedCategories.join(",");
+        if (selectedSubcategories.length) params.subcategory = selectedSubcategories.join(",");
         if (selectedBrands.length) params.brand = selectedBrands.join(",");
         if (searchQuery.trim()) params.search = searchQuery.trim();
         if (priceRange[0] > 0) params.minPrice = priceRange[0];
@@ -453,7 +542,7 @@ const ShopContent: React.FC = () => {
     };
 
     loadProducts();
-  }, [searchParamString, selectedCategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1], currentPage]);
+  }, [searchParamString, selectedCategories, selectedSubcategories, selectedBrands, searchQuery, selectedMaxPrice, priceRange[0], priceRange[1], currentPage]);
 
   const totalProducts = pagination?.total ?? products.length;
   const totalPages = pagination?.totalPages ?? 1;
@@ -516,9 +605,44 @@ const ShopContent: React.FC = () => {
                 <h3 className="font-bold text-gray-900 mb-4">Category</h3>
                 <div className="space-y-3">
                   {categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <FilterCheckbox key={cat} label={formatCategory(cat)} checked={selectedCategories.includes(cat)} onChange={() => toggleFilter("category", cat)} />
-                    ))
+                    categories.map((category) => {
+                      const isExpanded =
+                        expandedCategories.has(category.value) ||
+                        selectedCategories.includes(category.value) ||
+                        category.subcategories.some((subcategory) => selectedSubcategories.includes(subcategory));
+
+                      return (
+                        <div className="shop-category-branch" key={category.value}>
+                          <div className="shop-category-row">
+                            <button
+                              type="button"
+                              className={isExpanded ? "expanded" : undefined}
+                              onClick={() => toggleCategoryBranch(category.value)}
+                              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${category.label}`}
+                            >
+                              <ChevronRight aria-hidden="true" />
+                            </button>
+                            <FilterCheckbox
+                              label={category.label}
+                              checked={selectedCategories.includes(category.value)}
+                              onChange={() => toggleFilter("category", category.value)}
+                            />
+                          </div>
+                          {isExpanded && category.subcategories.length ? (
+                            <div className="shop-subcategory-list">
+                              {category.subcategories.map((subcategory) => (
+                                <FilterCheckbox
+                                  key={`${category.value}-${subcategory}`}
+                                  label={subcategory}
+                                  checked={selectedSubcategories.includes(subcategory)}
+                                  onChange={() => toggleFilter("subcategory", subcategory)}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
                   ) : (
                     <p className="text-sm text-gray-500">No categories yet.</p>
                   )}
@@ -559,6 +683,9 @@ const ShopContent: React.FC = () => {
                     isSelectedForCompare={selectedCompareIds.includes(product._id)}
                     isCompareSelectionDisabled={!selectedCompareIds.includes(product._id) && selectedCompareIds.length >= compareSlotCount}
                     onCompareSelect={toggleCompareProduct}
+                    isFlashSale={flashSalePercent > 0 && (flashSaleActiveIds === null || flashSaleActiveIds.has(product._id))}
+                    flashSalePercent={flashSalePercent}
+                    isBestPrice={bestPriceIds.has(product._id)}
                   />
                 ))}
               </div>

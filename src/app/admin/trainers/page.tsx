@@ -338,6 +338,16 @@ export default function AdminTrainersPage() {
         <div className="admin-trainer-certs">
           {application.certifications.length ? application.certifications.join(" · ") : "No certifications listed"}
         </div>
+        {application.certificationFiles?.length ? (
+          <div className="admin-trainer-application-files">
+            <strong>Certification files</strong>
+            {application.certificationFiles.map((file, index) => (
+              <a href={normalizeTrainerPhotoUrl(file)} target="_blank" rel="noreferrer" key={file}>
+                View certificate {index + 1}
+              </a>
+            ))}
+          </div>
+        ) : null}
         <div className="admin-trainer-actions application-actions">
           {application.status === "pending" ? (
             <>

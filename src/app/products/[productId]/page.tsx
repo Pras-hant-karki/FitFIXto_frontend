@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Heart, Star } from "lucide-react";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, CheckCircle2, Heart, RotateCcw, ShieldCheck, Star, Truck } from "lucide-react";
 import { AddToCartButton } from "@/features/cart";
+import { useAuth, useWishlist } from "@/contexts";
 import {
   BackendProduct,
   fetchProduct,
@@ -13,17 +14,23 @@ import {
   getOriginalPrice,
   getProductImage,
 } from "@/features/products";
+import { BackendReview, fetchReviews } from "@/features/reviews";
 
 const formatMoney = (value: number) => `Npr ${Math.round(value).toLocaleString()}`;
 
 const ProductTile = ({ product }: { product: BackendProduct }) => (
   <Link href={`/products/${product._id}`} className="product-detail-related-card">
     <div>
+      {product.verifiedBadge ? <span className="product-detail-related-badge">Verified</span> : null}
       {getProductImage(product) ? <img src={getProductImage(product)} alt={product.name} /> : <span>No image</span>}
     </div>
-    <strong>{product.name}</strong>
     <small>
       {formatCategory(product.category)} - {product.brand || "FitFIXto"}
+    </small>
+    <strong>{product.name}</strong>
+    <small className="product-detail-related-rating">
+      <Star aria-hidden="true" />
+      {product.averageRating.toFixed(1)} ({product.ratingCount})
     </small>
     <b>{formatMoney(product.price)}</b>
   </Link>
@@ -74,12 +81,19 @@ const ProductDetailsSkeleton = () => (
 
 export default function ProductDetailsPage() {
   const params = useParams<{ productId: string }>();
+  const router = useRouter();
+  const pathname = usePathname();
   const productId = params.productId;
   const [product, setProduct] = useState<BackendProduct | null>(null);
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<BackendProduct[]>([]);
   const [activeImage, setActiveImage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const [activeTab, setActiveTab] = useState<"reviews" | "faq">("reviews");
+  const { isAuthenticated } = useAuth();
+  const { wishlistProductIds, toggleWishlistItem } = useWishlist();
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -97,12 +111,13 @@ export default function ProductDetailsPage() {
 
         const related = await fetchProducts({
           category: nextProduct.category,
-          isActive: true,
           limit: 4,
           sortBy: "createdAt",
           order: "desc",
         });
-        setRelatedProducts((related?.products || []).filter((item) => item._id !== nextProduct._id).slice(0, 3));
+        const reviewData = await fetchReviews({ productId: nextProduct._id, limit: 5 });
+        setRelatedProducts((related?.products || []).filter((item) => item._id !== nextProduct._id).slice(0, 4));
+        setReviews(reviewData?.reviews || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load product.");
       } finally {
@@ -118,18 +133,60 @@ export default function ProductDetailsPage() {
   const galleryImages = useMemo(() => product?.images.filter(Boolean) || [], [product]);
   const originalPrice = product ? getOriginalPrice(product) : null;
   const dimensions = product?.dimensions;
+  const isWishlisted = product ? wishlistProductIds.has(product._id) : false;
+  const isOutOfStock = product ? product.stock <= 0 : false;
+  const handleWishlistToggle = async () => {
+    if (!product) return;
+
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    setIsUpdatingWishlist(true);
+
+    try {
+      await toggleWishlistItem(product._id);
+    } finally {
+      setIsUpdatingWishlist(false);
+    }
+  };
+  const dimensionsLabel =
+    dimensions?.length || dimensions?.width || dimensions?.height
+      ? `${dimensions.length || "-"}" x ${dimensions.width || "-"}" x ${dimensions.height || "-"}"`
+      : "Not specified";
+  const weightLabel = product?.weight ? `${product.weight} ${product.weightUnit || "kg"}` : "Not specified";
+  const warrantyLabel =
+    product?.warrantyMonths !== undefined && product.warrantyMonths > 0
+      ? `${product.warrantyMonths} month${product.warrantyMonths === 1 ? "" : "s"}`
+      : "Not specified";
   const specs = product
     ? [
+        { label: "Weight", value: weightLabel },
         { label: "Category", value: formatCategory(product.category) },
+        { label: "Subcategory", value: product.subcategory || "Not assigned" },
         { label: "Brand", value: product.brand || "FitFIXto" },
         { label: "SKU", value: product.sku || "Not assigned" },
-        { label: "Weight", value: product.weight ? `${product.weight} kg` : "Not specified" },
+        { label: "Warranty", value: warrantyLabel },
+        { label: "Dimensions", value: dimensionsLabel },
+      ]
+    : [];
+  const faqItems = product
+    ? [
         {
-          label: "Dimensions",
-          value:
-            dimensions?.length || dimensions?.width || dimensions?.height
-              ? `${dimensions.length || "-"} x ${dimensions.width || "-"} x ${dimensions.height || "-"}`
-              : "Not specified",
+          question: "What's included?",
+          answer: `${product.name} ships with the product package and any accessories confirmed by the FitFIXto admin record.`,
+        },
+        {
+          question: "Do you ship inside Nepal?",
+          answer: "Yes. Available delivery methods and final shipping costs are shown during checkout.",
+        },
+        {
+          question: "What's the warranty?",
+          answer:
+            product.warrantyMonths !== undefined && product.warrantyMonths > 0
+              ? `${product.name} currently has ${warrantyLabel} warranty support, subject to product condition, order record, and supplier policy.`
+              : "Warranty has not been specified for this product yet. FitFIXto support will confirm the policy before after-sales service.",
         },
       ]
     : [];
@@ -186,7 +243,7 @@ export default function ProductDetailsPage() {
             ) : null}
             {product.isFeatured ? <span>Featured</span> : null}
           </div>
-          <p>{formatCategory(product.category)}</p>
+          <p>{[formatCategory(product.category), product.subcategory].filter(Boolean).join(" - ")}</p>
           <h1>{product.name}</h1>
           <div className="product-detail-rating">
             <Star aria-hidden="true" />
@@ -201,25 +258,116 @@ export default function ProductDetailsPage() {
             {product.stock > 0 ? `${product.stock} pc in stock` : "Out of stock"}
           </div>
           <p className="product-detail-description">{product.description}</p>
-          <div className="product-detail-actions">
-            <AddToCartButton productId={product._id} stock={product.stock} />
-            <button type="button">
+          <div className="product-detail-quality">
+            <ShieldCheck aria-hidden="true" />
+            <span>{product.verifiedBadge ? "Quality guaranteed by FitFIXto" : "Quality review pending"}</span>
+          </div>
+          <div className={`product-detail-actions${isOutOfStock ? " wishlist-only" : ""}`}>
+            {isOutOfStock ? null : <AddToCartButton productId={product._id} stock={product.stock} />}
+            <button
+              type="button"
+              className={isWishlisted ? "active" : undefined}
+              onClick={handleWishlistToggle}
+              disabled={isUpdatingWishlist}
+              aria-pressed={isWishlisted}
+            >
               <Heart aria-hidden="true" />
+              {isOutOfStock ? <span>{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span> : null}
             </button>
           </div>
+          <div className="product-detail-benefits">
+            <article>
+              <Truck aria-hidden="true" />
+              <span>Free Shipping</span>
+            </article>
+            <article>
+              <ShieldCheck aria-hidden="true" />
+              <span>Warranty</span>
+            </article>
+            <article>
+              <RotateCcw aria-hidden="true" />
+              <span>10-Day Returns</span>
+            </article>
+          </div>
+
+          <section className="product-detail-spec-table" aria-label="Product specifications">
+            <h2>Specifications</h2>
+            <div>
+              {specs.map((spec) => (
+                <article key={spec.label}>
+                  <span>{spec.label}</span>
+                  <strong>{spec.value}</strong>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
       </section>
 
-      <section className="product-detail-specs">
-        <h2>Specifications</h2>
-        <div>
-          {specs.map((spec) => (
-            <article key={spec.label}>
-              <span>{spec.label}</span>
-              <strong>{spec.value}</strong>
-            </article>
-          ))}
+      <section className="product-detail-reviews">
+        <div className="product-detail-tabs" role="tablist" aria-label="Product information tabs">
+          <button
+            type="button"
+            className={activeTab === "reviews" ? "active" : undefined}
+            onClick={() => setActiveTab("reviews")}
+          >
+            Reviews ({product.ratingCount})
+          </button>
+          <button type="button" className={activeTab === "faq" ? "active" : undefined} onClick={() => setActiveTab("faq")}>
+            FAQ
+          </button>
         </div>
+
+        {activeTab === "reviews" ? (
+          <>
+            <div className="product-detail-review-summary">
+              <h2>Customer Reviews</h2>
+              <span>
+                {product.averageRating.toFixed(1)} average from {product.ratingCount} review{product.ratingCount === 1 ? "" : "s"}
+              </span>
+            </div>
+
+            {reviews.length ? (
+              <div className="product-detail-review-list">
+                {reviews.map((review) => {
+                  const reviewer =
+                    typeof review.userId === "string"
+                      ? "Customer"
+                      : `${review.userId.firstName} ${review.userId.lastName}`.trim() || review.userId.email.split("@")[0];
+
+                  return (
+                    <article className="product-detail-review-card" key={review._id}>
+                      <div>
+                        <strong>{reviewer}</strong>
+                        <span>{new Intl.DateTimeFormat("en-CA").format(new Date(review.createdAt))}</span>
+                      </div>
+                      <div className="product-detail-review-stars" aria-label={`${review.rating} out of 5 stars`}>
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <Star className={rating <= review.rating ? "active" : undefined} aria-hidden="true" key={rating} />
+                        ))}
+                      </div>
+                      {review.comment ? <p>{review.comment}</p> : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="product-detail-empty">
+                <strong>No reviews yet.</strong>
+                <span>Reviews from delivered customer orders will appear here.</span>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="product-detail-faq-list">
+            {faqItems.map((item) => (
+              <article key={item.question}>
+                <strong>{item.question}</strong>
+                <p>{item.answer}</p>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="product-detail-related">

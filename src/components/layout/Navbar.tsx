@@ -87,11 +87,11 @@ export function Navbar() {
       </nav>
 
       <div className="navbar-actions">
-        <IconButton label="Search">
+        <Link className="nav-icon-button" href="/search" aria-label="Search">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
           </svg>
-        </IconButton>
+        </Link>
         <Link className="nav-icon-button" href="/compare" aria-label="Compare">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 7h9.5A2.5 2.5 0 0 1 19 9.5V17" />
@@ -129,7 +129,11 @@ export function Navbar() {
             <div className="account-dropdown" role="menu">
               {isAuthenticated ? (
                 <>
-                  <Link href="/user/dashboard" role="menuitem" onClick={() => setIsAccountMenuOpen(false)}>
+                  <Link
+                    href={user?.role === "trainer" ? "/trainer/dashboard" : "/user/dashboard"}
+                    role="menuitem"
+                    onClick={() => setIsAccountMenuOpen(false)}
+                  >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M3 13h8V3H3zM13 21h8V11h-8zM13 9h8V3h-8zM3 21h8v-6H3z" />
                     </svg>

@@ -54,12 +54,27 @@ export const API_ENDPOINTS = {
     remove: '/wishlist',
   },
 
+  // Reviews
+  reviews: {
+    list: '/reviews',
+    featured: '/reviews/featured',
+    my: '/reviews/my',
+    admin: '/reviews/admin',
+    create: '/reviews',
+    detail: (id: string) => `/reviews/${id}`,
+    moderate: (id: string) => `/reviews/admin/${id}/moderation`,
+    feature: (id: string) => `/reviews/admin/${id}/feature`,
+  },
+
   // Orders
   orders: {
     myOrders: '/orders/my-orders',
     adminAll: '/orders/admin/all',
     create: '/orders',
+    detail: (id: string) => `/orders/${id}`,
+    track: (id: string) => `/orders/${id}/track`,
     cancel: (id: string) => `/orders/${id}/cancel`,
+    updateStatus: (id: string) => `/orders/${id}/status`,
   },
 
   // User
@@ -70,8 +85,19 @@ export const API_ENDPOINTS = {
   // Trainers
   trainers: {
     list: '/trainers',
+    publicList: '/trainers/public',
+    publicDetail: (id: string) => `/trainers/public/${id}`,
+    publicPrograms: (id: string) => `/trainers/public/${id}/programs`,
+    publicAvailability: (id: string) => `/trainers/public/${id}/availability`,
     detail: (id: string) => `/trainers/${id}`,
+    myPrograms: '/trainers/programs/me',
+    programs: '/trainers/programs',
+    programDetail: (id: string) => `/trainers/programs/${id}`,
+    myAvailability: '/trainers/availability/me',
+    availability: '/trainers/availability',
+    availabilityDetail: (id: string) => `/trainers/availability/${id}`,
     applications: '/trainers/applications',
+    uploadApplicationFiles: '/trainers/applications/upload-files',
     approveApplication: (id: string) => `/trainers/applications/${id}/approve`,
     rejectApplication: (id: string) => `/trainers/applications/${id}/reject`,
     uploadPhoto: '/trainers/upload-photo',
@@ -84,6 +110,52 @@ export const API_ENDPOINTS = {
     promotionalBanner: '/homepage/promotional-banner',
     sectionOrder: '/homepage/section-order',
     uploadImage: '/homepage/upload-image',
+  },
+
+  partnerGyms: {
+    list: '/partner-gyms',
+    publicList: '/partner-gyms/public',
+    detail: (id: string) => `/partner-gyms/${id}`,
+    uploadImages: '/partner-gyms/upload-images',
+  },
+
+  // Discounts & Promotions
+  discounts: {
+    public: '/discounts/public',
+    admin: '/discounts',
+    flashSale: '/discounts/flash-sale',
+    bestPrice: '/discounts/best-price',
+    refundGuarantee: '/discounts/refund-guarantee',
+    bundles: '/discounts/bundles',
+    bundleDetail: (id: string) => `/discounts/bundles/${id}`,
+  },
+
+  // Services
+  services: {
+    list: '/services',
+    publicList: '/services/public',
+    create: '/services',
+    detail: (id: string) => `/services/${id}`,
+    uploadImage: '/services/upload-image',
+  },
+
+  // Service bookings
+  serviceBookings: {
+    create: '/service-bookings',
+    my: '/service-bookings/my',
+    adminAll: '/service-bookings',
+    updateStatus: (id: string) => `/service-bookings/${id}/status`,
+    cancel: (id: string) => `/service-bookings/${id}/cancel`,
+  },
+
+  // Bookings (trainer-client sessions)
+  bookings: {
+    create: '/bookings',
+    myClient: '/bookings/my',
+    myTrainer: '/bookings/trainer',
+    myClients: '/bookings/trainer/clients',
+    updateStatus: (id: string) => `/bookings/${id}/status`,
+    cancel: (id: string) => `/bookings/${id}/cancel`,
   },
 
 } as const;

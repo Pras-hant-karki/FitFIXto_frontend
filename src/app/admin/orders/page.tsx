@@ -2,16 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Search, X } from "lucide-react";
-import { BackendOrder, fetchAdminOrders } from "@/features/orders";
+import { AdminOrderStatusUpdate, BackendOrder, fetchAdminOrders, updateAdminOrderStatus } from "@/features/orders";
 
-type OrderTab = "all" | "pending" | "processing" | "delivered" | "cancelled";
+type OrderTab = "all" | "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 
 const tabs: Array<{ key: OrderTab; label: string }> = [
   { key: "all", label: "All" },
-  { key: "pending", label: "Pending" },
+  { key: "pending", label: "Order Placed" },
   { key: "processing", label: "Processing" },
+  { key: "shipped", label: "In Transit" },
   { key: "delivered", label: "Delivered" },
   { key: "cancelled", label: "Cancelled" },
+];
+
+const adminStatusOptions: Array<{ value: AdminOrderStatusUpdate; label: string }> = [
+  { value: "confirmed", label: "Processing" },
+  { value: "shipped", label: "In Transit" },
+  { value: "delivered", label: "Delivered" },
 ];
 
 const getCustomer = (order: BackendOrder) => {
@@ -26,11 +33,29 @@ const getCustomer = (order: BackendOrder) => {
 };
 
 const getDisplayStatus = (status: string): OrderTab | "returned" => {
-  if (status === "confirmed" || status === "shipped") return "processing";
+  if (status === "confirmed") return "processing";
+  if (status === "shipped") return "shipped";
   if (status === "delivered") return "delivered";
   if (status === "cancelled") return "cancelled";
   if (status === "returned") return "returned";
   return "pending";
+};
+
+const getStatusLabel = (status: string) => {
+  if (status === "pending") return "Order Placed";
+  if (status === "confirmed") return "Processing";
+  if (status === "shipped") return "In Transit";
+  if (status === "delivered") return "Delivered";
+  if (status === "cancelled") return "Cancelled";
+  if (status === "returned") return "Returned";
+  return status.replace(/_/g, " ");
+};
+
+const getAvailableStatusUpdates = (status: string): AdminOrderStatusUpdate[] => {
+  if (status === "pending") return ["confirmed"];
+  if (status === "confirmed") return ["shipped"];
+  if (status === "shipped") return ["delivered"];
+  return [];
 };
 
 const formatOrderId = (id: string, index: number) => {
@@ -45,13 +70,24 @@ const formatDate = (date: string) =>
     day: "2-digit",
   }).format(new Date(date));
 
+const formatCustomerEmail = (email: string) => {
+  if (email.length <= 22) return email;
+
+  const [localPart] = email.split("@");
+  if (!localPart) return email;
+
+  return `${localPart.slice(0, 24)}@...........`;
+};
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [selectedTab, setSelectedTab] = useState<OrderTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<BackendOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [error, setError] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -76,6 +112,7 @@ export default function AdminOrdersPage() {
       all: orders.length,
       pending: 0,
       processing: 0,
+      shipped: 0,
       delivered: 0,
       cancelled: 0,
     };
@@ -107,6 +144,27 @@ export default function AdminOrdersPage() {
       return matchesTab && matchesSearch;
     });
   }, [orders, searchQuery, selectedTab]);
+
+  const handleStatusUpdate = async (order: BackendOrder, status: AdminOrderStatusUpdate) => {
+    setError("");
+    setStatusMessage("");
+    setUpdatingOrderId(order._id);
+
+    try {
+      const updatedOrder = await updateAdminOrderStatus(order._id, status);
+
+      if (updatedOrder) {
+        setOrders((current) => current.map((item) => (item._id === updatedOrder._id ? updatedOrder : item)));
+        setSelectedOrder((current) => (current?._id === updatedOrder._id ? updatedOrder : current));
+      }
+
+      setStatusMessage(`Order ${formatOrderId(order._id, 0)} moved to ${getStatusLabel(status)}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update order status.");
+    } finally {
+      setUpdatingOrderId("");
+    }
+  };
 
   return (
     <section className="admin-orders-page">
@@ -142,6 +200,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {error ? <p className="admin-products-message error">{error}</p> : null}
+      {statusMessage ? <p className="admin-products-message success">{statusMessage}</p> : null}
 
       <div className="admin-orders-table-card">
         <div className="admin-orders-admin-table">
@@ -170,16 +229,33 @@ export default function AdminOrdersPage() {
                   <strong>{formatOrderId(order._id, index)}</strong>
                   <div className="admin-order-customer">
                     <strong>{customer.name}</strong>
-                    <span>{customer.email}</span>
+                    <span title={customer.email}>{formatCustomerEmail(customer.email)}</span>
                   </div>
                   <span>{formatDate(order.createdAt)}</span>
                   <span>{itemCount}</span>
                   <strong>Npr {order.totalAmount}</strong>
-                  <span className={`admin-status admin-status-${status}`}>{status}</span>
-                  <button type="button" className="admin-order-view-button" onClick={() => setSelectedOrder(order)}>
-                    <Eye aria-hidden="true" />
-                    View
-                  </button>
+                  <span className={`admin-status admin-status-${status}`}>{getStatusLabel(order.status)}</span>
+                  <div className="admin-order-actions">
+                    <button type="button" className="admin-order-view-button" onClick={() => setSelectedOrder(order)}>
+                      <Eye aria-hidden="true" />
+                      View
+                    </button>
+                    <select
+                      value=""
+                      onChange={(event) => handleStatusUpdate(order, event.target.value as AdminOrderStatusUpdate)}
+                      disabled={updatingOrderId === order._id || getAvailableStatusUpdates(order.status).length === 0}
+                      aria-label={`Update status for order ${formatOrderId(order._id, index)}`}
+                    >
+                      <option value="">
+                        {updatingOrderId === order._id ? "Updating..." : getAvailableStatusUpdates(order.status).length ? "Update status" : "No action"}
+                      </option>
+                      {adminStatusOptions.map((option) => (
+                        <option value={option.value} disabled={!getAvailableStatusUpdates(order.status).includes(option.value)} key={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               );
             })
@@ -209,6 +285,23 @@ export default function AdminOrdersPage() {
               <span>Total</span>
               <strong>Npr {selectedOrder.totalAmount}</strong>
             </div>
+            <label className="admin-order-detail-status">
+              <span>Update status</span>
+              <select
+                value=""
+                onChange={(event) => handleStatusUpdate(selectedOrder, event.target.value as AdminOrderStatusUpdate)}
+                disabled={updatingOrderId === selectedOrder._id || getAvailableStatusUpdates(selectedOrder.status).length === 0}
+              >
+                <option value="">
+                  {updatingOrderId === selectedOrder._id ? "Updating..." : getAvailableStatusUpdates(selectedOrder.status).length ? "Choose next status" : "No action available"}
+                </option>
+                {adminStatusOptions.map((option) => (
+                  <option value={option.value} disabled={!getAvailableStatusUpdates(selectedOrder.status).includes(option.value)} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </aside>
         </div>
       ) : null}

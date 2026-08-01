@@ -1,19 +1,38 @@
-const testimonials = [
-  {
-    name: "Bishal R.",
-    text: "Built out my entire home gym with FitFIXto. Equipment is bulletproof and the install team was top tier.",
-  },
-  {
-    name: "Priya M.",
-    text: "My trainer Aria changed how I think about training. Down 22 lbs in 5 months with zero burnout.",
-  },
-  {
-    name: "Kiran T.",
-    text: "Sauna install was clean, fast and exactly to spec. Will book again for maintenance.",
-  },
-];
+"use client";
+
+import { useEffect, useState } from "react";
+import { fetchFeaturedReviews, BackendReview } from "@/features/reviews";
+
+const starLabel = (n: number) => `${n} out of 5 stars`;
+
+const reviewerName = (review: BackendReview) => {
+  if (typeof review.userId === "string") return "Verified Customer";
+  const { firstName, lastName } = review.userId;
+  const full = `${firstName || ""} ${lastName || ""}`.trim();
+  if (!full) return "Verified Customer";
+  // Show first name + last initial for privacy: "Bishal R."
+  const parts = full.split(" ");
+  return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+};
+
+const stars = (n: number) =>
+  Array.from({ length: 5 }, (_, i) => (
+    <span key={i} className={i < n ? "star active" : "star"} aria-hidden="true">
+      &#9733;
+    </span>
+  ));
 
 export function Testimonials() {
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
+
+  useEffect(() => {
+    fetchFeaturedReviews()
+      .then(setReviews)
+      .catch(() => {});
+  }, []);
+
+  if (reviews.length === 0) return null;
+
   return (
     <section className="home-section" id="reviews">
       <div className="section-inner">
@@ -23,14 +42,14 @@ export function Testimonials() {
         </div>
 
         <div className="testimonial-grid">
-          {testimonials.map((testimonial) => (
-            <article className="testimonial-card" key={testimonial.name}>
-              <div className="stars" aria-label="5 star review">
-                &#9733;&#9733;&#9733;&#9733;&#9733;
+          {reviews.map((review) => (
+            <article className="testimonial-card" key={review._id}>
+              <div className="stars" aria-label={starLabel(review.rating)}>
+                {stars(review.rating)}
               </div>
-              <p>&quot;{testimonial.text}&quot;</p>
+              <p>&quot;{review.comment || review.title || ""}&quot;</p>
               <div>
-                <strong>{testimonial.name}</strong>
+                <strong>{reviewerName(review)}</strong>
                 <span>Verified</span>
               </div>
             </article>
